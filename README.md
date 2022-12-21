@@ -14,7 +14,7 @@ React native installation guide can be found [here](https://reactnative.dev/docs
 Also need to install yarn package manager.
 
 ```
-1. git clone git@git.cied.in:fairfood/trace-v2/frontend-mobile/fairfood-react-native.git
+1. git clone https://github.com/Fairfood/trace-app.git .
 2. cd fairfood-react-native
 3. yarn install
 4. npx react-native link
