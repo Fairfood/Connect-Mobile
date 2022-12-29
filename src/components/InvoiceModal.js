@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Modal, StyleSheet } from 'react-native';
 import FastImage from 'react-native-fast-image';
-
 import CustomLeftHeader from './CustomLeftHeader';
 import * as consts from '../services/constants';
 import I18n from '../i18n/i18n';

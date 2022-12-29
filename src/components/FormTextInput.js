@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
-
 import * as consts from '../services/constants';
 import Picker from './Picker';
 import Icon from '../icons';

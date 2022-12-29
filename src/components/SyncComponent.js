@@ -11,7 +11,6 @@ import {
 import { useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Progress from 'react-native-progress';
-
 import {
   CloseIcon,
   SyncCloseIcon,

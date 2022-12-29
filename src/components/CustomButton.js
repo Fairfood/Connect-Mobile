@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-
 import * as consts from '../services/constants';
 
 const CustomButton = ({

@@ -161,8 +161,8 @@ The rest of the commit message is then used for this.
 
 [coc]: CODE_OF_CONDUCT.md
 [dev-doc]: DEV_DOCS.md
-[github]: https://git.cied.in/fairfood/trace-v2/frontend-mobile/fairfood-react-native
+[github]: https://github.com/Fairfood/trace-app.git
 [stackoverflow]: https://stackoverflow.com/questions/tagged/HarvestCollectorApp
-[issues]: https://git.cied.in/fairfood/trace-v2/frontend-mobile/fairfood-react-native/issues
-[new_issue]: https://git.cied.in/fairfood/trace-v2/frontend-mobile/fairfood-react-native/issues/new
-[pulls]: https://git.cied.in/fairfood/trace-v2/frontend-mobile/fairfood-react-native/-/merge_requests
+[issues]: https://github.com/Fairfood/trace-app.git/issues
+[new_issue]: https://github.com/Fairfood/trace-app.git/issues/new
+[pulls]: https://github.com/Fairfood/trace-app/pulls

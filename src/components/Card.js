@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-
 import Icon from '../icons';
 import I18n from '../i18n/i18n';
 import * as consts from '../services/constants';

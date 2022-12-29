@@ -262,7 +262,6 @@ export function getCompanyDetails() {
     };
 
     const response = await CommonFetchRequest(config);
-
     if (response.success) {
       const { data } = response;
 

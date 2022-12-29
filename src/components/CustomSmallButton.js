@@ -1,6 +1,5 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
-
 import Icon from '../icons';
 import * as consts from '../services/constants';
 

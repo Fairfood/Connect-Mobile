@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-
 import I18n from '../i18n/i18n';
 import { getCustomFieldValue } from '../services/commonFunctions';
 import * as consts from '../services/constants';

@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, Dimensions, Image } from 'react-native';
-
 import I18n from '../i18n/i18n';
 import CustomButton from './CustomButton';
 import TransparentButton from './TransparentButton';

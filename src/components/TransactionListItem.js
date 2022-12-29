@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import moment from 'moment';
-
 import Icon from '../icons';
 import I18n from '../i18n/i18n';
 import Avatar from './Avatar';

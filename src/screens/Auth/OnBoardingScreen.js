@@ -11,7 +11,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import Carousel, { Pagination } from 'react-native-snap-carousel';
 import FastImage from 'react-native-fast-image';
 import AnimatedEllipsis from 'react-native-animated-ellipsis';
-
 import I18n from '../../i18n/i18n';
 import { populateDatabase } from '../../services/populateDatabase';
 import { onBoardingComplete } from '../../redux/LoginStore';
