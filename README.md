@@ -1,6 +1,6 @@
-## Harvest mobile application
+## Trace mobile application
 
-With Harvest the the brand can offer premium or special prices to the farmers in their supply chain. 
+With Trace the the brand can offer premium or special prices to the farmers in their supply chain. 
 We are trying to enable a secure legitimate way for these brands to reach the end farmers in the supply chain and distribute the premium to them.
 
 The application can do 3 major functionalities:
@@ -69,7 +69,7 @@ All the other dependecies used in this project can be found in this [confluene p
 
 ## How to use app
 
-If you want to know how harvest collector app works, you can follow the doc [here][how_it_works].
+If you want to know how Trace mobile app works, you can follow the doc [here][how_it_works].
 
 
 ## About us
