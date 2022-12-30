@@ -4,7 +4,7 @@
 
 # Environments
 
-Harvest collecter application supports multi environments: 
+Trace mobile application supports multi environments: 
 
 - **Production**
 - **Development**
