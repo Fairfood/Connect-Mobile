@@ -23,7 +23,7 @@ The app therefore:
   
 Trace is developed by Fairfood International (fairfood.org) which is piloting the use of this tool in Indoenesia and Sierra Leone.  Read more about [these projects here][resources]
 
-Powered by: [React Native][react_native_setup] and React
+Powered by: [React Native][react_native_setup] and [React][react]
 
 
 ## Documentation
@@ -107,3 +107,4 @@ as possible depending on complexity but historically within a few days.
 [how_it_works]: https://fairfood.atlassian.net/wiki/spaces/THD/pages/24543453/Help+Centre
 [fairfood]: https://fairfood.org/
 [resources]: https://fairfood.org/en/resources/fairfood-farmer-cards-trace-transactions/
+[react]: https://reactjs.org/
