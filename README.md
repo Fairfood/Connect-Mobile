@@ -1,15 +1,27 @@
-## Trace mobile application
+## Trace mobile App
 
-With Trace the the brand can offer premium or special prices to the farmers in their supply chain. 
-We are trying to enable a secure legitimate way for these brands to reach the end farmers in the supply chain and distribute the premium to them.
+Trace Mobile is a data collection app to support agriculture vaulue chians in with product traceability and provide evidence for payment or sustainability claims.  Importantly, it aims to include farmers in the data collection process and enable ways to reward them for their participation.
 
-The application can do 3 major functionalities:
-
- *  Add new farmers to the platform
- *  Transfer stock
- *  Verify the premium transaction
-
-The user can do these functionalities without the internet and able to sync them with the server when they are connected to the network.
+It does this through the colleciton of the following data:
+  * Basic farmer registration information.
+  * Product delivery information (e.g. quantity, price, quality).
+  * Evidence collection (e.g. photos of delivery receipts, farmer NFC card scans).
+  
+Trace Mobile is designed to work in the field, meaning:
+  1. Internet access may be very limited, slow, or infrequent.
+  2. Data collection is not the primary task of farmers or those buying / receiving products from farmers, users may have limited tech experiance.
+  3. Localization must be supported.
+  4. Farmers may have little or no access to technoloby or the internet (smart phones, feature phones, email, etc).
+  
+The app therefore:
+  * Is designed to be used by the individual who is buying or collecting products from the farmer (not the farmer themselves).
+  * Minimized data entry and focuses on speed / ease of use of use for the user; this allows them to record information very quickly and move on with their work.
+  * Allows data to be collected offline and infrequently synced when internet access is available.
+  * Supports translations.
+  * DDoes not require that the farmer have a phone, internect connection, or email address.
+  * Allows farmers to participate in the value chain via the issuing and scanning NFC cards to verify deliveries and/or payment, or via photos of signed delivery receipts or other documentation.
+  
+Trace is developed by Fairfood International (fairfood.org) which is piloting the use of this tool in Indoenesia and Sierra Leone.  Read more about these projects here: https://fairfood.org/en/resources/fairfood-farmer-cards-trace-transactions/
 
 Powered by: React Native and React
 
