@@ -18,12 +18,12 @@ The app therefore:
   * Minimized data entry and focuses on speed / ease of use of use for the user; this allows them to record information very quickly and move on with their work.
   * Allows data to be collected offline and infrequently synced when internet access is available.
   * Supports translations.
-  * DDoes not require that the farmer have a phone, internect connection, or email address.
+  * Does not require that the farmer have a phone, internect connection, or email address.
   * Allows farmers to participate in the value chain via the issuing and scanning NFC cards to verify deliveries and/or payment, or via photos of signed delivery receipts or other documentation.
   
-Trace is developed by Fairfood International (fairfood.org) which is piloting the use of this tool in Indoenesia and Sierra Leone.  Read more about these projects here: https://fairfood.org/en/resources/fairfood-farmer-cards-trace-transactions/
+Trace is developed by Fairfood International (fairfood.org) which is piloting the use of this tool in Indoenesia and Sierra Leone.  Read more about [these projects here][resources]
 
-Powered by: React Native and React
+Powered by: [React Native][react_native_setup] and React
 
 
 ## Documentation
@@ -95,6 +95,7 @@ If you want to know how Trace mobile app works, you can follow the doc [here][ho
 
 [documentation]: https://fairfood.atlassian.net/l/cp/4B832Mzw
 [react_native_setup]: https://reactnative.dev/docs/environment-setup
-[packages]: https://fairfood.atlassian.net/wiki/spaces/FA/pages/22675457/Collector+app+packages
+[packages]: https://fairfood.atlassian.net/l/cp/UHK9UBx0
 [how_it_works]: https://fairfood.atlassian.net/wiki/spaces/THD/pages/24543453/Help+Centre
 [fairfood]: https://fairfood.org/
+[resources]: https://fairfood.org/en/resources/fairfood-farmer-cards-trace-transactions/
