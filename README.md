@@ -93,7 +93,7 @@ If you want to know how Trace mobile app works, you can follow the doc [here][ho
 [Fairfood][fairfood] accelerates the change towards a sustainable food system. We develop innovative solutions that enable businesses to improve their responsible business practices. Open and attainable solutions that are designed to democratise the world of food.
 
 
-[documentation]: https://rightorigins.atlassian.net/l/cp/AUj5ae1t
+[documentation]: https://fairfood.atlassian.net/l/cp/4B832Mzw
 [react_native_setup]: https://reactnative.dev/docs/environment-setup
 [packages]: https://fairfood.atlassian.net/wiki/spaces/FA/pages/22675457/Collector+app+packages
 [how_it_works]: https://fairfood.atlassian.net/wiki/spaces/THD/pages/24543453/Help+Centre
