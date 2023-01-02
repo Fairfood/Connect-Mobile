@@ -92,6 +92,14 @@ If you want to know how Trace mobile app works, you can follow the doc [here][ho
 
 [Fairfood][fairfood] accelerates the change towards a sustainable food system. We develop innovative solutions that enable businesses to improve their responsible business practices. Open and attainable solutions that are designed to democratise the world of food.
 
+## Security Policy
+
+### Reporting a Vulnerability
+Please report (suspected) security vulnerabilities to
+**[sudeesh@fairfood.org](mailto:sudeesh@fairfood.org)**. You will receive a response from
+us within 48 hours. If the issue is confirmed, we will release a patch as soon
+as possible depending on complexity but historically within a few days.
+
 
 [documentation]: https://fairfood.atlassian.net/l/cp/4B832Mzw
 [react_native_setup]: https://reactnative.dev/docs/environment-setup
