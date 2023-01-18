@@ -44,6 +44,9 @@ const SendTakePicture = ({ navigation, route }) => {
   const [infoView, setInfoView] = useState(false);
   const [error, setError] = useState('');
 
+  /**
+   * taking picture using device camera for bill recipet
+   */
   const onTakePicture = async () => {
     setisLoading(true);
     if (cameraRef) {
@@ -56,6 +59,9 @@ const SendTakePicture = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * fetching device geo location
+   */
   const requestAccessLocationPermission = async () => {
     setIsVerifying(true);
     try {
@@ -82,7 +88,12 @@ const SendTakePicture = ({ navigation, route }) => {
     }
   };
 
-  // get total amount including premiums by product
+  /**
+   * get total amount including premiums by product
+   *
+   * @param   {object} product  product object
+   * @returns {number}          total amount including premiums
+   */
   const getTotalAmount = async (product) => {
     let total = 0;
     total += parseFloat(product.total_amount) * parseFloat(product.ratio);
@@ -108,6 +119,12 @@ const SendTakePicture = ({ navigation, route }) => {
     return Math.round(parseFloat(total));
   };
 
+  /**
+   * saving all transaction premiums in local d
+   *
+   * @param {object} product        product object
+   * @param {string} transactionId  transaction id
+   */
   const saveAllPremiums = async (product, transactionId) => {
     await Promise.all(
       product.total_premiums.map(async (premium) => {
@@ -133,6 +150,13 @@ const SendTakePicture = ({ navigation, route }) => {
     );
   };
 
+  /**
+   * saving source batches in local db
+   *
+   * @param {Array} batches all batch array
+   * @param {*} transactionId transaction id
+   * @param {*} ratio product ratio
+   */
   const saveSourceBatches = async (batches, transactionId, ratio) => {
     await Promise.all(
       batches.map(async (batch) => {
@@ -147,6 +171,11 @@ const SendTakePicture = ({ navigation, route }) => {
     );
   };
 
+  /**
+   * transaction validate function
+   *
+   * @param {object} position geo location coordinates
+   */
   const transactionValidate = async (position) => {
     let valid = true;
 
@@ -217,6 +246,11 @@ const SendTakePicture = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * submit function. save transaction, premium and batches in local db.
+   *
+   * @param {object} position geo location coordinates
+   */
   const onVerification = async (position) => {
     const transactionArray = [];
 

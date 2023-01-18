@@ -67,6 +67,9 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
     setupProducts();
   }, []);
 
+  /**
+   * setting initial values and sorting transaction list
+   */
   const setupInitialValues = async () => {
     const buyers = JSON.parse(await AsyncStorage.getItem('buyers'));
     TRANSACTIONS.map(async (tx) => {
@@ -114,6 +117,9 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
     setSectionListData(TRANSACTIONS);
   };
 
+  /**
+   * settting syncing icon
+   */
   const setupSyncingIcon = async () => {
     setSearchText('');
     const newFarmers = await newFarmersCount();
@@ -133,6 +139,9 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
     }
   };
 
+  /**
+   * setting active products
+   */
   const setupProducts = async () => {
     const allProducts = await getAllProducts();
     const activeProducts = allProducts.reverse().filter((prod) => {
@@ -141,6 +150,11 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
     setProducts(activeProducts);
   };
 
+  /**
+   * on select list item
+   *
+   * @param {object} item transaction list item
+   */
   const onSelectItem = (item) => {
     onSearch('');
 
@@ -151,6 +165,11 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
     }
   };
 
+  /**
+   * sorting and setting section list data
+   *
+   * @param {Array} transactions transaction list
+   */
   const setSectionListData = (transactions) => {
     const localeData = transactions.map((item) => {
       item.key = moment(item.created_on * 1000).format('YYYY-MM-DD');
@@ -189,6 +208,11 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
     setTransactionsList(groupedData);
   };
 
+  /**
+   * sorting transaction list based on search text
+   *
+   * @param {string} text farmer name
+   */
   const onSearch = (text) => {
     setSearchText(text);
     textSerch = text.toLowerCase();
@@ -213,11 +237,17 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
     }
   };
 
+  /**
+   * start syncing
+   */
   const checkSyncing = async () => {
     await setInitailValues();
     setSyncModal(true);
   };
 
+  /**
+   * setting initial sync data
+   */
   const setInitailValues = async () => {
     try {
       if (!syncInProgress) {
@@ -253,6 +283,12 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
     }
   };
 
+  /**
+   * apply filter on transaction list
+   *
+   * @param {object}  filter  filter object
+   * @param {boolean} applied true if filter applied, false if not applied
+   */
   const applyFilters = (filter, applied) => {
     setFilterItem(filter);
 
@@ -364,6 +400,9 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
     setFilterModal(false);
   };
 
+  /**
+   * on refresh transaction list, removing filters
+   */
   const onRefresh = () => {
     setSectionListData(TRANSACTIONS);
     setSearchText('');

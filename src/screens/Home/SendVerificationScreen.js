@@ -71,6 +71,9 @@ const SendVerificationScreen = ({ navigation, route }) => {
     navigation.goBack(null);
   }
 
+  /**
+   * clearing NFC event and redirecting to previous page
+   */
   const backNavigation = () => {
     NfcManager.unregisterTagEvent().catch(() => 0);
     cleanUp(false);
@@ -78,6 +81,9 @@ const SendVerificationScreen = ({ navigation, route }) => {
     navigation.goBack(null);
   };
 
+  /**
+   * initializing NFC
+   */
   const initNfc = async () => {
     NfcManager.isSupported().then(async (supported) => {
       if (supported) {
@@ -94,10 +100,18 @@ const SendVerificationScreen = ({ navigation, route }) => {
     });
   };
 
+  /**
+   * redirecting to device NFC settings.
+   */
   const turnOnNFC = async () => {
     NfcManager.goToNfcSetting();
   };
 
+  /**
+   * clearing NFC event
+   *
+   * @param {boolean} tryagain if true again starting NFC event.
+   */
   const cleanUp = (tryagain) => {
     NfcManager.setEventListener(NfcEvents.DiscoverTag, null);
     NfcManager.setEventListener(NfcEvents.SessionClosed, null);
@@ -106,6 +120,9 @@ const SendVerificationScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * fetching device's geo location
+   */
   const requestAccessLocationPermission = async () => {
     if (preLocation) {
       transactionValidate(preLocation);
@@ -129,6 +146,9 @@ const SendVerificationScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * NFC reading function
+   */
   const readNdef = () => {
     return new Promise((resolve) => {
       let tagFound = null;
@@ -160,11 +180,18 @@ const SendVerificationScreen = ({ navigation, route }) => {
     });
   };
 
+  /**
+   * initializing NFC again
+   */
   const incompleteTransaction = () => {
     initNfc();
   };
 
-  // get total amount including premiums of all product
+  /**
+   * get total amount including premiums of all product
+   *
+   * @returns {number} total amount
+   */
   const getAllTotalAmount = () => {
     let total = 0;
 
@@ -193,7 +220,11 @@ const SendVerificationScreen = ({ navigation, route }) => {
     return Math.round(parseFloat(total));
   };
 
-  // get total amount including premiums by product
+  /**
+   * get total amount including premiums by product
+   *
+   * @param {Array} product product array
+   */
   const getTotalAmount = async (product) => {
     let total = 0;
     total += parseFloat(product.total_amount) * parseFloat(product.ratio);
@@ -219,6 +250,11 @@ const SendVerificationScreen = ({ navigation, route }) => {
     return Math.round(parseFloat(total));
   };
 
+  /**
+   * calculate total amount paid to farmer by all products
+   *
+   * @returns {number} total amount
+   */
   const totalPaidTofarmers = () => {
     let total = 0;
     products.map((product) => {
@@ -228,6 +264,11 @@ const SendVerificationScreen = ({ navigation, route }) => {
     return Math.round(parseFloat(total));
   };
 
+  /**
+   * calculating total premiums data
+   *
+   * @returns {Array} premium data array
+   */
   const getTotalPremiums = () => {
     if (products.length > 0) {
       const mainObj = {};
@@ -273,6 +314,12 @@ const SendVerificationScreen = ({ navigation, route }) => {
     return [];
   };
 
+  /**
+   * saving curresponding ransaction premium in local db
+   *
+   * @param {object} product        product object
+   * @param {string} transactionId  transacyion id
+   */
   const saveAllPremiums = async (product, transactionId) => {
     await Promise.all(
       product.total_premiums.map(async (premium) => {
@@ -297,6 +344,13 @@ const SendVerificationScreen = ({ navigation, route }) => {
     );
   };
 
+  /**
+   * saving source batches in local db
+   *
+   * @param {Array} batches all batch array
+   * @param {string} transactionId curresponding transaction id
+   * @param {number} ratio product quantity ratio
+   */
   const saveSourceBatches = async (batches, transactionId, ratio) => {
     await Promise.all(
       batches.map(async (batch) => {
@@ -311,6 +365,11 @@ const SendVerificationScreen = ({ navigation, route }) => {
     );
   };
 
+  /**
+   * transaction validate function
+   *
+   * @param {*} position device's geo location coordinates
+   */
   const transactionValidate = async (position) => {
     let valid = true;
 
@@ -381,6 +440,11 @@ const SendVerificationScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * submit function. saving transaction, premiums and batch in local db
+   *
+   * @param {*} position device's geo location coordinates
+   */
   const completeTransaction = async (position) => {
     const transactionArray = [];
 
@@ -451,6 +515,9 @@ const SendVerificationScreen = ({ navigation, route }) => {
     });
   };
 
+  /**
+   * requesting camera access permission
+   */
   const requestCameraPermission = async () => {
     const cameraGranted = await requestPermission('camera');
     const microphoneGranted = await requestPermission('microphone');
@@ -463,6 +530,9 @@ const SendVerificationScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * redirecting to send take picure page
+   */
   const goToTakePicture = async () => {
     NfcManager.unregisterTagEvent().catch(() => 0);
     cleanUp(false);
@@ -477,6 +547,11 @@ const SendVerificationScreen = ({ navigation, route }) => {
     });
   };
 
+  /**
+   * creating alert modal based on put key
+   *
+   * @param {string} key alert modal type
+   */
   const createAlert = (key) => {
     setAlertKey(key);
     setVerifyLoading(false);
@@ -510,6 +585,11 @@ const SendVerificationScreen = ({ navigation, route }) => {
     setAlertModal(true);
   };
 
+  /**
+   * submit function of alert modal
+   *
+   * @param {*} key alert type
+   */
   const onPressAlert = (key) => {
     if (key === 'nfc_no_turned_on') {
       turnOnNFC();

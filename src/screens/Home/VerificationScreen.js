@@ -79,6 +79,9 @@ const VerificationScreen = ({ navigation, route }) => {
     setupInitialValues();
   }, []);
 
+  /**
+   * initail setting farmer list values
+   */
   const setupInitialValues = async () => {
     const farmers = await getAllFarmers();
     farmers.forEach((f) => {
@@ -117,6 +120,9 @@ const VerificationScreen = ({ navigation, route }) => {
     navigation.goBack(null);
   }
 
+  /**
+   * initializing NFC
+   */
   const initNfc = async () => {
     NfcManager.isSupported()
       .then(async (supported) => {
@@ -137,6 +143,9 @@ const VerificationScreen = ({ navigation, route }) => {
       });
   };
 
+  /**
+   * NFC reading function
+   */
   const readNdef = () => {
     return new Promise((resolve) => {
       let tagFound = null;
@@ -181,10 +190,18 @@ const VerificationScreen = ({ navigation, route }) => {
     });
   };
 
+  /**
+   * redirecting to device NFC settings.
+   */
   const turnOnNFC = async () => {
     NfcManager.goToNfcSetting();
   };
 
+  /**
+   * clearing NFC event
+   *
+   * @param {boolean} tryagain if true again starting NFC event.
+   */
   const cleanUp = (tryagain) => {
     NfcManager.setEventListener(NfcEvents.DiscoverTag, null);
     NfcManager.setEventListener(NfcEvents.SessionClosed, null);
@@ -193,6 +210,11 @@ const VerificationScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * fetching device's geo location
+   *
+   * @param {object} farmer selected farmer
+   */
   const requestAccessLocationPermission = async (farmer) => {
     if (preLocation) {
       transactionValidate(farmer, preLocation);
@@ -216,13 +238,22 @@ const VerificationScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * function when any transaction error occures
+   */
   const incompleteTransaction = () => {
     setVerifyLoading(false);
     createAlert('card_not_found_for_farmer');
     readNdef();
   };
 
-  // get total amount of individual product excluding card depentent premium
+  /**
+   * total amount of individual product excluding card depentent premium
+   *
+   * @param   {number}  ProductTotal  product total
+   * @param   {Array}   Premiums      toatal premiums
+   * @returns {number}                total amount
+   */
   const getTotal = async (ProductTotal, Premiums) => {
     if (noCard) {
       const total = Premiums.reduce((a, b) => {
@@ -237,7 +268,11 @@ const VerificationScreen = ({ navigation, route }) => {
     return Math.round(ProductTotal);
   };
 
-  // get total amount of all products including premium amounts
+  /**
+   * get total amount of all products including premium amount
+   *
+   * @returns {number} total amount
+   */
   const getTotalPrice = () => {
     let total = 0;
     products.map((product) => {
@@ -250,6 +285,12 @@ const VerificationScreen = ({ navigation, route }) => {
     return Math.round(parseFloat(total));
   };
 
+  /**
+   * get card dependent premium total and premium array
+   *
+   * @param   {string} key  'total' or 'premium'
+   * @returns {any}         returns total or premium array based on key
+   */
   const getPremiumRemovedValues = (key) => {
     let allTotal = totalPrice;
 
@@ -285,6 +326,12 @@ const VerificationScreen = ({ navigation, route }) => {
     return Object.values(mainObj);
   };
 
+  /**
+   * validation function before submi
+   *
+   * @param {object} node     selected farmer
+   * @param {object} position device's geo location
+   */
   const transactionValidate = async (node, position) => {
     let valid = true;
 
@@ -337,6 +384,12 @@ const VerificationScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * submit function. saving transaction, premium and batchs in local db.
+   *
+   * @param {object} node selected farmer
+   * @param {object} position device's geo location.
+   */
   const completeTransaction = async (node, position) => {
     const transactionArray = [];
 
@@ -422,20 +475,30 @@ const VerificationScreen = ({ navigation, route }) => {
     });
   };
 
+  /**
+   * saving all transaction premiums
+   *
+   * @param {Array}   appliedPremiums  all premiums applied for the transaction
+   * @param {number}  productQuality   product quantity
+   * @param {string}  transactionId    corresponding transaction id
+   */
   const saveAllTransactionPremium = async (
-    applied_premiums,
-    product_quality,
-    transaction_id,
+    appliedPremiums,
+    productQuality,
+    transactionId,
   ) => {
     await Promise.all(
-      applied_premiums.map(async (premium) => {
+      appliedPremiums.map(async (premium) => {
         const amount =
-          parseFloat(premium._raw.amount) * parseFloat(product_quality);
-        await saveTransactionPremium(premium._raw.id, transaction_id, amount);
+          parseFloat(premium._raw.amount) * parseFloat(productQuality);
+        await saveTransactionPremium(premium._raw.id, transactionId, amount);
       }),
     );
   };
 
+  /**
+   * requesting camera access permission
+   */
   const requestCameraPermission = async () => {
     if (selectedFarmer != null) {
       const cameraGranted = await requestPermission('camera');
@@ -455,6 +518,9 @@ const VerificationScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * redirecting to take picture page
+   */
   const goToTakePicture = () => {
     setError('');
 
@@ -478,6 +544,11 @@ const VerificationScreen = ({ navigation, route }) => {
     navigation.navigate('TakePicture', params);
   };
 
+  /**
+   * filtering farmer list based on search text
+   *
+   * @param {string} text serch text
+   */
   const onSearch = (text) => {
     searchText = text.toLowerCase();
     if (searchText === '') {
@@ -493,6 +564,11 @@ const VerificationScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * creating alert modal based on put key
+   *
+   * @param {string} key alert modal type
+   */
   const createAlert = (key) => {
     setAlertKey(key);
     setVerifyLoading(false);
@@ -526,6 +602,11 @@ const VerificationScreen = ({ navigation, route }) => {
     setAlertModal(true);
   };
 
+  /**
+   * submit function of alert modal
+   *
+   * @param {*} key alert type
+   */
   const onPressAlert = (key) => {
     if (key === 'nfc_no_turned_on') {
       turnOnNFC();
@@ -535,7 +616,11 @@ const VerificationScreen = ({ navigation, route }) => {
     setAlertModal(false);
   };
 
-  // get premium array with name and total (group by premium)
+  /**
+   * get premium array with name and total (group by premium)
+   *
+   * @returns {Array} premium array
+   */
   const getPremiumTotals = () => {
     if (products.length > 0) {
       const mainObj = {};
@@ -563,6 +648,9 @@ const VerificationScreen = ({ navigation, route }) => {
     return [];
   };
 
+  /**
+   * clearing NFC if choose no card option
+   */
   const onNoCardSubmit = () => {
     setNoCard(true);
 

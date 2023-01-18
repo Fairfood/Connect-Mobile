@@ -37,16 +37,27 @@ const ChangeLanguage = ({ navigation }) => {
     setupInitialValues();
   }, []);
 
+  /**
+   * setting initial langaue value from async storage
+   */
   const setupInitialValues = async () => {
     const language = await AsyncStorage.getItem('app_language');
     setAppLanguage(language);
     setPreviousAppLanguage(language);
   };
 
+  /**
+   * setting selected language
+   *
+   * @param {object} obj language object
+   */
   const selectLanguage = (obj) => {
     setAppLanguage(obj.value);
   };
 
+  /**
+   * submit confirmation
+   */
   const onSubmit = () => {
     if (appLanguage === previousLanguage) {
       navigation.goBack(null);
@@ -55,6 +66,9 @@ const ChangeLanguage = ({ navigation }) => {
     }
   };
 
+  /**
+   * submit function
+   */
   const handleSubmit = async () => {
     I18n.locale = appLanguage;
     await AsyncStorage.setItem('app_language', appLanguage);

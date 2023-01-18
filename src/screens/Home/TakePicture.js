@@ -41,6 +41,9 @@ const TakePicture = ({ navigation, route }) => {
   const [infoView, setInfoView] = useState(false);
   const [error, setError] = useState('');
 
+  /**
+   * taking picture from device camera for reciept verification
+   */
   const onTakePicture = async () => {
     setisLoading(true);
     if (cameraRef) {
@@ -53,6 +56,9 @@ const TakePicture = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * requesting device's geo location permission
+   */
   const requestAccessLocationPermission = async () => {
     setIsVerifying(true);
     try {
@@ -78,7 +84,13 @@ const TakePicture = ({ navigation, route }) => {
     }
   };
 
-  // get total amount of individual product excluding card depentent premium
+  /**
+   * get total amount of individual product excluding card depentent premium
+   *
+   * @param   {number} productTotal   total premium
+   * @param   {Array}  premiums       all premiums array
+   * @returns {number}                total premium amount
+   */
   const getTotal = async (productTotal, premiums) => {
     const total = premiums.reduce((a, b) => {
       if (b?._raw?.is_card_dependent) {
@@ -89,6 +101,12 @@ const TakePicture = ({ navigation, route }) => {
     return total;
   };
 
+  /**
+   * get all premiums exclude card dependent
+   *
+   * @param   {Array} premiums  all premiums
+   * @returns {Array}           updated premiums
+   */
   const getUpdatedPremiums = async (premiums) => {
     const newPremiums = premiums.filter((premium) => {
       return !premium._raw.is_card_dependent;
@@ -96,6 +114,11 @@ const TakePicture = ({ navigation, route }) => {
     return newPremiums;
   };
 
+  /**
+   * validation before transaction submit
+   *
+   * @param {object} position device's geo location coordinates
+   */
   const transactionValidate = async (position) => {
     let valid = true;
 
@@ -151,6 +174,11 @@ const TakePicture = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * submit function. saving transaction premium and batces in local db.
+   *
+   * @param {object} position device's geo location coordinates
+   */
   const onVerification = async (position) => {
     const transactionArray = [];
 
@@ -239,6 +267,13 @@ const TakePicture = ({ navigation, route }) => {
       });
   };
 
+  /**
+   * saving all transaction premiums
+   *
+   * @param {Array}   appliedPremiums  all premiums applied for the transaction
+   * @param {number}  productQuality   product quantity
+   * @param {string}  transactionId    corresponding transaction id
+   */
   const saveAllTransactionPremium = async (
     appliedPremiums,
     productQuality,

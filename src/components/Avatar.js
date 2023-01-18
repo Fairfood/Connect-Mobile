@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import FastImage from 'react-native-fast-image';
+
 import { avatarText } from '../services/commonFunctions';
 import * as consts from '../services/constants';
 

@@ -159,8 +159,12 @@ reference GitHub issues that this commit **Closes**.
 **Breaking Changes** should start with the word `BREAKING CHANGE:` with a space or two newlines.
 The rest of the commit message is then used for this.
 
+### Welcome to contributors list
+You can add your name to the [contributors list][authors] when you submit your code.
+
 [coc]: CODE_OF_CONDUCT.md
 [dev-doc]: DEV_DOCS.md
+[authors]: AUTHORS.md
 [github]: https://github.com/Fairfood/trace-app.git
 [stackoverflow]: https://stackoverflow.com/questions/tagged/TraceMobileApp
 [issues]: https://github.com/Fairfood/trace-app.git/issues
