@@ -118,7 +118,7 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
   };
 
   /**
-   * settting syncing icon
+   * setting syncing icon
    */
   const setupSyncingIcon = async () => {
     setSearchText('');
