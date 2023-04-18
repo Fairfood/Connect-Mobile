@@ -45,11 +45,17 @@ const ProfileScreen = ({ navigation }) => {
     setupInitialValues();
   }, [isFocused]);
 
+  /**
+   * setting inital value for language from async storage
+   */
   const setupInitialValues = async () => {
     const language = await AsyncStorage.getItem('app_language');
     setAppLanguage(Languages[language]);
   };
 
+  /**
+   * calculating pending sync counts on logout
+   */
   const logoutCurrentUser = async () => {
     const newFarmers = await newFarmersCount();
     const modifiedFarmers = await updatedFarmersCount();
@@ -79,10 +85,16 @@ const ProfileScreen = ({ navigation }) => {
     setLogoutModal(true);
   };
 
+  /**
+   * logging out user on confirm logout
+   */
   const logout = async () => {
     dispatch(logoutUser());
   };
 
+  /**
+   * navigation to edit profile page
+   */
   const onPressRight = () => {
     if (isConnected) {
       navigation.navigate('EditProfile');
@@ -94,6 +106,11 @@ const ProfileScreen = ({ navigation }) => {
     }
   };
 
+  /**
+   * managing operations based on settings options
+   *
+   * @param {string} key selected settings option key
+   */
   const onPressMenu = (key) => {
     switch (key) {
       case 'language':

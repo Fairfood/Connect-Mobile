@@ -50,6 +50,9 @@ const EditProfile = ({ navigation }) => {
     setupDialCode();
   }, []);
 
+  /**
+   * setting up inital dialcode value
+   */
   const setupDialCode = async () => {
     const arrayOfObjs = Object.entries(Countrys.data).map((e) => ({
       label: `+${e[1].dial_code}`,
@@ -67,10 +70,16 @@ const EditProfile = ({ navigation }) => {
     }
   };
 
+  /**
+   * back navigation, redirecting to previous page
+   */
   const backNavigation = () => {
     navigation.goBack(null);
   };
 
+  /**
+   * opening device camera
+   */
   const onTakePicture = () => {
     setSelectPicModal(false);
 
@@ -85,6 +94,9 @@ const EditProfile = ({ navigation }) => {
       });
   };
 
+  /**
+   * opening device gallery
+   */
   const onChangePicture = () => {
     setSelectPicModal(false);
 
@@ -93,6 +105,7 @@ const EditProfile = ({ navigation }) => {
       compressImageQuality: 0.5,
     })
       .then((image) => {
+        // checking file is image type
         if (image.mime && !image.mime.includes('image')) {
           ToastAndroid.show(
             I18n.t('only_image_files_allowed'),
@@ -107,6 +120,9 @@ const EditProfile = ({ navigation }) => {
       });
   };
 
+  /**
+   * submit function for update profile
+   */
   const onSave = async () => {
     const farmerName = name.trim();
     const farmerLastName = lastName.trim();
@@ -154,6 +170,7 @@ const EditProfile = ({ navigation }) => {
       return;
     }
 
+    // checking mobile number validation
     if (
       farmerMobile !== '' &&
       (farmerMobile.length < 3 || farmerMobile.length > 15)
@@ -179,6 +196,11 @@ const EditProfile = ({ navigation }) => {
     updateProfileDetails(user);
   };
 
+  /**
+   * update profile request to server side
+   *
+   * @param {object} user updated user values
+   */
   const updateProfileDetails = async (user) => {
     setLoading(true);
 
@@ -230,6 +252,11 @@ const EditProfile = ({ navigation }) => {
     }
   };
 
+  /**
+   * setting dialcode based on selected country
+   *
+   * @param {object} country selected country
+   */
   const onSelect = (country) => {
     const countryDialCode = country.callingCode;
     if (countryDialCode.length > 0) {

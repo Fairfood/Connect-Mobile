@@ -1,6 +1,6 @@
 ## Trace mobile App
 
-Trace Mobile is a data collection app to support agriculture vaulue chians in with product traceability and provide evidence for payment or sustainability claims.  Importantly, it aims to include farmers in the data collection process and enable ways to reward them for their participation.
+Trace Mobile is a data collection app to support agriculture value chains with product traceability and provide evidence for payment or sustainability claims. Importantly, it aims to include farmers in the data collection process and enable ways to reward them for their participation.
 
 It does this through the colleciton of the following data:
   * Basic farmer registration information.

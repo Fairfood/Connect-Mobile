@@ -66,6 +66,9 @@ const HomeScreen = ({ navigation }) => {
     setupSyncingIcon();
   }, [isConnected, isFocused, syncInProgress, syncSuccessfull]);
 
+  /**
+   * setting up available products for buy transaction
+   */
   const setupProducts = async () => {
     dispatch(setSyncInProgressSuccess());
 
@@ -90,6 +93,9 @@ const HomeScreen = ({ navigation }) => {
     setProducts(productActiveList);
   };
 
+  /**
+   * starting syncing process
+   */
   const startSyncing = async () => {
     if (isConnected && !syncInProgress) {
       await setInitailValues();
@@ -97,6 +103,9 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  /**
+   * setting initail syncing count
+   */
   const setInitailValues = async () => {
     try {
       if (!syncInProgress) {
@@ -132,6 +141,9 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  /**
+   * setting sync icons based on sync counts
+   */
   const setupSyncingIcon = async () => {
     const newFarmers = await newFarmersCount();
     const modifiedFarmers = await updatedFarmersCount();
@@ -149,15 +161,26 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  /**
+   * opening sync modal
+   */
   const checkSyncing = async () => {
     await setInitailValues();
     setSyncModal(true);
   };
 
+  /**
+   * naviagtion rp profile page
+   */
   const openProfile = () => {
     navigation.navigate('Profile');
   };
 
+  /**
+   * requesting geo location access permission
+   *
+   * @param {string} type option that user choosed,'Buy' or 'Send'
+   */
   const requestLocationPermission = async (type) => {
     if (products.length !== 0) {
       const locationGranted = await requestPermission('location');

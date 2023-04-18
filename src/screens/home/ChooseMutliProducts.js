@@ -24,6 +24,11 @@ const ChooseProducts = ({ navigation, route }) => {
     setProducts(allProducts);
   }, []);
 
+  /**
+   * Navigation function to buy product page
+   *
+   * @param {object} item product object
+   */
   const goToBuy = (item) => {
     const selectedProducts = [];
     selectedProducts.push(item);

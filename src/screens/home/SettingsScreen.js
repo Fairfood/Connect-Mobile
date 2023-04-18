@@ -29,6 +29,9 @@ const SettingsScreen = ({ navigation }) => {
     setupInitialValues();
   }, []);
 
+  /**
+   * setting delete transaction button
+   */
   const setupInitialValues = async () => {
     const deleteTnxEnabled = await AsyncStorage.getItem('deleteTnxEnabled');
     if (deleteTnxEnabled && deleteTnxEnabled === 'true') {
@@ -38,6 +41,9 @@ const SettingsScreen = ({ navigation }) => {
     }
   };
 
+  /**
+   * clear local storage and database
+   */
   const clearData = async () => {
     const allKeys = await AsyncStorage.getAllKeys();
     await AsyncStorage.multiRemove(allKeys);
@@ -50,10 +56,18 @@ const SettingsScreen = ({ navigation }) => {
     store.dispatch(signOutUser());
   };
 
+  /**
+   * open collapsible based on list option keys
+   *
+   * @param {string} key list option key
+   */
   const toggleExpanded = (key) => {
     if (collapsed === key) { setCollapsed(); } else { setCollapsed(key); }
   };
 
+  /**
+   * enable/disable delete transaction feature
+   */
   const updateDeleteTransaction = async () => {
     if (deleteTnxStatus) {
       await AsyncStorage.setItem('deleteTnxEnabled', 'false');
