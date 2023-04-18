@@ -57,6 +57,9 @@ const TransactionDetails = ({ navigation, route }) => {
     setupDeleteTxnStatus();
   }, [isFocused]);
 
+  /**
+   * setting initial values
+   */
   const setupDetails = async () => {
     const savedLocalPrice = await AsyncStorage.getItem('LocalPrice');
     if (savedLocalPrice) {
@@ -115,6 +118,9 @@ const TransactionDetails = ({ navigation, route }) => {
     });
   };
 
+  /**
+   * setting delete transaction option
+   */
   const setupDeleteTxnStatus = async () => {
     const deleteTnxEnabled = await AsyncStorage.getItem('deleteTnxEnabled');
     if (deleteTnxEnabled && deleteTnxEnabled === 'true') {
@@ -124,6 +130,11 @@ const TransactionDetails = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * get toatal price (base price + premium)
+   *
+   * @returns {number} total price
+   */
   const getTotalPrice = () => {
     const total = premiums.reduce((a, b) => {
       return a + b.total;
@@ -131,6 +142,9 @@ const TransactionDetails = ({ navigation, route }) => {
     return Math.round(total);
   };
 
+  /**
+   * delete transaqction
+   */
   const handleDelete = async () => {
     await deleteTransaction(transactionItem, consts.APP_TRANS_TYPE_INCOMING);
     const count = await erroredTransactionsCount();
@@ -142,6 +156,9 @@ const TransactionDetails = ({ navigation, route }) => {
     navigation.goBack();
   };
 
+  /**
+   * redirecting to previous page
+   */
   const backNavigation = () => {
     navigation.goBack(null);
   };

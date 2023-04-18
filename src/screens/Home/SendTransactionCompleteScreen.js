@@ -41,6 +41,9 @@ const SendTransactionCompleteScreen = ({ navigation, route }) => {
     setupInitialValues();
   }, []);
 
+  /**
+   * setting initial transaction status from async storage
+   */
   const setupInitialValues = async () => {
     let transactionStatus =
       (await AsyncStorage.getItem('transactionStatus')) || '{}';
@@ -53,11 +56,18 @@ const SendTransactionCompleteScreen = ({ navigation, route }) => {
     setLoading(false);
   };
 
+  /**
+   * checking perticualr product transaction status is success
+   *
+   * @param   {string} productId  product id
+   * @returns {boolean}           true if transaction sucess, otherwise false
+   */
   const getTransactionStatus = (productId) => {
     if (!checkTransactionStatus) {
       return true;
     }
 
+    // checking product id is in tnxStatusArray, if not that transaction is failed
     if (!tnxStatusArray.includes(productId)) {
       return false;
     }
@@ -65,6 +75,9 @@ const SendTransactionCompleteScreen = ({ navigation, route }) => {
     return true;
   };
 
+  /**
+   * reseting transactionStatus and redirecting to home page
+   */
   const onConfirm = async () => {
     await AsyncStorage.setItem('transactionStatus', JSON.stringify({}));
     navigation.navigate('Home');

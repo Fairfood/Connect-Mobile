@@ -58,6 +58,9 @@ const SendScreen = ({ navigation, route }) => {
     setupInitialValues();
   }, []);
 
+  /**
+   * setting initial product array
+   */
   const setupInitialValues = async () => {
     setLoading(true);
     if (locationAllowed) {
@@ -71,9 +74,12 @@ const SendScreen = ({ navigation, route }) => {
     const firstProduct = allProducts?.[0] ?? null;
     setSelectedProduct(firstProduct);
 
-    initiatevalues(allProducts, true);
+    initiatevalues(allProducts);
   };
 
+  /**
+   * fetching devices geo location
+   */
   const fetchLocation = async () => {
     Geolocation.getCurrentPosition(
       (position) => {
@@ -86,6 +92,13 @@ const SendScreen = ({ navigation, route }) => {
     );
   };
 
+  /**
+   * used for grouping transaction premiums
+   *
+   * @param   {Array}   arr       transactiom premium array
+   * @param   {*}       property  premium id
+   * @returns {object}            grouped premiums
+   */
   const groupBy = (arr, property) => {
     return arr.reduce((memo, x) => {
       if (!memo[x[property]]) {
@@ -96,6 +109,11 @@ const SendScreen = ({ navigation, route }) => {
     }, {});
   };
 
+  /**
+   * setting initail values based on products
+   *
+   * @param {Array} products all products
+   */
   const initiatevalues = async (products) => {
     let savedBuyers = await AsyncStorage.getItem('buyers');
     savedBuyers = JSON.parse(savedBuyers);
@@ -246,7 +264,12 @@ const SendScreen = ({ navigation, route }) => {
     });
   };
 
-  // fetching send premiums
+  /**
+   * getting sent premiums
+   *
+   * @param   {Array} productPremiums all product premiums
+   * @returns {Array}                 premiums related on send
+   */
   const getOtherPremiums = async (productPremiums) => {
     const otherPremiums = [];
     if (productPremiums.length > 0) {
@@ -273,14 +296,27 @@ const SendScreen = ({ navigation, route }) => {
     return [];
   };
 
+  /**
+   * navigating to previous page
+   */
   const backNavigation = () => {
     navigation.goBack(null);
   };
 
+  /**
+   * open/close quantity edit nodal
+   */
   const toggleModal = () => {
     setModalOpen(!onModalOpen);
   };
 
+  /**
+   * updating quanity based on input
+   *
+   * @param {string} quantity       updated quantity
+   * @param {number} index          index of updated product in product array
+   * @param {string} totalQuantity  actual quantity
+   */
   const updateQuantity = (quantity, index, totalQuantity) => {
     const quantityEdited = quantity.toString().replace(',', '.');
 
@@ -311,6 +347,11 @@ const SendScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * checking any product quantity edite
+   *
+   * @returns {boolean} true if quantity edited, otherwise false
+   */
   const ratioCompare = () => {
     const changed = products.filter((i) => {
       return i.ratio !== 1;
@@ -321,6 +362,11 @@ const SendScreen = ({ navigation, route }) => {
     return false;
   };
 
+  /**
+   * validating dats based on input fields
+   *
+   * @returns {boolean} true if valid, otherwise false
+   */
   const validateDatas = async () => {
     let errorMsg = '';
     let valid = true;
@@ -355,7 +401,10 @@ const SendScreen = ({ navigation, route }) => {
     return false;
   };
 
-  const confirmBuy = async () => {
+  /**
+   * send submit function
+   */
+  const confirmSend = async () => {
     const total = getTotalAmount();
     if (total > 0) {
       const valid = await validateDatas();
@@ -374,6 +423,11 @@ const SendScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * navigation to next page
+   *
+   * @param {number} type transaction type. 1 if loss, 3 if send.
+   */
   const onNext = async (type) => {
     await Promise.all(
       products.map(async (product) => {
@@ -397,6 +451,12 @@ const SendScreen = ({ navigation, route }) => {
     });
   };
 
+  /**
+   * alter product name
+   *
+   * @param   {string} name product name
+   * @returns {string}      altered product name
+   */
   const getProductName = (name) => {
     if (name.includes('Nutmeg')) {
       return 'Nutmeg';
@@ -404,6 +464,11 @@ const SendScreen = ({ navigation, route }) => {
     return name;
   };
 
+  /**
+   * to get toatal amount of all product
+   *
+   * @returns {number} total amount
+   */
   const getTotalAmount = () => {
     let total = 0;
     products.map((product) => {
@@ -413,6 +478,11 @@ const SendScreen = ({ navigation, route }) => {
     return Math.round(parseFloat(total));
   };
 
+  /**
+   * to get total premiums paid for products
+   *
+   * @returns {Array} premium array
+   */
   const getTotalPremiums = () => {
     if (products.length > 0) {
       const mainObj = {};
@@ -462,7 +532,11 @@ const SendScreen = ({ navigation, route }) => {
     return [];
   };
 
-  // get all amount including premiums
+  /**
+   * get all amount including premiums
+   *
+   * @returns {number} total amount
+   */
   const getAllTotalAmount = () => {
     let total = 0;
 
@@ -495,12 +569,22 @@ const SendScreen = ({ navigation, route }) => {
     return Math.round(parseFloat(total));
   };
 
+  /**
+   * to get total farmer count
+   *
+   * @returns {number} farmer count
+   */
   const getTotalFarmerCount = () => {
     const nodes = allNodes;
     const uniqueNodes = [...new Set(nodes)];
     return uniqueNodes.length;
   };
 
+  /**
+   * calculate total edited quantity
+   *
+   * @returns {number} toatal edited quantity
+   */
   const getTotalEditedQuantity = () => {
     const total = products.reduce((a, b) => {
       return a + parseFloat(b.edited_quantity.toString().replace(',', '.'));
@@ -708,7 +792,7 @@ const SendScreen = ({ navigation, route }) => {
         {getTotalAmount() > 0 && (
           <CustomButton
             buttonText={I18n.t('next')}
-            onPress={() => confirmBuy()}
+            onPress={() => confirmSend()}
             extraStyle={{ width: '90%', marginBottom: 10 }}
           />
         )}

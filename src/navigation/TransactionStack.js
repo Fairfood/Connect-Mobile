@@ -1,3 +1,4 @@
+/* eslint-disable import/no-unresolved */
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 // screens

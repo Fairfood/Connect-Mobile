@@ -44,6 +44,9 @@ const TransactionCompleteScreen = ({ navigation, route }) => {
     setupInitialValues();
   }, []);
 
+  /**
+   * setting initail value of transactionStatus from local storage
+   */
   const setupInitialValues = async () => {
     let transactionStatus =
       (await AsyncStorage.getItem('transactionStatus')) || '{}';
@@ -56,6 +59,12 @@ const TransactionCompleteScreen = ({ navigation, route }) => {
     setLoading(false);
   };
 
+  /**
+   * get products transaction status
+   *
+   * @param   {string} productId  corresponding product id
+   * @returns {boolean}           true if transaction success, otherwies false
+   */
   const getTransactionStatus = (productId) => {
     if (!checkTransactionStatus) {
       return true;
@@ -68,6 +77,9 @@ const TransactionCompleteScreen = ({ navigation, route }) => {
     return true;
   };
 
+  /**
+   * navigating to home screen after clearing current transaction status
+   */
   const onConfirm = async () => {
     await AsyncStorage.setItem('transactionStatus', JSON.stringify({}));
     navigation.navigate('Home');

@@ -49,6 +49,9 @@ const SendTransactionDetails = ({ navigation, route }) => {
     setupDeleteTnxStatus();
   }, [isFocused]);
 
+  /**
+   * setting initial values
+   */
   const setupDetails = async () => {
     setBasePrice(transactionItem.price);
 
@@ -96,6 +99,9 @@ const SendTransactionDetails = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * setting delete transaction option
+   */
   const setupDeleteTnxStatus = async () => {
     const deleteTnxEnabled = await AsyncStorage.getItem('deleteTnxEnabled');
     if (deleteTnxEnabled && deleteTnxEnabled === 'true') {
@@ -105,6 +111,9 @@ const SendTransactionDetails = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * delete transaction
+   */
   const handleDelete = async () => {
     await deleteTransaction(transactionItem, consts.APP_TRANS_TYPE_OUTGOING);
     const count = await erroredTransactionsCount();
@@ -116,6 +125,9 @@ const SendTransactionDetails = ({ navigation, route }) => {
     navigation.goBack();
   };
 
+  /**
+   * redirecting to previous page
+   */
   const backNavigation = () => {
     navigation.goBack(null);
   };

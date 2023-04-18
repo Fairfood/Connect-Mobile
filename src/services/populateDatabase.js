@@ -408,6 +408,7 @@ const getProductId = async (product) => {
 const saveAllTransactions = async (response) => {
   // const nextUrl = response?.data?.next ?? null;
   const transactions = response?.data?.results ?? [];
+
   Promise.all(
     transactions.map(async (transaction) => {
       const nodeId =

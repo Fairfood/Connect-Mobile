@@ -78,6 +78,9 @@ const BuyScreen = ({ navigation, route }) => {
     setupInitialValues();
   }, []);
 
+   /**
+    * setting up initial product values
+    */
   const setupInitialValues = async () => {
     setLoading(true);
     if (locationAllowed) {
@@ -119,6 +122,9 @@ const BuyScreen = ({ navigation, route }) => {
     setLoading(false);
   };
 
+  /**
+   * fetching geo location
+   */
   const fetchLocation = async () => {
     Geolocation.getCurrentPosition(
       (position) => {
@@ -131,6 +137,9 @@ const BuyScreen = ({ navigation, route }) => {
     );
   };
 
+  /**
+   * calculating total values based on inputs
+   */
   const calculateValues = async () => {
     products.map(async (product) => {
       const currentQuantity = product.quantity;
@@ -224,6 +233,11 @@ const BuyScreen = ({ navigation, route }) => {
     });
   };
 
+   /**
+    * creating an alert message that card is already assigned
+    *
+    * @param {Array} products updated product array
+    */
   const updateValues = (products) => {
     setProducts((products) => products);
     calculatePremiums(products);
@@ -231,6 +245,12 @@ const BuyScreen = ({ navigation, route }) => {
     setLoad(!load);
   };
 
+  /**
+   * setting qunatity of each product based on the array index
+   *
+   * @param {string}  quantity product quantity
+   * @param {number}  orIndex  index of updated product in product array
+   */
   const onChangeQuantity = (quantity, orIndex) => {
     productQuantity = quantity.toString().replace(',', '.');
 
@@ -244,6 +264,12 @@ const BuyScreen = ({ navigation, route }) => {
     calculateValues();
   };
 
+  /**
+   * setting qunatity of each product based on the array index
+   *
+   * @param {string}  price   product base price
+   * @param {number}  orIndex index of updated product in product array
+   */
   const onChangeBasePrice = (price, orIndex) => {
     let basePrice = price.toString().replace(',', '.');
 
@@ -264,6 +290,11 @@ const BuyScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * setting local market price based on input
+   *
+   * @param {string} price local market price
+   */
   const onChangeLocalPrice = (price) => {
     let priceLocal = price.toString().replace(',', '.');
 
@@ -283,6 +314,9 @@ const BuyScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * validating input data
+   */
   const validateDatas = async () => {
     if (products.length === 0) {
       setValid(false);
@@ -305,6 +339,9 @@ const BuyScreen = ({ navigation, route }) => {
     setLoad(!load);
   };
 
+  /**
+   * submit validation
+   */
   const validateSubmit = async () => {
     if (products.length === 0) {
       setLoad(!load);
@@ -384,6 +421,9 @@ const BuyScreen = ({ navigation, route }) => {
     return valid;
   };
 
+  /**
+   * submit function
+   */
   const confirmBuy = async () => {
     const fieldsValid = await validateSubmit();
     if (!fieldsValid) {
@@ -426,6 +466,11 @@ const BuyScreen = ({ navigation, route }) => {
     navigation.navigate('Verification', params);
   };
 
+  /**
+   * calculate and set premiums based on updated product array
+   *
+   * @param {Array} products updated product array
+   */
   const calculatePremiums = (products) => {
     const mainObj = {};
     products.map((product) => {
@@ -452,6 +497,11 @@ const BuyScreen = ({ navigation, route }) => {
     calculateTotalPrice(products);
   };
 
+  /**
+   * calculate and set total price based on updated product array
+   *
+   * @param {Array} products updated product array
+   */
   const calculateTotalPrice = (products) => {
     let total = 0;
     products.map((product) => {
@@ -472,6 +522,13 @@ const BuyScreen = ({ navigation, route }) => {
     setTotalPrice(total);
   };
 
+  /**
+   * updating custom field values based on productId and index
+   *
+   * @param {object}  item        updated custom fileld object
+   * @param {number}  index       index of updated product in product array
+   * @param {Array}   productId   updated product's productId
+   */
   const updateCustomData = (item, index, productId) => {
     products.map((product) => {
       if (product.id === productId) {
@@ -490,6 +547,9 @@ const BuyScreen = ({ navigation, route }) => {
     });
   };
 
+  /**
+   * opening add product modal
+   */
   const openProductModal = async () => {
     const valid = await validateSubmit();
     if (valid) {
@@ -497,6 +557,11 @@ const BuyScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * opening collapse based on product id
+   *
+   * @param {string} key product id
+   */
   const toggleExpanded = (key) => {
     if (activeCollapse === key) {
       setActiveCollapse(null);
@@ -505,6 +570,11 @@ const BuyScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * adding products to current product array
+   *
+   * @param {object} item new product object
+   */
   const addProduct = (item) => {
     item.quantity = '';
     item.base_price = basePrices[item.server_id] ?? '';
@@ -519,6 +589,11 @@ const BuyScreen = ({ navigation, route }) => {
     setProductModal(false);
   };
 
+  /**
+   * removing product from product array
+   *
+   * @param {string} id product id
+   */
   const removeProduct = (id) => {
     if (products.length === 1) {
       navigation.goBack();
