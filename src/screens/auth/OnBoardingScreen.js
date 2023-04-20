@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   View,
   Text,
@@ -11,12 +11,19 @@ import { useDispatch, useSelector } from 'react-redux';
 import Carousel, { Pagination } from 'react-native-snap-carousel';
 import FastImage from 'react-native-fast-image';
 import AnimatedEllipsis from 'react-native-animated-ellipsis';
+
 import I18n from '../../i18n/i18n';
 import { populateDatabase } from '../../services/populateDatabase';
-import { onBoardingComplete } from '../../redux/LoginStore';
+import {
+  onBoardingComplete,
+  signOutUser,
+  updateOnBoardingError,
+} from '../../redux/LoginStore';
 import NoInternetConnection from './NoInternetConnection';
 import CustomButton from '../../components/CustomButton';
-import * as consts from '../../services/constants';
+import TransparentButton from '../../components/TransparentButton';
+import { removeLocalStorage } from '../../services/commonFunctions';
+import { updateSyncStage } from '../../redux/SyncStore';
 
 const { height, width } = Dimensions.get('window');
 
@@ -24,11 +31,31 @@ const OnBoardingScreen = () => {
   const { syncInProgress, syncSuccessfull } = useSelector(
     (state) => state.login,
   );
+  const { theme } = useSelector((state) => state.common);
   const { isConnected } = useSelector((state) => state.connection);
   const [ActiveSlide, setActiveSlide] = useState(0);
   const dispatch = useDispatch();
 
-  const PaginationComponent = () => (
+  useEffect(() => {
+    if (isConnected && !syncInProgress) {
+      populateDatabase();
+    }
+  }, [isConnected]);
+
+  const onLogout = async () => {
+    await removeLocalStorage();
+    dispatch(updateSyncStage(0));
+    dispatch(signOutUser());
+    dispatch(updateOnBoardingError(false));
+  };
+
+  const retrySyncing = () => {
+    populateDatabase();
+  };
+
+  const styles = StyleSheetFactory(theme);
+
+  const PaginationComponent = useCallback(() => (
     <Pagination
       dotsLength={3}
       activeDotIndex={ActiveSlide % 3}
@@ -37,13 +64,7 @@ const OnBoardingScreen = () => {
       inactiveDotOpacity={0.4}
       inactiveDotScale={0.6}
     />
-  );
-
-  useEffect(() => {
-    if (isConnected && !syncInProgress) {
-      populateDatabase();
-    }
-  }, [isConnected]);
+  ), [ActiveSlide, styles]);
 
   const renderItem = ({ item, index }) => {
     return (
@@ -108,7 +129,7 @@ const OnBoardingScreen = () => {
           </View>
 
           <View style={styles.secondWrap}>
-            <View style={styles.secondSubwrap}>
+            <View style={styles.secondSubWrap}>
               {isConnected && syncInProgress && (
                 <View style={{ flexDirection: 'row' }}>
                   <Text style={styles.titleText}>
@@ -133,6 +154,7 @@ const OnBoardingScreen = () => {
                 </Text>
               )}
             </View>
+
             {syncSuccessfull && (
               <CustomButton
                 buttonText={I18n.t('next')}
@@ -143,6 +165,31 @@ const OnBoardingScreen = () => {
               />
             )}
           </View>
+          {!syncSuccessfull && !syncInProgress && (
+            <View style={styles.retryWrap}>
+              <Text style={styles.titleText}>{I18n.t('retry_or_logout')}</Text>
+              <View style={styles.buttonWrap}>
+                <TransparentButton
+                  buttonText={I18n.t('logout')}
+                  onPress={() => onLogout()}
+                  color='#EA2553'
+                  extraStyle={{
+                    width: '48%',
+                    marginHorizontal: 0,
+                    paddingHorizontal: 0,
+                  }}
+                />
+
+                <CustomButton
+                  buttonText={I18n.t('retry')}
+                  onPress={() => retrySyncing()}
+                  extraStyle={{
+                    width: '48%',
+                  }}
+                />
+              </View>
+            </View>
+          )}
         </>
       )}
       {!isConnected && <NoInternetConnection />}
@@ -150,85 +197,100 @@ const OnBoardingScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#92DDF6',
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: consts.BORDER_RADIUS,
-    marginHorizontal: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-  },
-  carouselWrap: {
-    height: '60%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
-    backgroundColor: '#92DDF6',
-    width: '100%',
-  },
-  titleText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 14,
-    letterSpacing: 0.5,
-    lineHeight: 24,
-  },
-  itemTitleText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_BOLD,
-    fontStyle: 'normal',
-    fontSize: 16,
-    letterSpacing: 1.0,
-    lineHeight: 24,
-    textAlign: 'center',
-    marginTop: 10,
-  },
-  itemSubTitleText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 14,
-    letterSpacing: 0,
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-  itemContainer: {
-    alignItems: 'center',
-    marginTop: 'auto',
-  },
-  imageStyle: {
-    width: width * 0.7,
-    height: height * 0.3,
-  },
-  itemTextWrap: {
-    width: width * 0.8,
-    position: 'relative',
-  },
-  secondWrap: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    marginBottom: 0,
-    backgroundColor: consts.APP_BG_COLOR,
-    padding: width * 0.05,
-  },
-  secondSubwrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignSelf: 'center',
-  },
-  ellipsis: {
-    marginTop: -5,
-    letterSpacing: -1,
-    fontSize: 20,
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#92DDF6',
+    },
+    dot: {
+      width: 10,
+      height: 10,
+      borderRadius: theme.border_radius,
+      marginHorizontal: 8,
+      backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    },
+    carouselWrap: {
+      height: '60%',
+      justifyContent: 'center',
+      alignItems: 'center',
+      alignSelf: 'center',
+      backgroundColor: '#92DDF6',
+      width: '100%',
+    },
+    titleText: {
+      color: theme.text_1,
+      fontWeight: '500',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 14,
+      letterSpacing: 0.5,
+      lineHeight: 24,
+    },
+    itemTitleText: {
+      color: theme.text_1,
+      fontWeight: '500',
+      fontFamily: theme.font_bold,
+      fontStyle: 'normal',
+      fontSize: 16,
+      letterSpacing: 1.0,
+      lineHeight: 24,
+      textAlign: 'center',
+      marginTop: 10,
+    },
+    itemSubTitleText: {
+      color: theme.text_1,
+      fontWeight: '500',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 14,
+      letterSpacing: 0,
+      lineHeight: 24,
+      textAlign: 'center',
+    },
+    itemContainer: {
+      alignItems: 'center',
+      marginTop: 'auto',
+    },
+    imageStyle: {
+      width: width * 0.7,
+      height: height * 0.3,
+    },
+    itemTextWrap: {
+      width: width * 0.8,
+      position: 'relative',
+    },
+    secondWrap: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      marginBottom: 0,
+      backgroundColor: theme.background_1,
+      padding: width * 0.05,
+    },
+    secondSubWrap: {
+      flex: 1,
+      justifyContent: 'center',
+      alignSelf: 'center',
+    },
+    ellipsis: {
+      marginTop: -5,
+      letterSpacing: -1,
+      fontSize: 20,
+    },
+    retryWrap: {
+      width: '100%',
+      alignSelf: 'flex-end',
+      marginTop: 'auto',
+      padding: width * 0.05,
+      backgroundColor: '#ffffff',
+    },
+    buttonWrap: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 15,
+    },
+  });
+};
 
-export default OnBoardingScreen;
+export default memo(OnBoardingScreen);

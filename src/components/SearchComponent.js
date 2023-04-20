@@ -1,17 +1,20 @@
 import React from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
+import { useSelector } from 'react-redux';
 import Icon from '../icons';
-import * as consts from '../services/constants';
 
 const SearchComponent = ({ ...props }) => {
   const { placeholder, leftIcon, extraStyle, ...otherProps } = props;
+  const { theme } = useSelector((state) => state.common);
+  const styles = StyleSheetFactory(theme);
+
   return (
     <View style={[styles.componentWrap, extraStyle]}>
       <View style={styles.iconWrap}>
         <Icon
           name='search'
           size={16}
-          color={consts.TEXT_PRIMARY_LIGHT_COLOR}
+          color={theme.text_2}
           style={{
             alignItems: 'flex-start',
           }}
@@ -21,46 +24,48 @@ const SearchComponent = ({ ...props }) => {
       <TextInput
         style={styles.container}
         placeholder={placeholder}
-        placeholderTextColor={consts.TEXT_PRIMARY_LIGHT_COLOR}
+        placeholderTextColor={theme.text_2}
         {...otherProps}
       />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  componentWrap: {
-    width: '90%',
-    marginVertical: 20,
-    borderRadius: consts.BORDER_RADIUS,
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'center',
-    backgroundColor: '#ffffff',
-    borderColor: consts.BORDER_COLOR,
-    borderWidth: 1,
-  },
-  container: {
-    alignSelf: 'center',
-    width: '80%',
-    borderRadius: consts.BORDER_RADIUS,
-    borderColor: 'rgba(0, 0, 0, 0.12)',
-    borderWidth: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    fontSize: 14,
-    lineHeight: 24,
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontWeight: 'normal',
-    backgroundColor: '#ffffff',
-    color: consts.TEXT_PRIMARY_LIGHT_COLOR,
-  },
-  iconWrap: {
-    width: '15%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    componentWrap: {
+      width: '90%',
+      marginVertical: 20,
+      borderRadius: theme.border_radius,
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'center',
+      backgroundColor: '#ffffff',
+      borderColor: theme.border_1,
+      borderWidth: 1,
+    },
+    container: {
+      alignSelf: 'center',
+      width: '80%',
+      borderRadius: theme.border_radius,
+      borderColor: 'rgba(0, 0, 0, 0.12)',
+      borderWidth: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+      fontSize: 14,
+      lineHeight: 24,
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontWeight: 'normal',
+      backgroundColor: '#ffffff',
+      color: theme.text_2,
+    },
+    iconWrap: {
+      width: '15%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });
+};
 
 export default SearchComponent;

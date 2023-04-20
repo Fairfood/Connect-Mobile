@@ -57,7 +57,7 @@ export const clearAllBatchesByTransactionId = async (transactionId) => {
   });
 };
 
-export const findAndupdateBatch = async (batchId, updates) => {
+export const findAndUpdateBatch = async (batchId, updates) => {
   await database.action(async () => {
     const batch = await batches.find(batchId);
     await batch.update((tx) => {
@@ -67,7 +67,7 @@ export const findAndupdateBatch = async (batchId, updates) => {
   });
 };
 
-export const findAndupdateBatchQuantity = async (batchId, updates) => {
+export const findAndUpdateBatchQuantity = async (batchId, updates) => {
   await database.action(async () => {
     const batch = await batches.find(batchId);
     await batch.update((tx) => {

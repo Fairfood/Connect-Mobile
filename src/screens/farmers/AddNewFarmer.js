@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-wrap-multilines */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -13,13 +14,14 @@ import {
   Modal,
   Keyboard,
   FlatList,
-  ToastAndroid,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useIsFocused } from '@react-navigation/native';
 import ImagePicker from 'react-native-image-crop-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CountryPicker from 'react-native-country-picker-modal';
+import Toast from 'react-native-toast-message';
+
 import { findFarmerByName } from '../../services/farmersHelper';
 import {
   checkEmojis,
@@ -30,18 +32,18 @@ import CustomLeftHeader from '../../components/CustomLeftHeader';
 import CustomButton from '../../components/CustomButton';
 import FormTextInput from '../../components/FormTextInput';
 import Icon from '../../icons';
-import Countrys from '../../services/countrys';
+import Countrys from '../../services/countries';
 import I18n from '../../i18n/i18n';
 import SearchComponent from '../../components/SearchComponent';
 import SelectPicture from '../../components/SelectPicture';
 import CommonAlert from '../../components/CommonAlert';
 import CustomInputFields from '../../components/CustomInputFields';
-import * as consts from '../../services/constants';
 
-const { height, width } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const AddNewFarmer = ({ navigation }) => {
   const addFarmerScrollRef = useRef();
+  const { theme } = useSelector((state) => state.common);
   const [stepper, setStepper] = useState(1);
   const [farmer, setFarmer] = useState({});
   const [countrysList, setCountrysList] = useState([]);
@@ -120,17 +122,19 @@ const AddNewFarmer = ({ navigation }) => {
     navigation.navigate('IssueFarmerCard', { farmer, newFarmer: true });
   };
 
+  const styles = StyleSheetFactory(theme);
+
   return (
     <SafeAreaView style={styles.container}>
       <CustomLeftHeader
-        backgroundColor={consts.APP_BG_COLOR}
+        backgroundColor={theme.background_1}
         title={I18n.t('add_new_farmer')}
         leftIcon='arrow-left'
         onPress={() => backNavigation()}
         extraStyle={{ paddingHorizontal: 25 }}
       />
 
-      <Steps stepper={stepper} />
+      <Steps stepper={stepper} styles={styles} theme={theme} />
 
       <ScrollView
         ref={addFarmerScrollRef}
@@ -142,7 +146,9 @@ const AddNewFarmer = ({ navigation }) => {
         automaticallyAdjustContentInsets={false}
         showsHorizontalScrollIndicator={false}
       >
-        {stepper === 1 && <StepOne onNext={onNext} farmer={farmer} />}
+        {stepper === 1 && (
+          <StepOne onNext={onNext} farmer={farmer} theme={theme} />
+        )}
 
         {stepper === 2 && (
           <StepTwo
@@ -150,6 +156,7 @@ const AddNewFarmer = ({ navigation }) => {
             farmer={farmer}
             countrysList={countrysList}
             allCountrysList={allCountrysList}
+            theme={theme}
           />
         )}
 
@@ -158,6 +165,7 @@ const AddNewFarmer = ({ navigation }) => {
             onNext={onNext}
             farmer={farmer}
             onAddFarmer={onAddFarmer}
+            theme={theme}
           />
         )}
       </ScrollView>
@@ -165,7 +173,7 @@ const AddNewFarmer = ({ navigation }) => {
   );
 };
 
-const StepOne = ({ onNext, farmer }) => {
+const StepOne = ({ onNext, farmer, theme }) => {
   const { userCompanyDetails } = useSelector((state) => state.login);
   const appCustomFields = userCompanyDetails?.app_custom_fields
     ? stringToJson(userCompanyDetails.app_custom_fields)
@@ -245,7 +253,11 @@ const StepOne = ({ onNext, farmer }) => {
     if (country.callingCode.length > 0) {
       setDialCode(country.callingCode[0]);
     } else {
-      ToastAndroid.show(I18n.t('cannot_select_country'), ToastAndroid.SHORT);
+      Toast.show({
+        type: 'error',
+        text1: I18n.t('invalid'),
+        text2: I18n.t('cannot_select_country'),
+      });
     }
   };
 
@@ -354,6 +366,8 @@ const StepOne = ({ onNext, farmer }) => {
     }
   };
 
+  const styles = StyleSheetFactory(theme);
+
   return (
     <ScrollView
       style={styles.pageOneContainer}
@@ -370,7 +384,7 @@ const StepOne = ({ onNext, farmer }) => {
         onBlur={() => changeName()}
         visibility={fieldVisibility ? fieldVisibility?.name : true}
         autoCapitalize='sentences'
-        color={consts.TEXT_PRIMARY_COLOR}
+        color={theme.text_1}
         extraStyle={{ width: '100%' }}
       />
 
@@ -392,12 +406,12 @@ const StepOne = ({ onNext, farmer }) => {
             placeholder={I18n.t('mobile_number')}
             value={mobile}
             inputRef={mobileref}
-            color={consts.TEXT_PRIMARY_COLOR}
+            color={theme.text_1}
             keyboardType='numeric'
             onChangeText={(text) => {
               setMobile(text.replace(/[^0-9]/g, ''));
             }}
-            internalpadding={70}
+            internalPadding={70}
             extraStyle={{ width: '100%' }}
           />
         </View>
@@ -406,7 +420,7 @@ const StepOne = ({ onNext, farmer }) => {
       <FormTextInput
         placeholder={I18n.t('ktp')}
         value={ktp}
-        color={consts.TEXT_PRIMARY_COLOR}
+        color={theme.text_1}
         onChangeText={(text) => setKtp(text)}
         visibility={fieldVisibility ? fieldVisibility?.ktp : true}
         extraStyle={{ width: '100%' }}
@@ -436,7 +450,7 @@ const StepOne = ({ onNext, farmer }) => {
   );
 };
 
-const StepTwo = ({ onNext, farmer, countrysList, allCountrysList }) => {
+const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
   const cityref = useRef(null);
   const [buttonLoading, setButtonLoading] = useState(false);
   const [street, setStreet] = useState(farmer?.street ?? '');
@@ -764,6 +778,8 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList }) => {
     onNext(updatedObj);
   };
 
+  const styles = StyleSheetFactory(theme);
+
   return (
     <ScrollView
       style={styles.stepTwoContainer}
@@ -786,7 +802,7 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList }) => {
           onBlur={() => changeStreet()}
           visibility={fieldVisibility ? fieldVisibility?.street : true}
           autoCapitalize='sentences'
-          color={consts.TEXT_PRIMARY_COLOR}
+          color={theme.text_1}
           extraStyle={{ width: '100%' }}
         />
 
@@ -799,7 +815,7 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList }) => {
           onBlur={() => changeCity()}
           visibility={fieldVisibility ? fieldVisibility?.city : true}
           autoCapitalize='sentences'
-          color={consts.TEXT_PRIMARY_COLOR}
+          color={theme.text_1}
           extraStyle={{ width: '100%' }}
         />
 
@@ -810,7 +826,7 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList }) => {
                 mandatory
                 placeholder={I18n.t('country')}
                 value={country}
-                color={consts.TEXT_PRIMARY_COLOR}
+                color={theme.text_1}
                 extraStyle={{ width: '100%' }}
               />
             </View>
@@ -825,7 +841,7 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList }) => {
                 placeholder={I18n.t('province')}
                 values={provincesList}
                 value={province}
-                color={consts.TEXT_PRIMARY_COLOR}
+                color={theme.text_1}
                 extraStyle={{ width: '100%' }}
               />
             </View>
@@ -837,7 +853,7 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList }) => {
           value={postalCode}
           onChangeText={(text) => setPostalCode(text)}
           visibility={fieldVisibility ? fieldVisibility?.postcode : true}
-          color={consts.TEXT_PRIMARY_COLOR}
+          color={theme.text_1}
           extraStyle={{ width: '100%' }}
         />
 
@@ -904,12 +920,12 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList }) => {
           title={I18n.t('duplicate_farmer_alert')}
           message={I18n.t('farmer_already_exist')}
           submitText={I18n.t('modify')}
-          icon={(
+          icon={
             <Image
               source={require('../../assets/images/duplicate-farmer.png')}
               style={styles.alertImage}
             />
-          )}
+          }
           onSubmit={() => {
             setAlertModal(false);
             setError('');
@@ -924,7 +940,7 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList }) => {
   );
 };
 
-const StepThree = ({ onNext, onAddFarmer, farmer }) => {
+const StepThree = ({ onNext, onAddFarmer, farmer, theme }) => {
   const [profilePic, setProfilePic] = useState(farmer?.profilePic ?? '');
   const [selectPicModal, setSelectPicModal] = useState(false);
 
@@ -939,10 +955,11 @@ const StepThree = ({ onNext, onAddFarmer, farmer }) => {
     })
       .then((image) => {
         if (image.mime && !image.mime.includes('image')) {
-          ToastAndroid.show(
-            I18n.t('only_image_files_allowed'),
-            ToastAndroid.SHORT,
-          );
+          Toast.show({
+            type: 'error',
+            text1: I18n.t('invalid'),
+            text2: I18n.t('only_image_files_allowed'),
+          });
           return;
         }
 
@@ -967,10 +984,11 @@ const StepThree = ({ onNext, onAddFarmer, farmer }) => {
       .then((image) => {
         // only image file types are allowed
         if (image.mime && !image.mime.includes('image')) {
-          ToastAndroid.show(
-            I18n.t('only_image_files_allowed'),
-            ToastAndroid.SHORT,
-          );
+          Toast.show({
+            type: 'error',
+            text1: I18n.t('invalid'),
+            text2: I18n.t('only_image_files_allowed'),
+          });
           return;
         }
 
@@ -990,6 +1008,8 @@ const StepThree = ({ onNext, onAddFarmer, farmer }) => {
       setSelectPicModal(true);
     }
   };
+
+  const styles = StyleSheetFactory(theme);
 
   return (
     <View style={{ width }}>
@@ -1061,19 +1081,19 @@ const StepThree = ({ onNext, onAddFarmer, farmer }) => {
   );
 };
 
-const Steps = ({ stepper }) => (
+const Steps = ({ stepper, styles, theme }) => (
   <View style={styles.stepContainer}>
     <View
       style={[
         styles.stepContainerSub,
-        { backgroundColor: stepper >= 1 ? '#C5EDFA' : consts.APP_BG_COLOR },
+        { backgroundColor: stepper >= 1 ? '#C5EDFA' : theme.background_1 },
       ]}
     >
       <View
         style={[
           styles.selectedView,
           {
-            backgroundColor: stepper >= 1 ? '#4DCAF4' : consts.APP_BG_COLOR,
+            backgroundColor: stepper >= 1 ? '#4DCAF4' : theme.background_1,
             borderColor: stepper >= 1 ? '#4DCAF4' : '#C5EDFA',
           },
         ]}
@@ -1082,7 +1102,7 @@ const Steps = ({ stepper }) => (
           style={[
             styles.selectedText,
             {
-              color: stepper >= 1 ? consts.APP_BG_COLOR : '#5691AE',
+              color: stepper >= 1 ? theme.background_1 : '#5691AE',
             },
           ]}
         >
@@ -1102,14 +1122,14 @@ const Steps = ({ stepper }) => (
     <View
       style={[
         styles.stepContainerSub,
-        { backgroundColor: stepper >= 2 ? '#C5EDFA' : consts.APP_BG_COLOR },
+        { backgroundColor: stepper >= 2 ? '#C5EDFA' : theme.background_1 },
       ]}
     >
       <View
         style={[
           styles.selectedView,
           {
-            backgroundColor: stepper >= 2 ? '#4DCAF4' : consts.APP_BG_COLOR,
+            backgroundColor: stepper >= 2 ? '#4DCAF4' : theme.background_1,
             borderColor: stepper >= 2 ? '#4DCAF4' : '#C5EDFA',
           },
         ]}
@@ -1118,7 +1138,7 @@ const Steps = ({ stepper }) => (
           style={[
             styles.selectedText,
             {
-              color: stepper >= 2 ? consts.APP_BG_COLOR : '#5691AE',
+              color: stepper >= 2 ? theme.background_1 : '#5691AE',
             },
           ]}
         >
@@ -1138,14 +1158,14 @@ const Steps = ({ stepper }) => (
     <View
       style={[
         styles.stepContainerSub,
-        { backgroundColor: stepper >= 3 ? '#C5EDFA' : consts.APP_BG_COLOR },
+        { backgroundColor: stepper >= 3 ? '#C5EDFA' : theme.background_1 },
       ]}
     >
       <View
         style={[
           styles.selectedView,
           {
-            backgroundColor: stepper >= 3 ? '#4DCAF4' : consts.APP_BG_COLOR,
+            backgroundColor: stepper >= 3 ? '#4DCAF4' : theme.background_1,
             borderColor: stepper >= 3 ? '#4DCAF4' : '#C5EDFA',
           },
         ]}
@@ -1154,7 +1174,7 @@ const Steps = ({ stepper }) => (
           style={[
             styles.selectedText,
             {
-              color: stepper >= 3 ? consts.APP_BG_COLOR : '#5691AE',
+              color: stepper >= 3 ? theme.background_1 : '#5691AE',
             },
           ]}
         >
@@ -1175,193 +1195,169 @@ const capitalizeText = async (text) => {
   return text;
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  selectedView: {
-    height: 25,
-    width: 25,
-    borderRadius: 13,
-    backgroundColor: consts.COLOR_PRIMARY,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectedText: {
-    color: consts.APP_BG_COLOR,
-    fontSize: 10,
-  },
-  horizontalLine: {
-    borderTopWidth: 1,
-    borderTopColor: '#BDBDBD',
-    width: 70,
-  },
-  formTitleContainer: {
-    margin: 30,
-  },
-  formTitle: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: 'bold',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 16,
-  },
-  uploadImageContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignSelf: 'center',
-  },
-  uploadImageView: {
-    backgroundColor: '#C5EDFA',
-    height: 100,
-    width: 100,
-    borderRadius: 100 / 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
-  },
-  uploadImageText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    textAlign: 'left',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 14,
-    marginVertical: 20,
-  },
-  errorMessage: {
-    fontSize: 14,
-    fontFamily: consts.FONT_REGULAR,
-    lineHeight: 28,
-    paddingBottom: 10,
-    textAlign: 'center',
-    marginLeft: 5,
-    color: consts.BUTTON_COLOR_PRIMARY,
-  },
-  pageOneContainer: {
-    width,
-    paddingHorizontal: 30,
-  },
-  countryPickerWrap: {
-    width: 50,
-    top: 25,
-    left: 20,
-    position: 'absolute',
-    zIndex: 1,
-  },
-  errorWrap: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    marginBottom: 20,
-    marginTop: 50,
-  },
-  countryItems: {
-    flex: 1,
-    height: 40,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.12)',
-    alignContent: 'center',
-    justifyContent: 'center',
-    borderRadius: consts.BORDER_RADIUS,
-  },
-  countryItemText: {
-    marginLeft: 10,
-    fontFamily: consts.FONT_REGULAR,
-    color: consts.TEXT_PRIMARY_LIGHT_COLOR,
-  },
-  stepTwoContainer: {
-    flex: 1,
-    width,
-    paddingHorizontal: 30,
-  },
-  countryModalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 58, 96, 0.2);',
-  },
-  countryModalSub: {
-    height: '60%',
-    marginTop: 'auto',
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  countryFlatlist: {
-    flex: 1,
-    marginHorizontal: 10,
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  changePicWrap: {
-    backgroundColor: consts.BUTTON_COLOR_PRIMARY,
-    paddingHorizontal: 10,
-  },
-  removePicWrap: {
-    backgroundColor: consts.BUTTON_COLOR_PRIMARY,
-    marginTop: 20,
-    paddingHorizontal: 10,
-  },
-  changeButtonText: {
-    color: consts.APP_BG_COLOR,
-    textAlign: 'center',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 14,
-    paddingVertical: 10,
-    marginLeft: 0,
-  },
-  stepThreeButtonWrap: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    marginBottom: 20,
-  },
-  stepContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-  stepContainerSub: {
-    height: 40,
-    width: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0, 58, 96, 0.2)',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  modalContentWrap: {
-    width: '100%',
-    height: height * 0.125,
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    paddingVertical: 10,
-  },
-  galleyText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    textAlign: 'center',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 12,
-  },
-  iconWrap: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingLeft: 25,
-  },
-  emptyText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 13,
-    fontFamily: consts.FONT_REGULAR,
-    textAlign: 'center',
-  },
-  alertImage: {
-    width: width * 0.33,
-    height: width * 0.33,
-    resizeMode: 'contain',
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background_1,
+    },
+    selectedView: {
+      height: 25,
+      width: 25,
+      borderRadius: 13,
+      backgroundColor: theme.primary,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    selectedText: {
+      color: theme.background_1,
+      fontSize: 10,
+    },
+    horizontalLine: {
+      borderTopWidth: 1,
+      borderTopColor: '#BDBDBD',
+      width: 70,
+    },
+    formTitleContainer: {
+      margin: 30,
+    },
+    formTitle: {
+      color: theme.text_1,
+      fontWeight: 'bold',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 16,
+    },
+    uploadImageContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignSelf: 'center',
+    },
+    uploadImageView: {
+      backgroundColor: '#C5EDFA',
+      height: 100,
+      width: 100,
+      borderRadius: 100 / 2,
+      justifyContent: 'center',
+      alignItems: 'center',
+      alignSelf: 'center',
+    },
+    uploadImageText: {
+      color: theme.text_1,
+      textAlign: 'left',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 14,
+      marginVertical: 20,
+    },
+    errorMessage: {
+      fontSize: 14,
+      fontFamily: theme.font_regular,
+      lineHeight: 28,
+      paddingBottom: 10,
+      textAlign: 'center',
+      marginLeft: 5,
+      color: theme.button_bg_1,
+    },
+    pageOneContainer: {
+      width,
+      paddingHorizontal: 30,
+    },
+    countryPickerWrap: {
+      width: 50,
+      top: 25,
+      left: 20,
+      position: 'absolute',
+      zIndex: 1,
+    },
+    errorWrap: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      marginBottom: 20,
+      marginTop: 50,
+    },
+    countryItems: {
+      flex: 1,
+      height: 40,
+      marginTop: 10,
+      borderWidth: 1,
+      borderColor: 'rgba(0, 0, 0, 0.12)',
+      alignContent: 'center',
+      justifyContent: 'center',
+      borderRadius: theme.border_radius,
+    },
+    countryItemText: {
+      marginLeft: 10,
+      fontFamily: theme.font_regular,
+      color: theme.text_2,
+    },
+    stepTwoContainer: {
+      flex: 1,
+      width,
+      paddingHorizontal: 30,
+    },
+    countryModalContainer: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 58, 96, 0.2);',
+    },
+    countryModalSub: {
+      height: '60%',
+      marginTop: 'auto',
+      backgroundColor: theme.background_1,
+    },
+    countryFlatlist: {
+      flex: 1,
+      marginHorizontal: 10,
+      backgroundColor: theme.background_1,
+    },
+    changePicWrap: {
+      backgroundColor: theme.button_bg_1,
+      paddingHorizontal: 10,
+    },
+    removePicWrap: {
+      backgroundColor: theme.button_bg_1,
+      marginTop: 20,
+      paddingHorizontal: 10,
+    },
+    changeButtonText: {
+      color: theme.background_1,
+      textAlign: 'center',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 14,
+      paddingVertical: 10,
+      marginLeft: 0,
+    },
+    stepThreeButtonWrap: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      marginBottom: 20,
+    },
+    stepContainer: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      flexDirection: 'row',
+    },
+    stepContainerSub: {
+      height: 40,
+      width: 40,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyText: {
+      color: theme.text_1,
+      fontSize: 13,
+      fontFamily: theme.font_regular,
+      textAlign: 'center',
+    },
+    alertImage: {
+      width: width * 0.33,
+      height: width * 0.33,
+      resizeMode: 'contain',
+    },
+  });
+};
 
 export default AddNewFarmer;

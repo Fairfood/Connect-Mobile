@@ -5,8 +5,8 @@ import { findFarmerById } from './farmersHelper';
 import {
   findAllNewTransactions,
   findAllUnUploadedTransactionsInvoices,
-  findAndupdateTransaction,
-  findAndupdateTransactionInvoice,
+  findAndUpdateTransaction,
+  findAndUpdateTransactionInvoice,
   findTransactionById,
   findTransactionByServerId,
   saveTransaction,
@@ -15,50 +15,53 @@ import {
 import { CommonFetchRequest } from '../api/middleware';
 import { findProductById } from './productsHelper';
 import {
-  findAndupdateBatch,
+  findAndUpdateBatch,
   findBatchById,
   getAllBatchesByTransaction,
 } from './batchesHelper';
-import { findAllPremiumsByTransaction } from './transactionPremiumHelper';
-import { findPremiumById } from './premiumsHelper';
-import { store } from '../redux/store';
 import {
-  SyncProcessFailed,
-  initSyncProcess,
-  manageSyncData,
-} from '../redux/LoginStore';
+  findAllNewPayments,
+  findAllPremiumsByTransactionAndCategory,
+  findAllUnUploadedPaymentInvoices,
+  findAndUpdatePaymentInvoice,
+  findUnSyncedBasePricePremium,
+  findUnSyncedTransactionPremium,
+  updateTransactionPremiumServerId,
+} from './transactionPremiumHelper';
+import { findPremiumById, findPremiumByServerId } from './premiumsHelper';
+import { store } from '../redux/store';
+import { SyncProcessFailed, manageSyncData } from '../redux/LoginStore';
 import { updateAllFarmerDetails } from './syncFarmers';
 import {
   clearAllSourceBatchesByTransactionId,
   getAllSourceBatchesByTransaction,
 } from './sourceBatchesHelper';
-import { getAllBatches } from './populateDatabase';
 import { stringToJson } from './commonFunctions';
+import { findCardByCardId } from './cardsHelper';
 import api from '../api/config';
 import * as consts from './constants';
 
 export const syncTransactions = async () => {
-  store.dispatch(initSyncProcess());
   let transactions = await findAllNewTransactions();
   transactions = transactions.filter((tx) => {
     return tx.type === consts.APP_TRANS_TYPE_INCOMING;
   });
 
+  let loggedInUser = await AsyncStorage.getItem('loggedInUser');
+  loggedInUser = JSON.parse(loggedInUser);
+
+  const headers = {
+    Bearer: loggedInUser.token,
+    'Content-Type': 'application/json',
+    'User-ID': loggedInUser.id,
+    'Node-ID': loggedInUser.default_node,
+    Version: DeviceInfo.getVersion(),
+    'Client-Code': api.API_CLIENT_CODE,
+  };
+
   if (transactions.length === 0) {
-    await syncSendTransactions();
+    await syncSendTransactions(headers);
   } else {
-    let loggedInUser = await AsyncStorage.getItem('loggedInUser');
-    loggedInUser = JSON.parse(loggedInUser);
-
-    const headers = {
-      Bearer: loggedInUser.token,
-      'Content-Type': 'application/json',
-      'User-ID': loggedInUser.id,
-      'Node-ID': loggedInUser.default_node,
-      Version: DeviceInfo.getVersion(),
-      'Client-Code': api.API_CLIENT_CODE,
-    };
-
     const transactionStatusArr = [];
 
     await Promise.all(
@@ -74,6 +77,20 @@ export const syncTransactions = async () => {
         const premiums = await getIncludedPremiums(transaction.id);
         const productId = product.server_id;
 
+        // checking empty node server_id
+        const nodeId = farmer.server_id || null;
+        if (!nodeId) {
+          if (consts.DELETE_TRANSACTION_ENABLED) {
+            await updateTransactionError(
+              transaction.id,
+              'Could not find farmer id in the transaction.',
+            );
+          }
+
+          store.dispatch(manageSyncData('transaction', 'failed'));
+          return transaction;
+        }
+
         let extraFields = transaction.extra_fields;
         if (extraFields) {
           if (typeof extraFields === 'string') {
@@ -84,7 +101,7 @@ export const syncTransactions = async () => {
         }
 
         const data = {
-          node: farmer.server_id,
+          node: nodeId,
           unit: 1,
           type: consts.APP_TRANS_TYPE_INCOMING,
           product: productId,
@@ -145,7 +162,7 @@ export const syncTransactions = async () => {
           if (consts.DELETE_TRANSACTION_ENABLED) {
             await updateTransactionError(
               transaction.id,
-              'Data missing from backeknd, contact admin.',
+              'Data missing from backend, contact admin.',
             );
           }
 
@@ -175,7 +192,7 @@ export const syncTransactions = async () => {
 
         const batch = responseDestinationBatch;
 
-        await findAndupdateTransaction(transaction.id, updates);
+        await findAndUpdateTransaction(transaction.id, updates);
 
         const batchUpdate = {
           server_id: batch.id,
@@ -186,7 +203,36 @@ export const syncTransactions = async () => {
           transaction.id,
         );
 
-        await findAndupdateBatch(batchesAssociated.id, batchUpdate);
+        /// updating batch
+        await findAndUpdateBatch(batchesAssociated.id, batchUpdate);
+
+        /// updating transaction_premiums
+        const responsePremiums = response.data.premiums;
+        responsePremiums.map(async (p) => {
+          const existingPremium = await findPremiumByServerId(p.premium.id);
+          const existingTransactionPremium =
+            await findUnSyncedTransactionPremium(
+              transaction.id,
+              existingPremium[0].id,
+            );
+          if (existingTransactionPremium.length > 0) {
+            await updateTransactionPremiumServerId(
+              existingTransactionPremium[0].id,
+              p.id,
+            );
+          }
+        });
+
+        /// updating base_price_premium
+        const existingBasePricePremium = await findUnSyncedBasePricePremium(
+          transaction.id,
+        );
+        if (existingBasePricePremium.length > 0) {
+          await updateTransactionPremiumServerId(
+            existingBasePricePremium[0].id,
+            response.data.base_payment_id,
+          );
+        }
 
         store.dispatch(manageSyncData('transaction', 'success'));
         transactionStatusArr.push(product.id);
@@ -201,7 +247,7 @@ export const syncTransactions = async () => {
         transactionStatus = JSON.stringify(transactionStatus);
         await AsyncStorage.setItem('transactionStatus', transactionStatus);
 
-        await syncSendTransactions();
+        syncSendTransactions(headers);
       })
       .catch((error) => {
         Sentry.captureMessage(`error in buy transaction syncing - ${error}`);
@@ -235,23 +281,14 @@ const getSourceBatches = async (batches) => {
   return null;
 };
 
-const syncSendTransactions = async () => {
-  store.dispatch(initSyncProcess());
+const syncSendTransactions = async (headers) => {
+  let loggedInUser = await AsyncStorage.getItem('loggedInUser');
+  loggedInUser = JSON.parse(loggedInUser);
+
   let transactions = await findAllNewTransactions();
   transactions = transactions.filter((tx) => {
     return tx.type === consts.APP_TRANS_TYPE_OUTGOING;
   });
-
-  let loggedInUser = await AsyncStorage.getItem('loggedInUser');
-  loggedInUser = JSON.parse(loggedInUser);
-
-  const headers = {
-    Bearer: loggedInUser.token,
-    'User-ID': loggedInUser.id,
-    'Node-ID': loggedInUser.default_node,
-    Version: DeviceInfo.getVersion(),
-    'Client-Code': api.API_CLIENT_CODE,
-  };
 
   const transactionStatusArr = [];
 
@@ -268,11 +305,27 @@ const syncSendTransactions = async () => {
       const premiums = await getIncludedPremiums(transaction.id);
       const productId = product.server_id;
       const sourceBatches = await getSourceBatches(batches);
+
+      // checking empty source batches
       if (!sourceBatches) {
         if (consts.DELETE_TRANSACTION_ENABLED) {
           await updateTransactionError(
             transaction.id,
             'Cannot find transaction batch',
+          );
+        }
+
+        store.dispatch(manageSyncData('transaction', 'failed'));
+        return transaction;
+      }
+
+      // checking empty node server_id
+      const nodeId = transaction.node_id || null;
+      if (!nodeId) {
+        if (consts.DELETE_TRANSACTION_ENABLED) {
+          await updateTransactionError(
+            transaction.id,
+            'Could not find farmer id in the transaction.',
           );
         }
 
@@ -290,7 +343,7 @@ const syncSendTransactions = async () => {
       }
 
       const data = {
-        node: transaction.node_id,
+        node: nodeId,
         unit: 1,
         type: consts.APP_TRANS_TYPE_OUTGOING,
         product: productId,
@@ -348,7 +401,7 @@ const syncSendTransactions = async () => {
         if (consts.DELETE_TRANSACTION_ENABLED) {
           await updateTransactionError(
             transaction.id,
-            'Data missing from backeknd, contact admin.',
+            'Data missing from backend, contact admin.',
           );
         }
 
@@ -372,7 +425,7 @@ const syncSendTransactions = async () => {
         transactionDetails?.loss_transaction &&
         transactionDetails.loss_transaction != null
       ) {
-        const lossTransaction = response.data.loss_transaction;
+        const lossTransaction = transactionDetails.loss_transaction;
         lossTransaction.server_id = lossTransaction.id;
         lossTransaction.node_id = '';
         lossTransaction.currency = loggedInUser.currency;
@@ -395,8 +448,35 @@ const syncSendTransactions = async () => {
         error: '',
       };
 
-      await findAndupdateTransaction(transaction.id, updates);
+      await findAndUpdateTransaction(transaction.id, updates);
       await clearAllSourceBatchesByTransactionId(transaction.id);
+
+      // updating transaction_premiums
+      const responsePremiums = transactionDetails.premiums;
+      responsePremiums.map(async (p) => {
+        const existingPremium = await findPremiumByServerId(p.premium.id);
+        const existingTransactionPremium = await findUnSyncedTransactionPremium(
+          transaction.id,
+          existingPremium[0].id,
+        );
+        if (existingTransactionPremium.length > 0) {
+          await updateTransactionPremiumServerId(
+            existingTransactionPremium[0].id,
+            p.id,
+          );
+        }
+      });
+
+      /// updating base_price_premium
+      const existingBasePricePremium = await findUnSyncedBasePricePremium(
+        transaction.id,
+      );
+      if (existingBasePricePremium.length > 0) {
+        await updateTransactionPremiumServerId(
+          existingBasePricePremium[0].id,
+          transactionDetails.base_payment_id,
+        );
+      }
 
       store.dispatch(manageSyncData('transaction', 'success'));
       transactionStatusArr.push(product.id);
@@ -421,8 +501,7 @@ const syncSendTransactions = async () => {
         return;
       }
 
-      await updateAllFarmerDetails();
-      syncTransactionsInvoices();
+      syncTransactionsInvoices(headers);
     })
     .catch((error) => {
       Sentry.captureMessage(`error in send transaction syncing - ${error}`);
@@ -431,7 +510,10 @@ const syncSendTransactions = async () => {
 };
 
 const getIncludedPremiums = async (id) => {
-  const premiums = await findAllPremiumsByTransaction(id);
+  const premiums = await findAllPremiumsByTransactionAndCategory(
+    id,
+    consts.TYPE_TRANSACTION_PREMIUM,
+  );
   return Promise.all(
     premiums.map(async (premium) => {
       const premiumObj = await findPremiumById(premium.premium_id);
@@ -443,21 +525,8 @@ const getIncludedPremiums = async (id) => {
   );
 };
 
-export const syncTransactionsInvoices = async () => {
-  let loggedInUser = await AsyncStorage.getItem('loggedInUser');
-  loggedInUser = JSON.parse(loggedInUser);
-
+export const syncTransactionsInvoices = async (headers) => {
   const invoices = await findAllUnUploadedTransactionsInvoices();
-
-  const headers = {
-    Bearer: loggedInUser.token,
-    'User-ID': loggedInUser.id,
-    'Node-ID': loggedInUser.default_node,
-    Version: DeviceInfo.getVersion(),
-    'Client-Code': api.API_CLIENT_CODE,
-    'Content-Type': 'multipart/form-data',
-    Accept: 'application/json',
-  };
 
   Promise.all(
     invoices.map(async (invoice) => {
@@ -486,9 +555,128 @@ export const syncTransactionsInvoices = async () => {
       }
 
       const invoiceUrl = response.data.invoice;
-      findAndupdateTransactionInvoice(invoice.id, invoiceUrl);
+      await findAndUpdateTransactionInvoice(invoice.id, invoiceUrl);
     }),
-  ).then(async () => {
-    await getAllBatches(null);
-  });
+  )
+    .then(async () => {
+      syncPayments();
+    })
+    .catch((error) => {
+      Sentry.captureMessage(`error transaction invoice syncing - ${error}`);
+      store.dispatch(SyncProcessFailed());
+    });
+};
+
+export const syncPayments = async () => {
+  let loggedInUser = await AsyncStorage.getItem('loggedInUser');
+  loggedInUser = JSON.parse(loggedInUser);
+
+  const headers = {
+    Bearer: loggedInUser.token,
+    'Content-Type': 'application/json',
+    'User-ID': loggedInUser.id,
+    'Node-ID': loggedInUser.default_node,
+    Version: DeviceInfo.getVersion(),
+    'Client-Code': api.API_CLIENT_CODE,
+  };
+
+  const payments = await findAllNewPayments();
+
+  await Promise.all(
+    payments.map(async (payment) => {
+      let cardId = null;
+      const premium = await findPremiumById(payment.premium_id);
+
+      if (payment?._raw?.card_id) {
+        const card = await findCardByCardId(payment._raw.card_id);
+        cardId = card[0].server_id;
+      }
+
+      const data = {
+        premium: premium._raw.server_id,
+        amount: payment._raw.amount,
+        currency: payment._raw.currency,
+        verification_latitude: payment._raw.verification_latitude,
+        verification_longitude: payment._raw.verification_longitude,
+        source: payment._raw.source,
+        destination: payment._raw.destination,
+        direction: payment._raw.type,
+      };
+
+      if (cardId) {
+        data.card = cardId;
+      }
+
+      const config = {
+        method: 'POST',
+        url: `${api.API_URL}${api.API_VERSION}/projects/projects/payments/`,
+        headers,
+        data,
+      };
+
+      const response = await CommonFetchRequest(config);
+      if (!response?.success) {
+        if (response.error) {
+          Sentry.captureMessage(`payment syncing error: ${response.error}`);
+        }
+        return payment;
+      }
+
+      await updateTransactionPremiumServerId(payment.id, response.data.id);
+      return payment;
+    }),
+  )
+    .then(async () => {
+      syncPaymentInvoices(headers);
+    })
+    .catch((error) => {
+      Sentry.captureMessage(`error in payment syncing - ${error}`);
+      store.dispatch(SyncProcessFailed());
+    });
+};
+
+export const syncPaymentInvoices = async (headers) => {
+  const invoices = await findAllUnUploadedPaymentInvoices();
+
+  await Promise.all(
+    invoices.map(async (invoice) => {
+      const invoiceFile = invoice._raw.receipt;
+
+      const filename = invoiceFile.replace(/^.*[\\/]/, '');
+      const image = {
+        name: filename,
+        type: 'image/jpg',
+        uri: invoiceFile,
+      };
+
+      const data = new FormData();
+      data.append('invoice', image);
+
+      const config = {
+        method: 'PATCH',
+        url: `${api.API_URL}${api.API_VERSION}/projects/projects/payments/${invoice._raw.server_id}/invoice/`,
+        headers,
+        data,
+      };
+
+      const response = await CommonFetchRequest(config);
+
+      if (!response?.success) {
+        if (response.error) {
+          Sentry.captureMessage(`payment invoice error: ${response.error}`);
+        }
+        return invoice;
+      }
+
+      const invoiceUrl = response.data.invoice;
+      findAndUpdatePaymentInvoice(invoice.id, invoiceUrl);
+    }),
+  )
+    .then(async () => {
+      updateAllFarmerDetails(headers);
+    })
+    .catch((error) => {
+      Sentry.captureMessage(`error in payment invoice syncing - ${error}`);
+      store.dispatch(SyncProcessFailed());
+    });
 };

@@ -5,8 +5,8 @@ import { stringToJson } from './commonFunctions';
 const nodes = database.collections.get('nodes');
 
 export const getAllFarmers = async () => {
-  const allnodes = await nodes.query().fetch();
-  return allnodes;
+  const allNodes = await nodes.query().fetch();
+  return allNodes;
 };
 
 export const observeFarmers = () => {
@@ -62,7 +62,7 @@ export const findFarmerByServerId = async (id) => {
   return nodes.query(Q.where('server_id', id));
 };
 
-export const findAndupdateCard = async (nodeId, cardId, isCardModified) => {
+export const findAndUpdateCard = async (nodeId, cardId, isCardModified) => {
   await database.action(async () => {
     const node = await nodes.find(nodeId);
     await node.update((tx) => {
@@ -73,7 +73,7 @@ export const findAndupdateCard = async (nodeId, cardId, isCardModified) => {
   });
 };
 
-export const findAndupdateFarmer = async (nodeId, serverId) => {
+export const findAndUpdateFarmer = async (nodeId, serverId) => {
   await database.action(async () => {
     const node = await nodes.find(nodeId);
     await node.update((tx) => {

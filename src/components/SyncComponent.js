@@ -6,11 +6,12 @@ import {
   TouchableOpacity,
   Modal,
   Dimensions,
-  ToastAndroid,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
 import * as Progress from 'react-native-progress';
+
 import {
   CloseIcon,
   SyncCloseIcon,
@@ -20,14 +21,16 @@ import {
   SyncTickIcon,
   SyncTransactionIcon,
 } from '../assets/svg';
+import { LONG_MONTH_ARRAY, HIT_SLOP_TEN } from '../services/constants';
+import { populateDatabase } from '../services/populateDatabase';
+import ToastConfig from './ToastConfig';
 import TransparentButton from './TransparentButton';
 import I18n from '../i18n/i18n';
-import { populateDatabase } from '../services/populateDatabase';
-import * as consts from '../services/constants';
 
 const { width } = Dimensions.get('window');
 
 const SyncComponent = ({ ...props }) => {
+  const { theme } = useSelector((state) => state.common);
   const { syncPercentage, syncInProgress, syncSuccessfull } = useSelector(
     (state) => state.login,
   );
@@ -41,16 +44,16 @@ const SyncComponent = ({ ...props }) => {
   }, [syncInProgress, syncPercentage]);
 
   useEffect(() => {
-    setInitailValues();
+    setInitialValues();
   }, [syncInProgress]);
 
   /**
    * setting last synced time
    */
-  const setInitailValues = async () => {
+  const setInitialValues = async () => {
     const lastSynced = await AsyncStorage.getItem('last_synced_time');
     const d = new Date(lastSynced * 1000);
-    const months = consts.LONG_MONTH_ARRAY;
+    const months = LONG_MONTH_ARRAY;
     const dateText = `${d.getDate()} ${
       months[d.getMonth()]
     } ${d.getFullYear()}, ${
@@ -74,16 +77,23 @@ const SyncComponent = ({ ...props }) => {
    */
   const startSyncing = () => {
     if (!isConnected) {
-      ToastAndroid.show(
-        I18n.t('no_active_internet_connection'),
-        ToastAndroid.SHORT,
-      );
+      Toast.show({
+        type: 'error',
+        text1: I18n.t('connection_error'),
+        text2: I18n.t('no_active_internet_connection'),
+      });
     } else if (syncInProgress) {
-      ToastAndroid.show(I18n.t('sync_already_in_progress'), ToastAndroid.SHORT);
+      Toast.show({
+        type: 'warning',
+        text1: I18n.t('in_progress'),
+        text2: I18n.t('sync_already_in_progress'),
+      });
     } else {
       populateDatabase();
     }
   };
+
+  const styles = StyleSheetFactory(theme);
 
   return (
     <Modal
@@ -97,7 +107,7 @@ const SyncComponent = ({ ...props }) => {
           <TouchableOpacity
             onPress={() => props.hideModal()}
             style={styles.closeIconWrap}
-            hitSlop={consts.HIT_SLOP_TEN}
+            hitSlop={HIT_SLOP_TEN}
           >
             <CloseIcon width={width * 0.05} height={width * 0.05} />
           </TouchableOpacity>
@@ -141,11 +151,8 @@ const SyncComponent = ({ ...props }) => {
                     {I18n.t('syncing')}
                     ..
                   </Text>
-                  <Text
-                    style={styles.percetageText}
-                  >
+                  <Text style={styles.percentageText}>
                     {`${syncPercentage}%`}
-
                   </Text>
                 </View>
                 <View style={{ marginTop: 10 }}>
@@ -182,6 +189,7 @@ const SyncComponent = ({ ...props }) => {
                 subtitle={localSyncData.transaction}
                 loading={localSyncData.transaction.status}
                 syncInProgress={syncInProgress}
+                styles={styles}
               />
             </>
           ) : null}
@@ -203,13 +211,21 @@ const SyncComponent = ({ ...props }) => {
           )}
         </View>
       </View>
+      <Toast config={ToastConfig} visibilityTime={2000} />
     </Modal>
   );
 };
 
 const SyncFields = ({ ...props }) => {
-  const { leftImage, title, subtitle, loading, syncInProgress, noMargin } =
-    props;
+  const {
+    leftImage,
+    title,
+    subtitle,
+    loading,
+    syncInProgress,
+    noMargin,
+    styles,
+  } = props;
 
   const getSubtitleText = (subtitleObj) => {
     if (subtitleObj?.status === 'completed') {
@@ -235,7 +251,7 @@ const SyncFields = ({ ...props }) => {
 
   return (
     <View
-      style={[styles.syncFiledsWrap, { borderBottomWidth: noMargin ? 0 : 1 }]}
+      style={[styles.syncFieldsWrap, { borderBottomWidth: noMargin ? 0 : 1 }]}
     >
       <View style={styles.leftImageWrap}>{leftImage}</View>
       <View style={{ width: '70%' }}>
@@ -264,87 +280,89 @@ const SyncFields = ({ ...props }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-  },
-  containerSub: {
-    marginTop: 'auto',
-    paddingHorizontal: width * 0.05,
-    paddingVertical: width * 0.07,
-    backgroundColor: '#ffffff',
-  },
-  closeIconWrap: {
-    alignSelf: 'flex-end',
-    marginBottom: width * 0.07,
-  },
-  topSectionWrap: {
-    padding: width * 0.05,
-    backgroundColor: consts.CARD_BACKGROUND_COLOR,
-    marginBottom: width * 0.05,
-  },
-  titleText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 16,
-    fontFamily: consts.FONT_BOLD,
-  },
-  lastSyncedText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 13,
-    fontFamily: consts.FONT_MEDIUM,
-    lineHeight: 25,
-  },
-  syncWaring: {
-    color: consts.TEXT_PRIMARY_LIGHT_COLOR,
-    fontSize: 13,
-    fontFamily: consts.FONT_REGULAR,
-    fontWeight: '500',
-    marginTop: 10,
-    lineHeight: 20,
-  },
-  progressBarWrap: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: width * 0.05,
-  },
-  syncingText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 14,
-    fontFamily: consts.FONT_BOLD,
-  },
-  percetageText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 14,
-    fontFamily: consts.FONT_REGULAR,
-  },
-  syncFiledsWrap: {
-    flexDirection: 'row',
-    paddingVertical: width * 0.03,
-    borderBottomColor: consts.BORDER_COLOR,
-  },
-  leftImageWrap: {
-    width: '15%',
-    justifyContent: 'center',
-    paddingLeft: 5,
-  },
-  fieldTitle: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 14,
-    fontFamily: consts.FONT_MEDIUM,
-  },
-  fieldSubTitle: {
-    color: consts.TEXT_PRIMARY_LIGHT_COLOR,
-    fontSize: 13,
-    fontFamily: consts.FONT_REGULAR,
-    fontWeight: '500',
-    lineHeight: 25,
-  },
-  fieldLoadingWrap: {
-    width: '15%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    },
+    containerSub: {
+      marginTop: 'auto',
+      paddingHorizontal: width * 0.05,
+      paddingVertical: width * 0.07,
+      backgroundColor: '#ffffff',
+    },
+    closeIconWrap: {
+      alignSelf: 'flex-end',
+      marginBottom: width * 0.07,
+    },
+    topSectionWrap: {
+      padding: width * 0.05,
+      backgroundColor: theme.background_2,
+      marginBottom: width * 0.05,
+    },
+    titleText: {
+      color: theme.text_1,
+      fontSize: 16,
+      fontFamily: theme.font_bold,
+    },
+    lastSyncedText: {
+      color: theme.text_1,
+      fontSize: 13,
+      fontFamily: theme.font_medium,
+      lineHeight: 25,
+    },
+    syncWaring: {
+      color: theme.text_2,
+      fontSize: 13,
+      fontFamily: theme.font_regular,
+      fontWeight: '500',
+      marginTop: 10,
+      lineHeight: 20,
+    },
+    progressBarWrap: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: width * 0.05,
+    },
+    syncingText: {
+      color: theme.text_1,
+      fontSize: 14,
+      fontFamily: theme.font_bold,
+    },
+    percentageText: {
+      color: theme.text_1,
+      fontSize: 14,
+      fontFamily: theme.font_regular,
+    },
+    syncFieldsWrap: {
+      flexDirection: 'row',
+      paddingVertical: width * 0.03,
+      borderBottomColor: theme.border_1,
+    },
+    leftImageWrap: {
+      width: '15%',
+      justifyContent: 'center',
+      paddingLeft: 5,
+    },
+    fieldTitle: {
+      color: theme.text_1,
+      fontSize: 14,
+      fontFamily: theme.font_medium,
+    },
+    fieldSubTitle: {
+      color: theme.text_2,
+      fontSize: 13,
+      fontFamily: theme.font_regular,
+      fontWeight: '500',
+      lineHeight: 25,
+    },
+    fieldLoadingWrap: {
+      width: '15%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });
+};
 
 export default SyncComponent;

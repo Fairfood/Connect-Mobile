@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-curly-newline */
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -24,14 +25,14 @@ import CustomLeftHeader from '../../components/CustomLeftHeader';
 import TransactionListItem from '../../components/TransactionListItem';
 import Icon from '../../icons';
 import I18n from '../../i18n/i18n';
-import Countrys from '../../services/countrys';
+import Countries from '../../services/countries';
 import Avatar from '../../components/Avatar';
-import * as consts from '../../services/constants';
 
 const { width } = Dimensions.get('window');
 
 const FarmerDetailsScreen = ({ navigation, route }) => {
   const { node, avatarBgColor } = route.params;
+  const { theme } = useSelector((state) => state.common);
   const { userProjectDetails, userCompanyDetails } = useSelector(
     (state) => state.login,
   );
@@ -57,7 +58,7 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
     const transactionsList = await findAllTransactionsById(farmer.id);
     const farmerCards = await getAllCardsByNodeId(farmer.id);
 
-    // sorting cards decending order by updated time
+    // sorting cards descending order by updated time
     farmerCards.sort((a, b) => {
       const small = a?.updated_at ?? 0;
       const big = b?.updated_at ?? 0;
@@ -144,7 +145,7 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
     } else {
       // if phone is empty setting a dial code based on country
       if (phone === '') {
-        const arrayOfObjs = Object.entries(Countrys.data).map((e) => ({
+        const arrayOfObjs = Object.entries(Countries.data).map((e) => ({
           label: `+${e[1].dial_code}`,
           value: e[1].dial_code,
           country_name: e[0],
@@ -221,16 +222,19 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
       onSelect={(i) =>
         navigation.navigate('FarmerTransactionDetails', {
           transactionItem: i,
-        })}
+        })
+      }
       currency={currency}
-      historyview
+      historyView
     />
   );
+
+  const styles = StyleSheetFactory(theme);
 
   return (
     <SafeAreaView style={styles.container}>
       <CustomLeftHeader
-        backgroundColor={consts.APP_BG_COLOR}
+        backgroundColor={theme.background_1}
         title={I18n.t('farmer_details')}
         leftIcon='arrow-left'
         onPress={() => navigation.goBack(null)}
@@ -244,7 +248,7 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
         <View style={styles.headerWrap}>
           <Avatar
             image={farmer.image}
-            containerStyle={styles.propic}
+            containerStyle={styles.proPic}
             avatarName={farmer.name}
             avatarNameStyle={styles.avatarNameStyle}
             avatarBgColor={avatarBgColor}
@@ -279,7 +283,7 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
             styles.tabItemWrap,
             {
               borderBottomColor:
-                selectedTab === 0 ? consts.TEXT_PRIMARY_COLOR : '#EDEEEF',
+                selectedTab === 0 ? theme.text_1 : '#EDEEEF',
             },
           ]}
         >
@@ -299,7 +303,7 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
             styles.tabItemWrap,
             {
               borderBottomColor:
-                selectedTab === 1 ? consts.TEXT_PRIMARY_COLOR : '#EDEEEF',
+                selectedTab === 1 ? theme.text_1 : '#EDEEEF',
             },
           ]}
         >
@@ -318,7 +322,7 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
         <ScrollView>
           <View style={styles.tabOneTop}>
             <View style={styles.cardView}>
-              <Text style={styles.cardStatusTilte}>
+              <Text style={styles.cardStatusTitle}>
                 {I18n.t('card_status')}
               </Text>
               <TransparentButton
@@ -339,12 +343,12 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
               <View style={styles.cardValueWrap}>
                 <Text style={styles.fieldValue}>
                   {`${I18n.t('card_id')} ${
-                    cards[0].fair_id ? `/ ${I18n.t('fair_id')}` : null
+                    cards[0].fair_id ? `/ ${I18n.t('fair_id')}` : ''
                   }`}
                 </Text>
                 <Text style={styles.formTitle}>
                   {`${cards[0].card_id} ${
-                    cards[0].fair_id ? `/ FF ${cards[0].fair_id}` : null
+                    cards[0].fair_id ? `/ FF ${cards[0].fair_id}` : ''
                   }`}
                 </Text>
               </View>
@@ -466,134 +470,136 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  topSectionWrap: {
-    marginHorizontal: 25,
-    marginTop: 20,
-    marginBottom: 40,
-    width: '85%',
-  },
-  formTitleContainer: {
-    marginHorizontal: 25,
-    marginVertical: 7,
-    width: '80%',
-  },
-  cardValueWrap: {
-    marginTop: 15,
-  },
-  fieldValue: {
-    fontFamily: consts.FONT_REGULAR,
-    letterSpacing: 0.3,
-    fontSize: 12,
-    marginBottom: 10,
-    color: consts.TEXT_PRIMARY_LIGHT_COLOR,
-  },
-  tabOneTop: {
-    marginHorizontal: 25,
-    marginTop: 30,
-    marginBottom: 20,
-    width: '90%',
-  },
-  formTitle: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 16,
-    letterSpacing: 0.3,
-  },
-  cardStatusTilte: {
-    fontFamily: consts.FONT_REGULAR,
-    letterSpacing: 0.3,
-    fontSize: 12,
-    marginBottom: 10,
-    color: consts.TEXT_PRIMARY_LIGHT_COLOR,
-  },
-  horizontalLine: {
-    borderBottomWidth: 1,
-    borderColor: consts.BORDER_COLOR,
-    marginHorizontal: 18,
-    marginBottom: 10,
-  },
-  headerWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  propic: {
-    width: 70,
-    height: 70,
-    borderRadius: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarNameStyle: {
-    color: '#ffffff',
-    fontSize: 22,
-    fontFamily: consts.FONT_BOLD,
-  },
-  nameText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontFamily: consts.FONT_MEDIUM,
-    fontSize: 18,
-    letterSpacing: 0.3,
-    lineHeight: 24,
-  },
-  phoneText: {
-    fontSize: 14,
-    color: consts.TEXT_PRIMARY_COLOR,
-    marginVertical: 5,
-    lineHeight: 24,
-  },
-  syncWarningWrap: {
-    backgroundColor: '#DDF3FF',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    paddingVertical: 10,
-    marginTop: 20,
-    marginBottom: 0,
-  },
-  syncMsg: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_MEDIUM,
-    fontStyle: 'normal',
-    fontSize: 12,
-    letterSpacing: 0.3,
-    marginVertical: 5,
-  },
-  tabItemWrap: {
-    borderBottomWidth: 4,
-    width: '50%',
-    height: 40,
-  },
-  tabItemTitle: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 12,
-    letterSpacing: 0.3,
-    alignSelf: 'center',
-  },
-  emptyWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  cardView: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  flatListStyle: {
-    flex: 1,
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background_1,
+    },
+    topSectionWrap: {
+      marginHorizontal: 25,
+      marginTop: 20,
+      marginBottom: 40,
+      width: '85%',
+    },
+    formTitleContainer: {
+      marginHorizontal: 25,
+      marginVertical: 7,
+      width: '80%',
+    },
+    cardValueWrap: {
+      marginTop: 15,
+    },
+    fieldValue: {
+      fontFamily: theme.font_regular,
+      letterSpacing: 0.3,
+      fontSize: 12,
+      marginBottom: 10,
+      color: theme.text_2,
+    },
+    tabOneTop: {
+      marginHorizontal: 25,
+      marginTop: 30,
+      marginBottom: 20,
+      width: '90%',
+    },
+    formTitle: {
+      color: theme.text_1,
+      fontWeight: '500',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 16,
+      letterSpacing: 0.3,
+    },
+    cardStatusTitle: {
+      fontFamily: theme.font_regular,
+      letterSpacing: 0.3,
+      fontSize: 12,
+      marginBottom: 10,
+      color: theme.text_2,
+    },
+    horizontalLine: {
+      borderBottomWidth: 1,
+      borderColor: theme.border_1,
+      marginHorizontal: 18,
+      marginBottom: 10,
+    },
+    headerWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    proPic: {
+      width: 70,
+      height: 70,
+      borderRadius: 60,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarNameStyle: {
+      color: '#ffffff',
+      fontSize: 22,
+      fontFamily: theme.font_bold,
+    },
+    nameText: {
+      color: theme.text_1,
+      fontFamily: theme.font_medium,
+      fontSize: 18,
+      letterSpacing: 0.3,
+      lineHeight: 24,
+    },
+    phoneText: {
+      fontSize: 14,
+      color: theme.text_1,
+      marginVertical: 5,
+      lineHeight: 24,
+    },
+    syncWarningWrap: {
+      backgroundColor: '#DDF3FF',
+      justifyContent: 'flex-start',
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      paddingVertical: 10,
+      marginTop: 20,
+      marginBottom: 0,
+    },
+    syncMsg: {
+      color: theme.text_1,
+      fontWeight: '500',
+      fontFamily: theme.font_medium,
+      fontStyle: 'normal',
+      fontSize: 12,
+      letterSpacing: 0.3,
+      marginVertical: 5,
+    },
+    tabItemWrap: {
+      borderBottomWidth: 4,
+      width: '50%',
+      height: 40,
+    },
+    tabItemTitle: {
+      color: theme.text_1,
+      fontWeight: '500',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 12,
+      letterSpacing: 0.3,
+      alignSelf: 'center',
+    },
+    emptyWrap: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginVertical: 20,
+    },
+    cardView: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    flatListStyle: {
+      flex: 1,
+      backgroundColor: theme.background_1,
+    },
+  });
+};
 
 export default FarmerDetailsScreen;

@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-wrap-multilines */
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,12 +10,13 @@ import {
   BackHandler,
   ActivityIndicator,
 } from 'react-native';
-import { useSelector } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSelector, useDispatch } from 'react-redux';
 import NfcManager, { NfcEvents } from 'react-native-nfc-manager';
 import {
   findFarmerById,
   saveFarmer,
-  findAndupdateCard,
+  findAndUpdateCard,
 } from '../../services/farmersHelper';
 import {
   findCardByCardId,
@@ -22,76 +24,164 @@ import {
   updateCardNodeIDById,
   getAllCardsByNodeId,
 } from '../../services/cardsHelper';
-import { populateDatabase } from '../../services/populateDatabase';
 import { NfcNotSupportIcon, TurnOnNfcIcon } from '../../assets/svg';
+import { syncFarmers } from '../../services/syncFarmers';
+import { initSyncProcess } from '../../redux/LoginStore';
+import { updateNfcSupported } from '../../redux/CommonStore';
 import CustomLeftHeader from '../../components/CustomLeftHeader';
-import TransparentButton from '../../components/TransparentButton';
 import I18n from '../../i18n/i18n';
-import Icon from '../../icons';
 import CommonAlert from '../../components/CommonAlert';
-import * as consts from '../../services/constants';
+import QrCodeMethod from '../../components/QrCodeMethod';
+import NfcMethod from '../../components/NfcMethod';
+import VerificationSwitch from '../../components/VerificationSwitch';
 
-const { height, width } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const IssueFarmerCard = ({ navigation, route }) => {
   const { farmer } = route.params;
   const { isConnected } = useSelector((state) => state.connection);
-  const { syncInProgress } = useSelector(
-    (state) => state.login,
-  );
+  const { syncInProgress } = useSelector((state) => state.login);
+  const { nfcSupported } = useSelector((state) => state.common);
+  const { theme } = useSelector((state) => state.common);
 
-  const [isLoading, setLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
+  const [qrTutorial, setQrTutorial] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [verificationMode, setVerificationMode] = useState('nfc');
   const [cardId, setCardId] = useState(null);
   const [alertModal, setAlertModal] = useState(false);
   const [alertCancelModal, setAlertCancelModal] = useState(false);
   const [alertKey, setAlertKey] = useState('');
   const [alreadyAssignedFarmer, setAlreadyAssignedFarmer] = useState(null);
-  const [alertMessage, setAllertMessage] = useState(
+  const [alertMessage, setAlertMessage] = useState(
     I18n.t('something_went_wrong'),
   );
   const [alertTitle, setAlertTitle] = useState('Alert');
   const [alertIcon, setAlertIcon] = useState(null);
   const [alertSubmitText, setAlertSubmitText] = useState('Ok');
+  const dispatch = useDispatch();
 
   useEffect(() => {
-    initNfc();
+    setInitialLoading(true);
+    setupInitialValues();
   }, []);
 
   useEffect(() => {
-    const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackButtonClick);
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      handleBackButtonClick,
+    );
     return () => {
       subscription.remove();
     };
   }, []);
 
   /**
+   * initial setting farmer list values
+   */
+  const setupInitialValues = async () => {
+    const qrHelpTutorial = await AsyncStorage.getItem('qr_help_tutorial');
+    if (!qrHelpTutorial || qrHelpTutorial !== 'true') {
+      setQrTutorial(true);
+    }
+
+    if (nfcSupported === null) {
+      initNfc();
+    } else if (nfcSupported) {
+      setVerificationMode('nfc');
+      checkNfcEnabled();
+    }
+
+    setInitialLoading(false);
+  };
+
+  /**
+   * initializing NFC
+   */
+  const initNfc = async () => {
+    NfcManager.isSupported()
+      .then(async (supported) => {
+        if (supported) {
+          setVerificationMode('nfc');
+          dispatch(updateNfcSupported(true));
+          checkNfcEnabled();
+        } else {
+          createAlert('nfc_unsupported');
+          dispatch(updateNfcSupported(true));
+        }
+      })
+      .catch((err) => {
+        Sentry.captureException(`error initiating${err}`);
+      });
+  };
+
+  const checkNfcEnabled = async () => {
+    const isEnabled = await NfcManager.isEnabled();
+    if (isEnabled) {
+      await NfcManager.start();
+      readNfc();
+    } else {
+      createAlert('nfc_no_turned_on');
+    }
+  };
+
+  /**
+   * start reading NFC cards
+   */
+  const readNfc = async () => {
+    return new Promise((resolve) => {
+      let tagFound = null;
+
+      NfcManager.setEventListener(NfcEvents.DiscoverTag, async (tag) => {
+        // saving NFC card variables
+        tagFound = tag;
+        resolve(tagFound);
+        checkCardId(tagFound.id);
+
+        NfcManager.unregisterTagEvent().catch(() => 0);
+      });
+      NfcManager.setEventListener(NfcEvents.SessionClosed, () => {
+        cleanUp();
+        if (!tagFound) {
+          resolve();
+        }
+      });
+      NfcManager.registerTagEvent();
+    });
+  };
+
+  const checkCardId = async (id) => {
+    setVerifyLoading(true);
+    setCardId(id);
+
+    // checking this card is already exist
+    const isExist = await findCardByCardId(id);
+
+    if (isExist.length === 0) {
+      AddFarmer(id);
+    } else {
+      // if the card already exist, fining the attached farmer
+      if (isExist[0].node_id) {
+        const user = await findFarmerById(isExist[0].node_id);
+        // creating an alert message this card already exist
+        cardAlreadyAssigned(user, id);
+        return;
+      }
+
+      AddFarmer(id);
+    }
+  };
+
+  /**
    * clearing NFC event
    */
   function handleBackButtonClick() {
-    NfcManager.unregisterTagEvent().catch(() => 0);
-    cleanUp();
+    if (nfcSupported) {
+      NfcManager.unregisterTagEvent().catch(() => 0);
+      cleanUp(false);
+    }
     navigation.goBack(null);
   }
-
-   /**
-    * checking NFC is support on device and start NFC reading if available
-    */
-  const initNfc = async () => {
-    NfcManager.isSupported().then(async (supported) => {
-      if (supported) {
-        const isEnabled = await NfcManager.isEnabled();
-        if (isEnabled) {
-          await NfcManager.start({});
-          readNdef();
-        } else {
-          createAlert('nfc_no_turned_on');
-        }
-      } else {
-        createAlert('nfc_unsupported');
-      }
-    });
-  };
 
   /**
    * stop NFC reading
@@ -110,59 +200,15 @@ const IssueFarmerCard = ({ navigation, route }) => {
   };
 
   /**
-   * start reading NFC cards
-   */
-  const readNdef = async () => {
-    return new Promise((resolve) => {
-      let tagFound = null;
-
-      NfcManager.setEventListener(NfcEvents.DiscoverTag, async (tag) => {
-        setVerifyLoading(true);
-
-        // saving NFC card variables
-        tagFound = tag;
-        resolve(tagFound);
-        setCardId(tagFound.id);
-
-        // checking this card is already exist
-        const isExist = await findCardByCardId(tagFound.id);
-
-        if (isExist.length === 0) {
-          AddFarmer(tagFound.id);
-        } else {
-          // if the card already exist, fining the attached farmer
-          if (isExist[0].node_id) {
-            const user = await findFarmerById(isExist[0].node_id);
-            // creating an alert message this card already exixst
-            cardAlreadyAssigned(user, tagFound);
-            return;
-          }
-
-          AddFarmer(tagFound.id);
-        }
-        NfcManager.unregisterTagEvent().catch(() => 0);
-      });
-      NfcManager.setEventListener(NfcEvents.SessionClosed, () => {
-        cleanUp();
-        if (!tagFound) {
-          resolve();
-        }
-      });
-      NfcManager.registerTagEvent();
-    });
-  };
-
-  /**
    * creating an alert message that card is already assigned
    *
    * @param {object} user farmer object
-   * @param {string} tagFound card id
+   * @param {string} id card id
    */
-  const cardAlreadyAssigned = (user, tagFound) => {
+  const cardAlreadyAssigned = (user, id) => {
     setAlreadyAssignedFarmer(user);
-    setVerifyLoading(false);
 
-    if (farmer.card_id === tagFound.id) {
+    if (farmer.card_id === id) {
       // alert message when this card is already assigned for same farmer
       createAlert(
         'same_card_used_for',
@@ -177,16 +223,16 @@ const IssueFarmerCard = ({ navigation, route }) => {
         `${I18n.t('card_already_assigned')} ${user.name}.`,
       );
     }
-
-    readNdef();
   };
 
   /**
    * when back button clicked, unregister NFC event and redirect to previous page
    */
   const backNavigation = () => {
-    NfcManager.unregisterTagEvent().catch(() => 0);
-    cleanUp();
+    if (nfcSupported) {
+      NfcManager.unregisterTagEvent().catch(() => 0);
+      cleanUp(false);
+    }
     navigation.goBack(null);
   };
 
@@ -212,9 +258,9 @@ const IssueFarmerCard = ({ navigation, route }) => {
   };
 
   const AddFarmer = async (farmerCardId = null) => {
-    setLoading(true);
+    setVerifyLoading(true);
     if (farmer.server_id === undefined || farmer.server_id == null) {
-      const phone = (`+${farmer.dialCode} ${farmer.mobile}`).trim();
+      const phone = `+${farmer.dialCode} ${farmer.mobile}`.trim();
 
       const farmerObj = {
         name: farmer.name,
@@ -257,13 +303,17 @@ const IssueFarmerCard = ({ navigation, route }) => {
         }
       }
 
-      if (isConnected && !syncInProgress) { await populateDatabase(); }
+      if (isConnected && !syncInProgress) {
+        dispatch(initSyncProcess());
+        await syncFarmers();
+      }
 
       setCardId(null);
-      setVerifyLoading(false);
 
-      NfcManager.unregisterTagEvent().catch(() => 0);
-      cleanUp();
+      if (nfcSupported) {
+        NfcManager.unregisterTagEvent().catch(() => 0);
+        cleanUp(false);
+      }
 
       navigation.navigate('FarmerSuccessScreen', {
         farmer: farmerObj,
@@ -276,18 +326,18 @@ const IssueFarmerCard = ({ navigation, route }) => {
       if (farmerCardId) {
         // updating card_id as empty for already assigned node
         if (alreadyAssignedFarmer?.id) {
-          await findAndupdateCard(alreadyAssignedFarmer.id, '', false);
+          await findAndUpdateCard(alreadyAssignedFarmer.id, '', false);
           setAlreadyAssignedFarmer(null);
         }
 
-        // removing all the assined cards for this node
+        // removing all the assigned cards for this node
         const alreadyAssignedCard = await getAllCardsByNodeId(farmer.id);
         if (alreadyAssignedCard.length > 0) {
           await updateAllCards(alreadyAssignedCard, '');
         }
 
         // updating card_id in this node
-        await findAndupdateCard(farmer.id, farmerCardId, false);
+        await findAndUpdateCard(farmer.id, farmerCardId, false);
 
         const isCardExist = await findCardByCardId(farmerCardId);
         if (isCardExist.length > 0) {
@@ -306,13 +356,17 @@ const IssueFarmerCard = ({ navigation, route }) => {
         }
       }
 
-      if (isConnected && !syncInProgress) { await populateDatabase(); }
+      if (isConnected && !syncInProgress) {
+        dispatch(initSyncProcess());
+        await syncFarmers();
+      }
 
       setCardId(null);
-      setVerifyLoading(false);
 
-      NfcManager.unregisterTagEvent().catch(() => 0);
-      cleanUp();
+      if (nfcSupported) {
+        NfcManager.unregisterTagEvent().catch(() => 0);
+        cleanUp(false);
+      }
 
       navigation.navigate('FarmerSuccessScreen', {
         farmer,
@@ -328,7 +382,7 @@ const IssueFarmerCard = ({ navigation, route }) => {
 
     if (key === 'same_card_used_for') {
       setAlertTitle(I18n.t('already_your_card'));
-      setAllertMessage(message);
+      setAlertMessage(message);
       setAlertSubmitText(I18n.t('ok'));
       setAlertIcon(
         <Image
@@ -339,14 +393,14 @@ const IssueFarmerCard = ({ navigation, route }) => {
       );
     } else if (key === 'nfc_no_turned_on') {
       setAlertTitle(I18n.t('nfc_no_turned_on'));
-      setAllertMessage(I18n.t('turn_on_nfc_continue'));
+      setAlertMessage(I18n.t('turn_on_nfc_continue'));
       setAlertSubmitText(I18n.t('turn_on'));
       setAlertIcon(
         <TurnOnNfcIcon width={width * 0.27} height={width * 0.27} />,
       );
     } else if (key === 'nfc_unsupported') {
       setAlertTitle(I18n.t('nfc_unsupported'));
-      setAllertMessage(I18n.t('nfc_not_support_device'));
+      setAlertMessage(I18n.t('nfc_not_support_device'));
       setAlertSubmitText(I18n.t('ok'));
       setAlertIcon(
         <NfcNotSupportIcon width={width * 0.27} height={width * 0.27} />,
@@ -360,7 +414,7 @@ const IssueFarmerCard = ({ navigation, route }) => {
 
     if (key === 'card_already_assigned') {
       setAlertTitle(message);
-      setAllertMessage(I18n.t('force_issue_card'));
+      setAlertMessage(I18n.t('force_issue_card'));
       setAlertSubmitText(I18n.t('proceed'));
       setAlertIcon(
         <Image
@@ -380,8 +434,14 @@ const IssueFarmerCard = ({ navigation, route }) => {
       AddFarmer(cardId, true);
     }
 
+    if (verificationMode === 'nfc' && nfcSupported) {
+      readNfc();
+    }
     setAlertModal(false);
     setAlertCancelModal(false);
+    if (key !== 'card_already_assigned') {
+      setVerifyLoading(false);
+    }
   };
 
   const onCancelModal = () => {
@@ -389,171 +449,158 @@ const IssueFarmerCard = ({ navigation, route }) => {
     setCardId(null);
     setAlreadyAssignedFarmer(null);
     setVerifyLoading(false);
-    readNdef();
+    if (verificationMode === 'nfc' && nfcSupported) {
+      readNfc();
+    }
+  };
+
+  const changeMethod = () => {
+    if (verificationMode === 'nfc') {
+      if (nfcSupported) {
+        NfcManager.unregisterTagEvent().catch(() => 0);
+        cleanUp(false);
+      }
+      setVerificationMode('qr_code');
+    } else if (verificationMode === 'qr_code') {
+      checkNfcEnabled();
+      setVerificationMode('nfc');
+    }
   };
 
   const onSkipCard = () => {
     AddFarmer(null);
-    NfcManager.unregisterTagEvent().catch(() => 0);
-    cleanUp();
+    if (nfcSupported) {
+      NfcManager.unregisterTagEvent().catch(() => 0);
+      cleanUp(false);
+    }
   };
 
+  const styles = StyleSheetFactory(theme);
+
   return (
-    <ScrollView style={styles.container}>
-      <CustomLeftHeader
-        backgroundColor='#D5ECFB'
-        title={I18n.t('issue_new_farmer_card')}
-        leftIcon='Close'
-        onPress={() => backNavigation()}
-        extraStyle={{ marginLeft: 10 }}
-      />
+    <View style={styles.container}>
+      <View style={styles.headerWrap}>
+        <CustomLeftHeader
+          title={I18n.t('issue_new_farmer_card')}
+          leftIcon='arrow-left'
+          onPress={() => backNavigation()}
+          extraStyle={{ width: '90%' }}
+        />
 
-      <View style={styles.cardReaderImageContainer}>
-        <View style={styles.infoWrap}>
-          <View style={{ marginHorizontal: 10 }}>
-            <Icon name='info' color='#FFFFFF' size={14} />
-          </View>
-          <Text style={styles.policyText}>{I18n.t('privacy_policy')}</Text>
-        </View>
-        <Image
-          source={require('../../assets/images/scanning.gif')}
-          resizeMode='contain'
-          style={styles.scanningGif}
+        <VerificationSwitch
+          verificationMode={verificationMode}
+          onPress={() => changeMethod()}
+          nfcSupported={nfcSupported}
         />
       </View>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {initialLoading && (
+          <ActivityIndicator size='small' color={theme.icon_1} />
+        )}
 
-      <View style={styles.bottomSectionWrap}>
-        <View style={styles.bottomSectionSubWrap}>
-          {verifyLoading ? (
-            <View style={styles.loadingWrap}>
-              <ActivityIndicator color={consts.TEXT_PRIMARY_COLOR} />
-              <Text style={[styles.scanning, { marginLeft: 10 }]}>
-                {I18n.t('reading_farmer_card')}
-              </Text>
-            </View>
-          ) : (
-            <Text style={styles.scanning}>
-              {I18n.t('scanning_farmer_card')}
-            </Text>
-          )}
+        {verificationMode === 'nfc' && !initialLoading && (
+          <NfcMethod
+            actionType={
+              farmer.server_id === '' || farmer.server_id === undefined
+                ? 'issue_card'
+                : 'reissue_card'
+            }
+            verifyLoading={verifyLoading}
+            onNoCardSubmit={onSkipCard}
+            backNavigation={backNavigation}
+            cardSection={
+              <View style={styles.tapCard}>
+                <Text style={styles.tapCardInfo}>{I18n.t('tap_new_card')}</Text>
+              </View>
+            }
+            noCardButton={
+              farmer.server_id === '' || farmer.server_id === undefined
+            }
+          />
+        )}
 
-          <View style={styles.noCardButton}>
-            {(farmer.server_id === '' || farmer.server_id === undefined) && (
-              <TransparentButton
-                buttonText={I18n.t('skip_the_card')}
-                onPress={() => onSkipCard()}
-                color='#4DCAF4'
-                isDisabled={isLoading}
-              />
-            )}
-          </View>
-        </View>
+        {verificationMode === 'qr_code' && !initialLoading && (
+          <QrCodeMethod
+            actionType={
+              farmer.server_id === '' || farmer.server_id === undefined
+                ? 'issue_card'
+                : 'reissue_card'
+            }
+            verifyLoading={verifyLoading}
+            onNoCardSubmit={onSkipCard}
+            backNavigation={backNavigation}
+            createAlert={createAlert}
+            onGetScanId={checkCardId}
+            qrTutorial={qrTutorial}
+            cardSection={
+              <View style={styles.tapCard}>
+                <Text style={styles.tapCardInfo}>{I18n.t('tap_new_card')}</Text>
+              </View>
+            }
+            noCardButton={
+              farmer.server_id === '' || farmer.server_id === undefined
+            }
+          />
+        )}
 
-        <View style={styles.tap_card}>
-          <Text style={styles.tapCardInfo}>{I18n.t('tap_new_card')}</Text>
-        </View>
-      </View>
+        {alertModal && (
+          <CommonAlert
+            visible={alertModal}
+            title={alertTitle}
+            message={alertMessage}
+            submitText={alertSubmitText}
+            icon={alertIcon}
+            onSubmit={() => onPressAlert(alertKey)}
+            onRequestClose={() => onPressAlert(alertKey)}
+          />
+        )}
 
-      {alertModal && (
-        <CommonAlert
-          visible={alertModal}
-          title={alertTitle}
-          message={alertMessage}
-          submitText={alertSubmitText}
-          icon={alertIcon}
-          onSubmit={() => onPressAlert(alertKey)}
-          onRequestClose={() => onPressAlert(alertKey)}
-        />
-      )}
-
-      {alertCancelModal && (
-        <CommonAlert
-          visible={alertCancelModal}
-          title={alertTitle}
-          message={alertMessage}
-          submitText={alertSubmitText}
-          icon={alertIcon}
-          onCancel={() => onCancelModal()}
-          onSubmit={() => onPressAlert(alertKey)}
-          onRequestClose={() => onCancelModal()}
-        />
-      )}
-    </ScrollView>
+        {alertCancelModal && (
+          <CommonAlert
+            visible={alertCancelModal}
+            title={alertTitle}
+            message={alertMessage}
+            submitText={alertSubmitText}
+            icon={alertIcon}
+            onCancel={() => onCancelModal()}
+            onSubmit={() => onPressAlert(alertKey)}
+            onRequestClose={() => onCancelModal()}
+          />
+        )}
+      </ScrollView>
+    </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#D5ECFB',
-    paddingHorizontal: width * 0.04,
-  },
-  tapCardInfo: {
-    color: consts.APP_BG_COLOR,
-    fontWeight: 'normal',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 18,
-    textAlign: 'center',
-    paddingHorizontal: 40,
-    paddingVertical: 10,
-  },
-  cardReaderImageContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#D5ECFB',
-  },
-  tap_card: {
-    marginHorizontal: 30,
-    backgroundColor: consts.TEXT_PRIMARY_LIGHT_COLOR,
-    paddingVertical: 10,
-  },
-  scanning: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: 'normal',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 14,
-    textAlign: 'center',
-    marginVertical: 10,
-  },
-  noCardButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
-    marginVertical: 10,
-  },
-  infoWrap: {
-    alignSelf: 'center',
-    backgroundColor: consts.TEXT_PRIMARY_LIGHT_COLOR,
-    flexDirection: 'row',
-    width: '95%',
-    paddingVertical: 10,
-    paddingHorizontal: 5,
-  },
-  policyText: {
-    fontFamily: 'Moderat-Medium',
-    fontSize: 12,
-    backgroundColor: consts.TEXT_PRIMARY_LIGHT_COLOR,
-    flexDirection: 'row',
-    width: '90%',
-    color: '#FFFFFF',
-  },
-  scanningGif: {
-    width: width * 1.2,
-    height: width * 1.2,
-  },
-  bottomSectionWrap: {
-    marginTop: height * -0.1,
-  },
-  bottomSectionSubWrap: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#D5ECFB',
+    },
+    headerWrap: {
+      width: '100%',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: width * 0.05,
+    },
+    tapCardInfo: {
+      color: theme.background_1,
+      fontWeight: 'normal',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 18,
+      textAlign: 'center',
+      paddingHorizontal: 40,
+      paddingVertical: 10,
+    },
+    tapCard: {
+      marginHorizontal: 30,
+      backgroundColor: theme.text_2,
+      paddingVertical: 10,
+    },
+  });
+};
 
 export default IssueFarmerCard;

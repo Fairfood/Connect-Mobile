@@ -8,40 +8,49 @@ import {
   Modal,
   ScrollView,
   TouchableOpacity,
-  ToastAndroid,
   Dimensions,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import RadioForm from 'react-native-simple-radio-button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Geolocation from 'react-native-geolocation-service';
-import { getAllProducts } from '../../services/productsHelper';
-import { findBatchByProductId } from '../../services/batchesHelper';
+import Toast from 'react-native-toast-message';
+
+import { getAllProducts } from '../../../services/productsHelper';
+import { findBatchByProductId } from '../../../services/batchesHelper';
 import {
   findTransactionById,
   getAllTransactions,
-} from '../../services/transactionsHelper';
+} from '../../../services/transactionsHelper';
 import {
   getAllTransactionPremiums,
-  findAllPremiumsByTransaction,
-} from '../../services/transactionPremiumHelper';
+  findAllPremiumsByTransactionAndCategory,
+} from '../../../services/transactionPremiumHelper';
 import {
   getAllPremiums,
   findPremiumByServerId,
-} from '../../services/premiumsHelper';
-import { findAllPremiumsByProduct } from '../../services/productPremiumHelper';
-import CustomLeftHeader from '../../components/CustomLeftHeader';
-import CustomButton from '../../components/CustomButton';
-import Icon from '../../icons';
-import TransparentButton from '../../components/TransparentButton';
-import FormTextInput from '../../components/FormTextInput';
-import I18n from '../../i18n/i18n';
-import * as consts from '../../services/constants';
+} from '../../../services/premiumsHelper';
+import { findAllPremiumsByProduct } from '../../../services/productPremiumHelper';
+import {
+  TYPE_TRANSACTION_PREMIUM,
+  PREMIUM_APPLICABLE_ACTIVITY_SELL,
+  MINIMUM_TRANSACTION_QUANTITY,
+  MAXIMUM_TRANSACTION_QUANTITY,
+  PREMIUM_APPLICABLE_ACTIVITY_BUY,
+  HIT_SLOP_TEN,
+} from '../../../services/constants';
+import CustomLeftHeader from '../../../components/CustomLeftHeader';
+import CustomButton from '../../../components/CustomButton';
+import Icon from '../../../icons';
+import TransparentButton from '../../../components/TransparentButton';
+import FormTextInput from '../../../components/FormTextInput';
+import I18n from '../../../i18n/i18n';
 
 const { width } = Dimensions.get('window');
 
 const SendScreen = ({ navigation, route }) => {
   const { locationAllowed } = route.params;
+  const { theme } = useSelector((state) => state.common);
   const { userProjectDetails } = useSelector((state) => state.login);
   const { currency } = userProjectDetails;
   const [load, setLoad] = useState(false);
@@ -74,7 +83,7 @@ const SendScreen = ({ navigation, route }) => {
     const firstProduct = allProducts?.[0] ?? null;
     setSelectedProduct(firstProduct);
 
-    initiatevalues(allProducts);
+    initiateValues(allProducts);
   };
 
   /**
@@ -95,7 +104,7 @@ const SendScreen = ({ navigation, route }) => {
   /**
    * used for grouping transaction premiums
    *
-   * @param   {Array}   arr       transactiom premium array
+   * @param   {Array}   arr       transaction premium array
    * @param   {*}       property  premium id
    * @returns {object}            grouped premiums
    */
@@ -110,11 +119,11 @@ const SendScreen = ({ navigation, route }) => {
   };
 
   /**
-   * setting initail values based on products
+   * setting initial values based on products
    *
    * @param {Array} products all products
    */
-  const initiatevalues = async (products) => {
+  const initiateValues = async (products) => {
     let savedBuyers = await AsyncStorage.getItem('buyers');
     savedBuyers = JSON.parse(savedBuyers);
     setBuyers(savedBuyers);
@@ -141,7 +150,11 @@ const SendScreen = ({ navigation, route }) => {
         );
 
         if (errorBuyTnxFound) {
-          ToastAndroid.show(I18n.t('errored_buy_found'), ToastAndroid.LONG);
+          Toast.show({
+            type: 'warning',
+            text1: I18n.t('warning'),
+            text2: I18n.t('errored_buy_found'),
+          });
         }
 
         const totalQuantity = batches.reduce((total, batch) => {
@@ -152,19 +165,22 @@ const SendScreen = ({ navigation, route }) => {
           ...new Set(batches.map((item) => item.transaction_id)),
         ];
 
-        const filteredTrasactions = transactions.filter((tx) => {
+        const filteredTransactions = transactions.filter((tx) => {
           return transactionIds.includes(tx.id);
         });
 
-        const totalAmount = filteredTrasactions.reduce((total, tx) => {
+        const totalAmount = filteredTransactions.reduce((total, tx) => {
           return total + Math.round(tx.total);
         }, 0);
 
         // finding total quantity that are applied with premium
         let premiumedQuantity = 0;
         transactionIds.map(async (trans) => {
-          const apppliedPremiums = await findAllPremiumsByTransaction(trans);
-          if (apppliedPremiums.length > 0) {
+          const appliedPremiums = await findAllPremiumsByTransactionAndCategory(
+            trans,
+            TYPE_TRANSACTION_PREMIUM,
+          );
+          if (appliedPremiums.length > 0) {
             const tranDetails = transactions.filter((tx) => {
               return tx.id === trans;
             });
@@ -235,13 +251,13 @@ const SendScreen = ({ navigation, route }) => {
         });
 
         const nodes = [
-          ...new Set(filteredTrasactions.map((item) => item.node_id)),
+          ...new Set(filteredTransactions.map((item) => item.node_id)),
         ];
         setAllNodes((allNodes) => [...allNodes, ...nodes]);
 
         product.batches = batches;
         product.total_amount_premiums = totalAmount + otherPremiumAmount;
-        product.total_amount = totalAmount - total; // baseprice
+        product.total_amount = totalAmount - total; // base_price
         product.total_premiums = totalPremiums;
         product.total_quantity = Math.round(totalQuantity * 100) / 100;
         product.edited_quantity = Math.round(totalQuantity * 100) / 100;
@@ -282,9 +298,7 @@ const SendScreen = ({ navigation, route }) => {
           if (p.length > 0) {
             [p] = p;
 
-            if (
-              p.applicable_activity === consts.PREMIUM_APPLICABLE_ACTIVITY_SELL
-            ) {
+            if (p.applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_SELL) {
               otherPremiums.push(p);
             }
           }
@@ -311,7 +325,7 @@ const SendScreen = ({ navigation, route }) => {
   };
 
   /**
-   * updating quanity based on input
+   * updating quantity based on input
    *
    * @param {string} quantity       updated quantity
    * @param {number} index          index of updated product in product array
@@ -325,12 +339,13 @@ const SendScreen = ({ navigation, route }) => {
         quantity !== '' &&
         parseFloat(quantityEdited) > parseFloat(totalQuantity)
       ) {
-        ToastAndroid.show(
-          `${I18n.t(
+        Toast.show({
+          type: 'error',
+          text1: I18n.t('validation'),
+          text2: `${I18n.t(
             'edited_quantity_cannot_exceed_actual',
           )} ${totalQuantity}Kg`,
-          ToastAndroid.SHORT,
-        );
+        });
       } else {
         if (quantity !== '') {
           products[index].ratio =
@@ -348,7 +363,7 @@ const SendScreen = ({ navigation, route }) => {
   };
 
   /**
-   * checking any product quantity edite
+   * checking any product quantity edited
    *
    * @returns {boolean} true if quantity edited, otherwise false
    */
@@ -363,11 +378,11 @@ const SendScreen = ({ navigation, route }) => {
   };
 
   /**
-   * validating dats based on input fields
+   * validating data based on input fields
    *
    * @returns {boolean} true if valid, otherwise false
    */
-  const validateDatas = async () => {
+  const validateData = async () => {
     let errorMsg = '';
     let valid = true;
 
@@ -380,15 +395,15 @@ const SendScreen = ({ navigation, route }) => {
         if (product.ratio === '') {
           errorMsg = I18n.t('all_fields_are_mandatory');
           valid = false;
-        } else if (editedQuantity <= consts.MINIMUM_TRANSACTION_QUANTITY) {
+        } else if (editedQuantity <= MINIMUM_TRANSACTION_QUANTITY) {
           errorMsg = `${I18n.t('quantity_of')} ${product.name} ${I18n.t(
             'must_be_greater_than',
-          )} ${consts.MINIMUM_TRANSACTION_QUANTITY}Kg.`;
+          )} ${MINIMUM_TRANSACTION_QUANTITY}Kg.`;
           valid = false;
-        } else if (editedQuantity >= consts.MAXIMUM_TRANSACTION_QUANTITY) {
+        } else if (editedQuantity >= MAXIMUM_TRANSACTION_QUANTITY) {
           errorMsg = `${I18n.t('quantity_of')} ${product.name} ${I18n.t(
             'must_be_lower_than',
-          )} ${consts.MAXIMUM_TRANSACTION_QUANTITY}Kg.`;
+          )} ${MAXIMUM_TRANSACTION_QUANTITY}Kg.`;
           valid = false;
         }
       }),
@@ -397,7 +412,13 @@ const SendScreen = ({ navigation, route }) => {
     if (valid) {
       return true;
     }
-    ToastAndroid.show(errorMsg, ToastAndroid.SHORT);
+
+    Toast.show({
+      type: 'error',
+      text1: I18n.t('validation'),
+      text2: errorMsg,
+    });
+
     return false;
   };
 
@@ -407,7 +428,7 @@ const SendScreen = ({ navigation, route }) => {
   const confirmSend = async () => {
     const total = getTotalAmount();
     if (total > 0) {
-      const valid = await validateDatas();
+      const valid = await validateData();
       if (valid) {
         if (ratioCompare()) {
           setModalOpen(true);
@@ -416,10 +437,11 @@ const SendScreen = ({ navigation, route }) => {
         }
       }
     } else {
-      ToastAndroid.show(
-        I18n.t('total_amount_must_greater_0'),
-        ToastAndroid.SHORT,
-      );
+      Toast.show({
+        type: 'error',
+        text1: I18n.t('validation'),
+        text2: I18n.t('total_amount_must_greater_0'),
+      });
     }
   };
 
@@ -465,7 +487,7 @@ const SendScreen = ({ navigation, route }) => {
   };
 
   /**
-   * to get toatal amount of all product
+   * to get total amount of all product
    *
    * @returns {number} total amount
    */
@@ -503,10 +525,7 @@ const SendScreen = ({ navigation, route }) => {
             total = existedObj.total;
           }
 
-          if (
-            premium.applicable_activity ===
-            consts.PREMIUM_APPLICABLE_ACTIVITY_BUY
-          ) {
+          if (premium.applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_BUY) {
             if (productEditedQuantity < premium.total_premiumed_quantity) {
               total +=
                 parseFloat(premium.amount) * parseFloat(productEditedQuantity);
@@ -548,9 +567,7 @@ const SendScreen = ({ navigation, route }) => {
       total += parseFloat(product.total_amount) * parseFloat(productRatio);
 
       product.total_premiums.map((premium) => {
-        if (
-          premium.applicable_activity === consts.PREMIUM_APPLICABLE_ACTIVITY_BUY
-        ) {
+        if (premium.applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_BUY) {
           if (productEditedQuantity < premium.total_premiumed_quantity) {
             total +=
               parseFloat(premium.amount) * parseFloat(productEditedQuantity);
@@ -583,7 +600,7 @@ const SendScreen = ({ navigation, route }) => {
   /**
    * calculate total edited quantity
    *
-   * @returns {number} toatal edited quantity
+   * @returns {number} total edited quantity
    */
   const getTotalEditedQuantity = () => {
     const total = products.reduce((a, b) => {
@@ -592,10 +609,12 @@ const SendScreen = ({ navigation, route }) => {
     return total;
   };
 
+  const styles = StyleSheetFactory(theme);
+
   return (
     <View style={styles.container}>
       <CustomLeftHeader
-        backgroundColor={consts.APP_BG_COLOR}
+        backgroundColor={theme.background_1}
         title={I18n.t('sell')}
         leftIcon='arrow-left'
         onPress={() => backNavigation()}
@@ -626,9 +645,7 @@ const SendScreen = ({ navigation, route }) => {
           <Text style={styles.formValue}>{getTotalFarmerCount()}</Text>
         </View>
 
-        {loading && (
-          <ActivityIndicator size='small' color={consts.TEXT_PRIMARY_COLOR} />
-        )}
+        {loading && <ActivityIndicator size='small' color={theme.text_1} />}
 
         {products.length > 0 && !loading && (
           <View style={styles.productDetailsWrap}>
@@ -681,7 +698,7 @@ const SendScreen = ({ navigation, route }) => {
                       .replace(/\./g, '')}
                     onChangeText={(text) =>
                       updateQuantity(text, index, item.total_quantity)}
-                    color={consts.TEXT_PRIMARY_COLOR}
+                    color={theme.text_1}
                     keyboardType='number-pad'
                     extraStyle={{ width: '100%' }}
                   />
@@ -693,7 +710,7 @@ const SendScreen = ({ navigation, route }) => {
                         item.total_quantity,
                       )}
                     style={styles.resetWrap}
-                    hitSlop={consts.HIT_SLOP_TEN}
+                    hitSlop={HIT_SLOP_TEN}
                   >
                     <Icon name='Reset' color='#EA2553' size={16} />
                     <Text style={styles.resetText}>{I18n.t('reset')}</Text>
@@ -705,7 +722,7 @@ const SendScreen = ({ navigation, route }) => {
         )}
 
         {products.length > 0 && !loading && (
-          <View style={[styles.cardContainer]}>
+          <View style={styles.cardContainer}>
             <View style={{ marginVertical: 5, paddingVertical: 0 }}>
               <Text style={styles.priceDetails}>{I18n.t('price_details')}</Text>
             </View>
@@ -713,7 +730,7 @@ const SendScreen = ({ navigation, route }) => {
               <Text
                 style={[
                   styles.cardLeftItem,
-                  { color: consts.TEXT_PRIMARY_COLOR, width: '70%' },
+                  { color: theme.text_1, width: '70%' },
                 ]}
               >
                 {`${I18n.t('total_paid_to_farmers')}:`}
@@ -723,7 +740,7 @@ const SendScreen = ({ navigation, route }) => {
                   style={[
                     styles.cardRightItem,
                     {
-                      color: consts.TEXT_PRIMARY_COLOR,
+                      color: theme.text_1,
                     },
                   ]}
                 >
@@ -734,12 +751,7 @@ const SendScreen = ({ navigation, route }) => {
 
             {getTotalPremiums().map((premium, index) => (
               <View key={index.toString()} style={styles.cardItem}>
-                <Text
-                  style={[
-                    styles.cardLeftItem,
-                    { color: consts.TEXT_PRIMARY_COLOR },
-                  ]}
-                >
+                <Text style={[styles.cardLeftItem, { color: theme.text_1 }]}>
                   {`${premium.name} ${I18n.t('paid')}:`}
                 </Text>
                 <Text
@@ -747,7 +759,7 @@ const SendScreen = ({ navigation, route }) => {
                     styles.cardRightItem,
                     {
                       fontWeight: '600',
-                      color: consts.TEXT_PRIMARY_COLOR,
+                      color: theme.text_1,
                     },
                   ]}
                 >
@@ -766,7 +778,7 @@ const SendScreen = ({ navigation, route }) => {
                   {
                     opacity: 1,
                     textTransform: 'uppercase',
-                    color: consts.TEXT_PRIMARY_COLOR,
+                    color: theme.text_1,
                     paddingTop: 5,
                   },
                 ]}
@@ -779,7 +791,7 @@ const SendScreen = ({ navigation, route }) => {
                   {
                     fontWeight: '700',
                     fontSize: 20,
-                    color: consts.TEXT_PRIMARY_COLOR,
+                    color: theme.text_1,
                   },
                 ]}
               >
@@ -805,6 +817,7 @@ const SendScreen = ({ navigation, route }) => {
               onCloseModal={toggleModal}
               products={products}
               totalEditedQuantity={getTotalEditedQuantity()}
+              theme={theme}
             />
           </View>
         )}
@@ -819,12 +832,15 @@ const EditModal = ({
   onNext,
   products,
   totalEditedQuantity,
+  theme,
 }) => {
   const [type, setType] = useState(1);
   const radioProps = [
     { label: I18n.t('loss'), value: 1 },
     // { label: I18n.t('partial_delivery'), value: 2 },
   ];
+
+  const styles = StyleSheetFactory(theme);
 
   return (
     <Modal
@@ -850,11 +866,7 @@ const EditModal = ({
                   style={{ alignItems: 'flex-end', paddingHorizontal: 20 }}
                   onPress={onCloseModal}
                 >
-                  <Icon
-                    name='Close'
-                    size={25}
-                    color={consts.TEXT_PRIMARY_COLOR}
-                  />
+                  <Icon name='Close' size={25} color={theme.text_1} />
                 </TouchableOpacity>
               </View>
               <View style={{ marginHorizontal: 30, marginVertical: 20 }}>
@@ -870,7 +882,7 @@ const EditModal = ({
                   style={{ marginHorizontal: 10, marginBottom: 0 }}
                 />
               </View>
-              <View style={styles.editModalCardConrainer}>
+              <View style={styles.editModalCardContainer}>
                 {products.map((item, index) => (
                   <View key={index.toString()} style={{ width: '100%' }}>
                     {item.total_quantity !==
@@ -885,11 +897,7 @@ const EditModal = ({
                         ]}
                       >
                         <View style={{ marginHorizontal: 10 }}>
-                          <Icon
-                            name='info'
-                            color={consts.TEXT_PRIMARY_COLOR}
-                            size={15}
-                          />
+                          <Icon name='info' color={theme.text_1} size={15} />
                         </View>
                         <Text style={styles.lossText}>
                           {`${item.name} - ${(
@@ -910,7 +918,7 @@ const EditModal = ({
                   <Text
                     style={[
                       styles.cardLeftItem,
-                      { color: consts.TEXT_PRIMARY_COLOR, width: '70%' },
+                      { color: theme.text_1, width: '70%' },
                     ]}
                   >
                     {`${I18n.t('total_quantity_delivering')} (Kg):`}
@@ -920,7 +928,7 @@ const EditModal = ({
                       style={[
                         styles.cardRightItem,
                         {
-                          color: consts.TEXT_PRIMARY_COLOR,
+                          color: theme.text_1,
                         },
                       ]}
                     >
@@ -932,17 +940,14 @@ const EditModal = ({
                   <Text
                     style={[
                       styles.cardLeftItem,
-                      { color: consts.TEXT_PRIMARY_COLOR, width: '70%' },
+                      { color: theme.text_1, width: '70%' },
                     ]}
                   >
                     {`${I18n.t('balance_quantity_available')} (Kg):`}
                   </Text>
                   <View style={{ flexDirection: 'row' }}>
                     <Text
-                      style={[
-                        styles.cardRightItem,
-                        { color: consts.TEXT_PRIMARY_COLOR },
-                      ]}
+                      style={[styles.cardRightItem, { color: theme.text_1 }]}
                     >
                       0
                     </Text>
@@ -964,14 +969,14 @@ const EditModal = ({
                 }}
                 style={[
                   styles.buttonContainer,
-                  { backgroundColor: consts.COLOR_PRIMARY },
+                  { backgroundColor: theme.primary },
                 ]}
               >
                 <Text
                   style={[
                     styles.buttonText,
                     {
-                      color: consts.APP_BG_COLOR,
+                      color: theme.background_1,
                       paddingHorizontal: 45,
                     },
                   ]}
@@ -987,182 +992,185 @@ const EditModal = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: consts.APP_BG_COLOR,
-    paddingHorizontal: width * 0.05,
-  },
-  formTitleContainer: {
-    marginVertical: 10,
-  },
-  formTitle: {
-    color: consts.TEXT_PRIMARY_LIGHT_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 10,
-    marginBottom: 10,
-  },
-  formValue: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 18,
-  },
-  cardContainer: {
-    marginVertical: 20,
-    padding: 10,
-    backgroundColor: consts.CARD_BACKGROUND_COLOR,
-  },
-  cardItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignContent: 'space-between',
-    marginVertical: 8,
-    marginHorizontal: 10,
-  },
-  cardLeftItem: {
-    fontFamily: consts.FONT_REGULAR,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    fontSize: 13,
-    color: consts.TEXT_PRIMARY_COLOR,
-    opacity: 0.7,
-    letterSpacing: 0.2,
-  },
-  cardRightItem: {
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 13,
-    color: consts.TEXT_PRIMARY_COLOR,
-  },
-  dottedLine: {
-    borderStyle: 'dotted',
-    borderWidth: 1,
-    borderRadius: consts.BORDER_RADIUS,
-    borderColor: consts.TEXT_PRIMARY_LIGHT_COLOR,
-    marginHorizontal: 0,
-    marginTop: 5,
-  },
-  buttonContainer: {
-    backgroundColor: consts.APP_BG_COLOR,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: consts.COLOR_PRIMARY,
-    marginHorizontal: 25,
-    flexDirection: 'row',
-    zIndex: 1,
-  },
-  buttonText: {
-    color: consts.COLOR_PRIMARY,
-    fontFamily: consts.FONT_REGULAR,
-    paddingHorizontal: 10,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  productDetailsWrap: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginVertical: 10,
-  },
-  productQuantity: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  resetWrap: {
-    right: 20,
-    position: 'absolute',
-    top: 25,
-    flexDirection: 'row',
-  },
-  resetText: {
-    fontFamily: 'Moderat-Regular',
-    fontSize: 14,
-    flexDirection: 'row',
-    color: '#EA2553',
-    marginLeft: 5,
-  },
-  priceDetails: {
-    fontFamily: consts.FONT_REGULAR,
-    fontWeight: '500',
-    fontStyle: 'normal',
-    fontSize: 16,
-    color: consts.TEXT_PRIMARY_COLOR,
-    opacity: 1,
-    letterSpacing: 0.2,
-    textTransform: 'none',
-    marginVertical: 10,
-    marginBottom: 0,
-    marginLeft: 10,
-  },
-  modalWrap: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 58, 96, 0.2)',
-  },
-  modalInnerWrap: {
-    height: '55%',
-    marginTop: 'auto',
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background_1,
+      paddingHorizontal: width * 0.05,
+    },
+    formTitleContainer: {
+      marginVertical: 10,
+    },
+    formTitle: {
+      color: theme.text_2,
+      fontWeight: '500',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 10,
+      marginBottom: 10,
+    },
+    formValue: {
+      color: theme.text_1,
+      fontWeight: '500',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 18,
+    },
+    cardContainer: {
+      marginVertical: 20,
+      padding: 10,
+      backgroundColor: theme.background_2,
+      borderRadius: theme.border_radius,
+    },
+    cardItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignContent: 'space-between',
+      marginVertical: 8,
+      marginHorizontal: 10,
+    },
+    cardLeftItem: {
+      fontFamily: theme.font_regular,
+      fontWeight: '400',
+      fontStyle: 'normal',
+      fontSize: 13,
+      color: theme.text_1,
+      opacity: 0.7,
+      letterSpacing: 0.2,
+    },
+    cardRightItem: {
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 13,
+      color: theme.text_1,
+    },
+    dottedLine: {
+      borderStyle: 'dotted',
+      borderWidth: 1,
+      borderRadius: theme.border_radius,
+      borderColor: theme.text_2,
+      marginHorizontal: 0,
+      marginTop: 5,
+    },
+    buttonContainer: {
+      backgroundColor: theme.background_1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderWidth: 1,
+      borderColor: theme.primary,
+      marginHorizontal: 25,
+      flexDirection: 'row',
+      zIndex: 1,
+    },
+    buttonText: {
+      color: theme.primary,
+      fontFamily: theme.font_regular,
+      paddingHorizontal: 10,
+      fontSize: 14,
+      lineHeight: 20,
+      textAlign: 'center',
+    },
+    productDetailsWrap: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginVertical: 10,
+    },
+    productQuantity: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    resetWrap: {
+      right: 20,
+      position: 'absolute',
+      top: 25,
+      flexDirection: 'row',
+    },
+    resetText: {
+      fontFamily: 'Moderat-Regular',
+      fontSize: 14,
+      flexDirection: 'row',
+      color: '#EA2553',
+      marginLeft: 5,
+    },
+    priceDetails: {
+      fontFamily: theme.font_regular,
+      fontWeight: '500',
+      fontStyle: 'normal',
+      fontSize: 16,
+      color: theme.text_1,
+      opacity: 1,
+      letterSpacing: 0.2,
+      textTransform: 'none',
+      marginVertical: 10,
+      marginBottom: 0,
+      marginLeft: 10,
+    },
+    modalWrap: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 58, 96, 0.2)',
+    },
+    modalInnerWrap: {
+      height: '55%',
+      marginTop: 'auto',
+      backgroundColor: theme.background_1,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
 
-    justifyContent: 'space-between',
-  },
-  modalTitle: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 20,
-    fontFamily: 'Moderat-Medium',
-    margin: 25,
-  },
-  reasonText: {
-    fontFamily: 'Moderat-Medium',
-    fontSize: 16,
-    flexDirection: 'row',
-    width: '95%',
-    color: consts.TEXT_PRIMARY_COLOR,
-    marginBottom: 20,
-  },
-  buttonsWrap: {
-    marginVertical: 10,
-    marginHorizontal: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    height: 50,
-  },
-  labelStyle: {
-    fontSize: 16,
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontFamily: 'Moderat-Regular',
-  },
-  editModalCardConrainer: {
-    width: '85%',
-    alignSelf: 'center',
-    marginVertical: width * 0.05,
-    padding: 10,
-    backgroundColor: consts.CARD_BACKGROUND_COLOR,
-  },
-  lossText: {
-    fontFamily: consts.FONT_REGULAR,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    fontSize: 14,
-    color: consts.TEXT_PRIMARY_COLOR,
-    opacity: 1,
-    letterSpacing: 0.2,
-    width: '85%',
-    textTransform: 'none',
-  },
-});
+      justifyContent: 'space-between',
+    },
+    modalTitle: {
+      color: theme.text_1,
+      fontSize: 20,
+      fontFamily: 'Moderat-Medium',
+      margin: 25,
+    },
+    reasonText: {
+      fontFamily: 'Moderat-Medium',
+      fontSize: 16,
+      flexDirection: 'row',
+      width: '95%',
+      color: theme.text_1,
+      marginBottom: 20,
+    },
+    buttonsWrap: {
+      marginVertical: 10,
+      marginHorizontal: 10,
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      height: 50,
+    },
+    labelStyle: {
+      fontSize: 16,
+      color: theme.text_1,
+      fontFamily: 'Moderat-Regular',
+    },
+    editModalCardContainer: {
+      width: '85%',
+      alignSelf: 'center',
+      marginVertical: width * 0.05,
+      padding: 10,
+      backgroundColor: theme.background_2,
+    },
+    lossText: {
+      fontFamily: theme.font_regular,
+      fontWeight: '400',
+      fontStyle: 'normal',
+      fontSize: 14,
+      color: theme.text_1,
+      opacity: 1,
+      letterSpacing: 0.2,
+      width: '85%',
+      textTransform: 'none',
+    },
+  });
+};
 
 export default SendScreen;

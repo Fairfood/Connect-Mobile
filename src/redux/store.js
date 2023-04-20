@@ -5,12 +5,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import LoginStore from './LoginStore';
 import ConnectionStore from './ConnectionStore';
-import FarmersStore from './FarmersStore';
+import SyncStore from './SyncStore';
+import CommonStore from './CommonStore';
 
 const reducers = combineReducers({
   login: LoginStore,
-  farmers: FarmersStore,
+  sync: SyncStore,
   connection: ConnectionStore,
+  common: CommonStore,
 });
 
 const persistConfig = {

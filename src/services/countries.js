@@ -1,4 +1,4 @@
-export default Countrys = {
+export default Countries = {
   success: true,
   detail: 'Success.',
   code: 200,

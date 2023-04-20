@@ -9,29 +9,30 @@ import {
   Dimensions,
   Modal,
   ActivityIndicator,
-  ToastAndroid,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import ImagePicker from 'react-native-image-crop-picker';
 import FastImage from 'react-native-fast-image';
 import CountryPicker from 'react-native-country-picker-modal';
 import DeviceInfo from 'react-native-device-info';
-import { updateUserDetails } from '../../redux/LoginStore';
-import { CommonFetchRequest } from '../../api/middleware';
-import { checkEmojis, checkMandatory } from '../../services/commonFunctions';
-import FormTextInput from '../../components/FormTextInput';
-import Icon from '../../icons';
-import Countrys from '../../services/countrys';
-import I18n from '../../i18n/i18n';
-import CustomLeftHeader from '../../components/CustomLeftHeader';
-import SelectPicture from '../../components/SelectPicture';
-import api from '../../api/config';
-import * as consts from '../../services/constants';
+import Toast from 'react-native-toast-message';
+
+import { updateUserDetails } from '../../../redux/LoginStore';
+import { CommonFetchRequest } from '../../../api/middleware';
+import { checkEmojis, checkMandatory } from '../../../services/commonFunctions';
+import FormTextInput from '../../../components/FormTextInput';
+import Icon from '../../../icons';
+import Countries from '../../../services/countries';
+import I18n from '../../../i18n/i18n';
+import CustomLeftHeader from '../../../components/CustomLeftHeader';
+import SelectPicture from '../../../components/SelectPicture';
+import api from '../../../api/config';
 
 const { width } = Dimensions.get('window');
 
 const EditProfile = ({ navigation }) => {
-  const mobileref = useRef(null);
+  const mobileRef = useRef(null);
+  const { theme } = useSelector((state) => state.common);
   const { loggedInUser, userCompanyDetails } = useSelector(
     (state) => state.login,
   );
@@ -51,10 +52,10 @@ const EditProfile = ({ navigation }) => {
   }, []);
 
   /**
-   * setting up inital dialcode value
+   * setting up initial dial code value
    */
   const setupDialCode = async () => {
-    const arrayOfObjs = Object.entries(Countrys.data).map((e) => ({
+    const arrayOfObjs = Object.entries(Countries.data).map((e) => ({
       label: `+${e[1].dial_code}`,
       value: e[1].dial_code,
       country_name: e[0],
@@ -107,10 +108,11 @@ const EditProfile = ({ navigation }) => {
       .then((image) => {
         // checking file is image type
         if (image.mime && !image.mime.includes('image')) {
-          ToastAndroid.show(
-            I18n.t('only_image_files_allowed'),
-            ToastAndroid.SHORT,
-          );
+          Toast.show({
+            type: 'error',
+            text1: I18n.t('invalid'),
+            text2: I18n.t('only_image_files_allowed'),
+          });
           return;
         }
         setProfilePic(image.path);
@@ -128,7 +130,7 @@ const EditProfile = ({ navigation }) => {
     const farmerLastName = lastName.trim();
     const farmerMobile = mobile.trim();
     const farmerDialCode = dialCode;
-    const farmerPropic = profilePic;
+    const farmerProPic = profilePic;
 
     // checking emoji in fields
     const emojiFields = [
@@ -149,12 +151,12 @@ const EditProfile = ({ navigation }) => {
       { name: I18n.t('last_name'), value: farmerLastName },
     ];
 
-    const [madatoryValid, madatoryError] = await checkMandatory(
+    const [mandatoryValid, mandatoryError] = await checkMandatory(
       mandatoryFields,
     );
 
-    if (!madatoryValid) {
-      setError(madatoryError);
+    if (!mandatoryValid) {
+      setError(mandatoryError);
       return;
     }
 
@@ -163,7 +165,7 @@ const EditProfile = ({ navigation }) => {
       farmerLastName === loggedInUser.LastName &&
       farmerMobile === loggedInUser.Mobile &&
       farmerDialCode === loggedInUser.DialCode &&
-      farmerPropic === loggedInUser.ProfilePic
+      farmerProPic === loggedInUser.ProfilePic
     ) {
       // no changes
       backNavigation();
@@ -213,19 +215,19 @@ const EditProfile = ({ navigation }) => {
       'Client-Code': api.API_CLIENT_CODE,
     };
 
-    const formdata = new FormData();
-    formdata.append('default_node', loggedInUser.default_node);
-    formdata.append('first_name', user.first_name);
-    formdata.append('last_name', user.last_name);
+    const formData = new FormData();
+    formData.append('default_node', loggedInUser.default_node);
+    formData.append('first_name', user.first_name);
+    formData.append('last_name', user.last_name);
 
     if (user.phone !== '') {
-      formdata.append('phone', user.phone);
+      formData.append('phone', user.phone);
     }
 
     if (user.image) {
       const { uri } = user.image;
       if (uri && !uri.includes('http')) {
-        formdata.append('image', user.image);
+        formData.append('image', user.image);
       }
     }
 
@@ -233,7 +235,7 @@ const EditProfile = ({ navigation }) => {
       method: 'PATCH',
       url: `${api.API_URL}${api.API_VERSION}/accounts/user/`,
       headers,
-      data: formdata,
+      data: formData,
       redirect: 'follow',
     };
 
@@ -253,7 +255,7 @@ const EditProfile = ({ navigation }) => {
   };
 
   /**
-   * setting dialcode based on selected country
+   * setting dial code based on selected country
    *
    * @param {object} country selected country
    */
@@ -264,11 +266,13 @@ const EditProfile = ({ navigation }) => {
     }
   };
 
+  const styles = StyleSheetFactory(theme);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={{ flex: 1 }}>
         <CustomLeftHeader
-          backgroundColor={consts.APP_BG_COLOR}
+          backgroundColor={theme.background_1}
           title={I18n.t('edit_profile')}
           leftIcon='arrow-left'
           onPress={() => backNavigation()}
@@ -312,19 +316,17 @@ const EditProfile = ({ navigation }) => {
             mandatory
             placeholder={I18n.t('first_name')}
             value={name}
-            color={consts.TEXT_PRIMARY_COLOR}
+            color={theme.text_1}
             onChangeText={(text) => setName(text)}
-            AutoCapitalise='none'
             extraStyle={{ width: '100%' }}
           />
           <FormTextInput
             mandatory
             placeholder={I18n.t('last_name')}
             value={lastName}
-            onSubmitEditing={() => mobileref.current.focus()}
-            color={consts.TEXT_PRIMARY_COLOR}
+            onSubmitEditing={() => mobileRef.current.focus()}
+            color={theme.text_1}
             onChangeText={(text) => setLastName(text)}
-            AutoCapitalise='none'
             extraStyle={{ width: '100%' }}
           />
           <View>
@@ -346,14 +348,14 @@ const EditProfile = ({ navigation }) => {
             <FormTextInput
               placeholder={I18n.t('mobile_number')}
               value={mobile}
-              inputRef={mobileref}
-              color={consts.TEXT_PRIMARY_COLOR}
+              inputRef={mobileRef}
+              color={theme.text_1}
               keyboardType='numeric'
               onChangeText={(text) => {
                 // text = text.replace(/[^0-9]/g, '');
                 setMobile(text.replace(/[^0-9]/g, ''));
               }}
-              internalpadding={70}
+              internalPadding={70}
               extraStyle={{ width: '100%' }}
             />
           </View>
@@ -383,72 +385,74 @@ const EditProfile = ({ navigation }) => {
   );
 };
 
-export default EditProfile;
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background_1,
+    },
+    formTitleContainer: {
+      marginVertical: 10,
+    },
+    formTitle: {
+      color: theme.text_1,
+      fontFamily: theme.font_medium,
+      fontStyle: 'normal',
+      fontSize: 16,
+    },
+    uploadImageContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignSelf: 'center',
+      marginVertical: 30,
+    },
+    uploadImageView: {
+      backgroundColor: '#C5EDFA',
+      height: 100,
+      width: 100,
+      borderRadius: 50,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    errorMessage: {
+      fontSize: 14,
+      fontFamily: theme.font_regular,
+      lineHeight: 28,
+      paddingBottom: 10,
+      textAlign: 'center',
+      marginRight: 30,
+      color: theme.button_bg_1,
+    },
+    addPicture: {
+      height: 30,
+      width: 30,
+      borderRadius: 15,
+      position: 'absolute',
+      right: -5,
+      top: 10,
+      backgroundColor: theme.text_1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    errorView: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: 40,
+    },
+    countryPickerWrap: {
+      width: 50,
+      top: 25,
+      left: 20,
+      position: 'absolute',
+      zIndex: 1,
+    },
+    modalWrap: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 58, 96, 0.2);',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  formTitleContainer: {
-    marginVertical: 10,
-  },
-  formTitle: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontFamily: consts.FONT_MEDIUM,
-    fontStyle: 'normal',
-    fontSize: 16,
-  },
-  uploadImageContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginVertical: 30,
-  },
-  uploadImageView: {
-    backgroundColor: '#C5EDFA',
-    height: 100,
-    width: 100,
-    borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorMessage: {
-    fontSize: 14,
-    fontFamily: consts.FONT_REGULAR,
-    lineHeight: 28,
-    paddingBottom: 10,
-    textAlign: 'center',
-    marginRight: 30,
-    color: consts.BUTTON_COLOR_PRIMARY,
-  },
-  addPicture: {
-    height: 30,
-    width: 30,
-    borderRadius: 15,
-    position: 'absolute',
-    right: -5,
-    top: 10,
-    backgroundColor: consts.TEXT_PRIMARY_COLOR,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorView: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 40,
-  },
-  countryPickerWrap: {
-    width: 50,
-    top: 25,
-    left: 20,
-    position: 'absolute',
-    zIndex: 1,
-  },
-  modalWrap: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 58, 96, 0.2);',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+export default EditProfile;

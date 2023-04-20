@@ -22,20 +22,24 @@ export const savePremium = async (premium) => {
       entry.included_in_amt = premium.included;
       entry.is_card_dependent = premium.dependant_on_card;
       entry.applicable_activity = premium.applicable_activity;
+      entry._raw.category = premium.category;
     });
   });
 };
 
-export const updatePremium = async (premium, updates) => {
+export const updatePremium = async (id, updates) => {
+  const premium = await premiums.find(id);
+
   await database.action(async () => {
     await premium.update((entry) => {
       entry.server_id = updates.id;
       entry.name = updates.name;
       entry.type = updates.type;
       entry.amount = updates.amount;
-      entry.included_in_amt = updates.included_in_amt;
-      entry.is_card_dependent = updates.is_card_dependent;
-      entry.applicable_activity = premium.applicable_activity;
+      entry.included_in_amt = updates.included;
+      entry.is_card_dependent = updates.dependant_on_card;
+      entry.applicable_activity = updates.applicable_activity;
+      entry._raw.category = updates.category;
     });
   });
 };
@@ -61,4 +65,8 @@ export const findPremiumById = async (id) => {
 
 export const findPremiumByServerId = async (id) => {
   return premiums.query(Q.where('server_id', id));
+};
+
+export const getPremiumByCategory = async (category) => {
+  return premiums.query(Q.where('category', category));
 };

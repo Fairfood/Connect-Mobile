@@ -1,14 +1,27 @@
+/* eslint-disable no-shadow */
 import * as Sentry from '@sentry/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DeviceInfo from 'react-native-device-info';
-import { ToastAndroid } from 'react-native';
+import Toast from 'react-native-toast-message';
+
 import {
-  getCompanyDetails,
-  getProjectDetails,
   initSyncProcess,
   SyncProcessComplete,
   SyncProcessFailed,
 } from '../redux/LoginStore';
+import { getCompanyDetails, getProjectDetails } from './syncInitials';
+import {
+  startTnxSyncing,
+  updateTnxSyncTotal,
+  addTnxSyncCount,
+  tnxSyncCompleted,
+  updateSyncStage,
+  updateTnxSyncPrevTotal,
+  updateTnxSyncNextUrl,
+  updateTnxSyncStage,
+  updateTnxSyncCount,
+  updateTnxUpdatedBefore,
+} from '../redux/SyncStore';
 import { store } from '../redux/store';
 import { CommonFetchRequest } from '../api/middleware';
 import {
@@ -25,16 +38,17 @@ import {
 import {
   findTransactionByServerId,
   saveTransaction,
-  // updateTransaction,
 } from './transactionsHelper';
+import { getBatchByServerId, saveBatch } from './batchesHelper';
 import {
-  getBatchByServerId,
-  saveBatch,
-  // updateBatch,
-  // getAllBatchesByTransaction,
-} from './batchesHelper';
-import { findPremiumByServerId } from './premiumsHelper';
-import { saveTransactionPremium } from './transactionPremiumHelper';
+  findPremiumByServerId,
+  savePremium,
+  updatePremium,
+} from './premiumsHelper';
+import {
+  findAllTransactionPremiumByServerId,
+  saveTransactionPremium,
+} from './transactionPremiumHelper';
 import { syncFarmers } from './syncFarmers';
 import {
   getAllCards,
@@ -51,42 +65,102 @@ import I18n from '../i18n/i18n';
 import api from '../api/config';
 import * as consts from './constants';
 
+const transactionLimit = 50;
+
 export const populateDatabase = async () => {
   const { syncInProgress } = store.getState().login;
   const { isConnected } = store.getState().connection;
+  const { syncStage } = store.getState().sync;
 
   if (!isConnected) {
-    ToastAndroid.show(
-      I18n.t('no_active_internet_connection'),
-      ToastAndroid.SHORT,
-    );
+    Toast.show({
+      type: 'error',
+      text1: I18n.t('connection_error'),
+      text2: I18n.t('no_active_internet_connection'),
+    });
     return;
   }
 
   if (syncInProgress) {
-    // ToastAndroid.show(I18n.t("sync_already_in_progress"), ToastAndroid.SHORT);
+    // Toast.show({
+    //   type: 'warning',
+    //   text1: I18n.t('in_progress'),
+    //   text2: I18n.t('sync_already_in_progress'),
+    // });
     return;
   }
 
   await store.dispatch(initSyncProcess());
 
-  const companyDetails = await store.dispatch(getCompanyDetails());
-  if (companyDetails?.success) {
-    const projectDetails = await store.dispatch(getProjectDetails());
-    if (projectDetails?.success) {
+  if (syncStage === 2) {
+    store.dispatch(startTnxSyncing());
+    store.dispatch(updateTnxSyncStage(1));
+  }
+
+  const companyDetails = await getCompanyDetails();
+  if (companyDetails) {
+    const projectDetails = await getProjectDetails();
+    if (projectDetails) {
       const date = new Date();
       await AsyncStorage.setItem(
         'user_details_last_update',
         date.getTime().toString(),
       );
       await syncFarmers();
+    } else {
+      store.dispatch(SyncProcessFailed('sync Failed'));
     }
-
+  } else {
     store.dispatch(SyncProcessFailed('sync Failed'));
-    return;
+  }
+};
+
+export const getPremiumList = async () => {
+  let loggedInUser = await AsyncStorage.getItem('loggedInUser');
+  loggedInUser = JSON.parse(loggedInUser);
+
+  const headers = {
+    Bearer: loggedInUser.token,
+    'User-ID': loggedInUser.id,
+    'Node-ID': loggedInUser.default_node,
+    Version: DeviceInfo.getVersion(),
+    'Client-Code': api.API_CLIENT_CODE,
+  };
+
+  let lastUpdatedPremiums = await AsyncStorage.getItem('last_updated_premiums');
+  let updatedAfter = '';
+  if (lastUpdatedPremiums) {
+    updatedAfter = `?updated_after=${parseInt(lastUpdatedPremiums)}`;
   }
 
-  store.dispatch(SyncProcessFailed('sync Failed'));
+  const config = {
+    url: `${api.API_URL}${api.API_VERSION}/projects/projects/premiums/${updatedAfter}`,
+    headers,
+  };
+
+  const response = await CommonFetchRequest(config);
+  if (response.success) {
+    const premiums = response.data.results;
+    premiums.map(async (premium) => {
+      const isExisting = await findPremiumByServerId(premium.id);
+      if (isExisting.length === 0) {
+        await savePremium(premium);
+      } else {
+        await updatePremium(isExisting[0].id, premium);
+      }
+    });
+
+    lastUpdatedPremiums = new Date();
+    lastUpdatedPremiums = parseInt(lastUpdatedPremiums.getTime() / 1000);
+    await AsyncStorage.setItem(
+      'last_updated_premiums',
+      lastUpdatedPremiums.toString(),
+    );
+
+    getProductsList(headers, null);
+  } else {
+    store.dispatch(SyncProcessFailed());
+  }
 };
 
 export const getProductsList = async () => {
@@ -148,24 +222,15 @@ export const getProductsList = async () => {
       lastUpdatedProducts.toString(),
     );
 
-    await getBuyersList(null);
-    getFarmersList(null);
+    getBuyersList(headers, null);
   } else {
     store.dispatch(SyncProcessFailed());
   }
 };
 
-const getBuyersList = async (url) => {
+const getBuyersList = async (headers, url) => {
   let loggedInUser = await AsyncStorage.getItem('loggedInUser');
   loggedInUser = JSON.parse(loggedInUser);
-
-  const headers = {
-    Bearer: loggedInUser.token,
-    'User-ID': loggedInUser.id,
-    'Node-ID': loggedInUser.default_node,
-    Version: DeviceInfo.getVersion(),
-    'Client-Code': api.API_CLIENT_CODE,
-  };
 
   let lastUpdatedBuyers = await AsyncStorage.getItem('last_updated_buyers');
   // let updatedAfter = '';
@@ -181,6 +246,7 @@ const getBuyersList = async (url) => {
   };
 
   const response = await CommonFetchRequest(config);
+
   if (response.success) {
     const buyers = response.data.results;
     await AsyncStorage.setItem('buyers', JSON.stringify(buyers));
@@ -191,23 +257,16 @@ const getBuyersList = async (url) => {
       'last_updated_buyers',
       lastUpdatedBuyers.toString(),
     );
-    return;
-  }
 
-  store.dispatch(SyncProcessFailed());
+    getFarmersList(headers, null);
+  } else {
+    store.dispatch(SyncProcessFailed());
+  }
 };
 
-const getFarmersList = async (url) => {
+const getFarmersList = async (headers, url) => {
   let loggedInUser = await AsyncStorage.getItem('loggedInUser');
   loggedInUser = JSON.parse(loggedInUser);
-
-  const headers = {
-    Bearer: loggedInUser.token,
-    'User-ID': loggedInUser.id,
-    'Node-ID': loggedInUser.default_node,
-    Version: DeviceInfo.getVersion(),
-    'Client-Code': api.API_CLIENT_CODE,
-  };
 
   const lastUpdatedFarmers = await AsyncStorage.getItem('last_updated_farmers');
   let updatedAfter = '';
@@ -223,13 +282,13 @@ const getFarmersList = async (url) => {
 
   const response = await CommonFetchRequest(config);
   if (response.success) {
-    saveFarmers(response);
+    saveFarmers(headers, response);
   } else {
     store.dispatch(SyncProcessFailed());
   }
 };
 
-const saveFarmers = async (response) => {
+const saveFarmers = async (headers, response) => {
   const { next, results } = response.data;
   const nextUrl = next ?? null;
   const farmers = results ?? [];
@@ -253,7 +312,7 @@ const saveFarmers = async (response) => {
           await findAndUpdateFarmerDetails(isExisting[0].id, farmer, cardId);
 
           const { cards } = farmer;
-          await saveAllcards(allCards, cards, isExisting[0].id);
+          await saveAllCards(allCards, cards, isExisting[0].id);
         } else {
           // removing already assigned card for this node
           const alreadyAssignedCards = await getAllCardsByNodeId(
@@ -275,7 +334,7 @@ const saveFarmers = async (response) => {
         const farmerResponse = await saveFarmer(farmer);
 
         const { cards } = farmer;
-        await saveAllcards(allCards, cards, farmerResponse.id);
+        await saveAllCards(allCards, cards, farmerResponse.id);
       } else {
         farmer.card_id = null;
         await saveFarmer(farmer);
@@ -284,7 +343,7 @@ const saveFarmers = async (response) => {
     }),
   ).then(async () => {
     if (nextUrl != null) {
-      getFarmersList(nextUrl);
+      getFarmersList(headers, nextUrl);
     } else {
       let lastUpdatedFarmers = new Date();
       lastUpdatedFarmers = parseInt(lastUpdatedFarmers.getTime() / 1000);
@@ -292,12 +351,20 @@ const saveFarmers = async (response) => {
         'last_updated_farmers',
         lastUpdatedFarmers.toString(),
       );
-      getTransactionsList(null);
+
+      const { syncStage } = store.getState().sync;
+
+      if (syncStage === 1) {
+        store.dispatch(updateSyncStage(2));
+        store.dispatch(SyncProcessComplete());
+      } else {
+        startTransactionSync(headers, null);
+      }
     }
   });
 };
 
-const saveAllcards = async (allCards, cards, nodeId) => {
+const saveAllCards = async (allCards, cards, nodeId) => {
   const card = cards[0]; // assuming 1 farmer has 1 card
   const isCardExisting = allCards.filter((f) => {
     return f.card_id === card.card_id;
@@ -337,40 +404,121 @@ const saveAllcards = async (allCards, cards, nodeId) => {
   }
 };
 
-const getTransactionsList = async (url) => {
+const getTnxUpdateAfterDate = async () => {
+  const limitedDays = consts.TRANSACTION_LIMIT_DAYS;
+  const today = new Date();
+  let priorDate = new Date(new Date().setDate(today.getDate() - limitedDays));
+  priorDate = parseInt(priorDate / 1000);
+  return priorDate;
+};
+
+const startTransactionSync = async (headers) => {
+  const { syncStage, tnxSyncNextUrl } = store.getState().sync;
   let loggedInUser = await AsyncStorage.getItem('loggedInUser');
   loggedInUser = JSON.parse(loggedInUser);
 
-  const headers = {
-    Bearer: loggedInUser.token,
-    'User-ID': loggedInUser.id,
-    'Node-ID': loggedInUser.default_node,
-    Version: DeviceInfo.getVersion(),
-    'Client-Code': api.API_CLIENT_CODE,
-  };
+  let params = '';
+  params += `?limit=${transactionLimit}&offset=0&project_id=${loggedInUser.project_id}`;
+  const defaultUrl = `${api.API_URL}${api.API_VERSION}/projects/transaction/list/`;
 
-  const lastUpdatedTransactions = await AsyncStorage.getItem(
-    'last_updated_transactions',
-  );
+  // checking tnxSync already completed
+  if (syncStage === 3) {
+    const lastUpdatedTransactions = await AsyncStorage.getItem(
+      'last_updated_transactions',
+    );
 
-  let updatedAfter = '';
-  if (lastUpdatedTransactions) {
-    updatedAfter = `&updated_after=${lastUpdatedTransactions}`;
+    if (lastUpdatedTransactions) {
+      params += `&updated_after=${lastUpdatedTransactions}`;
+    }
+
+    const fetchUrl = `${defaultUrl}${params}`;
+    getTransactionsList(headers, fetchUrl);
+  } else {
+    const { tnxSyncStage, tnxUpdatedBefore } = store.getState().sync;
+    const { userProjectDetails } = store.getState().login;
+
+    if (!userProjectDetails?.sell_enabled || tnxSyncStage === 1) {
+      const updatedAfter = await getTnxUpdateAfterDate();
+      params += `&updated_after=${updatedAfter}`;
+      store.dispatch(updateTnxUpdatedBefore(updatedAfter));
+
+      const fetchUrl = tnxSyncNextUrl ?? `${defaultUrl}${params}`;
+      getTransactionsList(headers, fetchUrl);
+    } else {
+      params += `&updated_before=${tnxUpdatedBefore}&only_quantity_available=true`;
+      const fetchUrl = tnxSyncNextUrl ?? `${defaultUrl}${params}`;
+      getBalanceTransactionsList(headers, fetchUrl);
+    }
+  }
+};
+
+const getTransactionsList = async (headers, url) => {
+  let fetchUrl = '';
+
+  if (url) {
+    fetchUrl = url;
+  } else {
+    let loggedInUser = await AsyncStorage.getItem('loggedInUser');
+    loggedInUser = JSON.parse(loggedInUser);
+
+    const lastUpdatedTransactions = await AsyncStorage.getItem(
+      'last_updated_transactions',
+    );
+
+    let params = '';
+    params += `?limit=${transactionLimit}&offset=0&project_id=${loggedInUser.project_id}`;
+    if (lastUpdatedTransactions) {
+      params += `&updated_after=${lastUpdatedTransactions}`;
+    }
+
+    const defaultUrl = `${api.API_URL}${api.API_VERSION}/projects/transaction/list/${params}`;
+    fetchUrl = defaultUrl;
   }
 
-  const projectIdParam = `&project_id=${loggedInUser.project_id}`;
-
-  const defaultUrl = `${api.API_URL}${api.API_VERSION}/projects/transaction/list/?limit=200&offset=0${updatedAfter}${projectIdParam}`;
-
   const config = {
-    url: url == null ? defaultUrl : url,
+    url: fetchUrl,
     headers,
   };
 
   const response = await CommonFetchRequest(config);
 
   if (response.success) {
-    saveAllTransactions(response);
+    saveAllTransactions(headers, response);
+  } else {
+    store.dispatch(SyncProcessFailed());
+  }
+};
+
+const getBalanceTransactionsList = async (headers, url) => {
+  let fetchUrl = '';
+
+  if (url) {
+    fetchUrl = url;
+  } else {
+    let loggedInUser = await AsyncStorage.getItem('loggedInUser');
+    loggedInUser = JSON.parse(loggedInUser);
+
+    const { tnxUpdatedBefore } = store.getState().sync;
+
+    let params = '';
+    params += `?limit=${transactionLimit}&offset=0&project_id=${loggedInUser.project_id}`;
+    if (tnxUpdatedBefore) {
+      params += `&updated_before=${tnxUpdatedBefore}&only_quantity_available=true`;
+    }
+
+    const defaultUrl = `${api.API_URL}${api.API_VERSION}/projects/transaction/list/${params}`;
+    fetchUrl = defaultUrl;
+  }
+
+  const config = {
+    url: fetchUrl,
+    headers,
+  };
+
+  const response = await CommonFetchRequest(config);
+
+  if (response.success) {
+    saveAllTransactions(headers, response);
   } else {
     store.dispatch(SyncProcessFailed());
   }
@@ -405,9 +553,21 @@ const getProductId = async (product) => {
   return fetchedProduct[0].id;
 };
 
-const saveAllTransactions = async (response) => {
-  // const nextUrl = response?.data?.next ?? null;
-  const transactions = response?.data?.results ?? [];
+const saveAllTransactions = async (headers, response) => {
+  const { next, results, count } = response.data;
+  const nextUrl = next ?? null;
+  const transactions = results ?? [];
+
+  const tnxCount = count ?? 0;
+  const { syncStage, tnxSyncTotal, tnxSyncPrevTotal } = store.getState().sync;
+
+  if (syncStage === 2) {
+    if (tnxSyncTotal === 0) {
+      const currenTotal = tnxSyncPrevTotal !== 0 ? tnxSyncPrevTotal : tnxCount;
+      await store.dispatch(updateTnxSyncTotal(currenTotal));
+    }
+    await store.dispatch(updateTnxSyncNextUrl(nextUrl));
+  }
 
   Promise.all(
     transactions.map(async (transaction) => {
@@ -424,16 +584,19 @@ const saveAllTransactions = async (response) => {
 
       if (isExisting.length > 0) {
         // no changes
+        if (syncStage === 2) {
+          await store.dispatch(addTnxSyncCount());
+        }
         return transaction;
       }
 
       const premiumsTotal = transaction.premiums;
-      const allpremiums = premiumsTotal.map((p) => {
+      const allPremiums = premiumsTotal.map((p) => {
         p.premium.amount = p.amount;
         return p.premium;
       });
       const productId = await getProductId(transaction.source_batches[0]);
-      const total = await getTotalPrice(transaction.price, allpremiums);
+      const total = await getTotalPrice(transaction.price, allPremiums);
 
       const transactionItem = {
         node_id: nodeId,
@@ -464,7 +627,9 @@ const saveAllTransactions = async (response) => {
       };
 
       const transactionId = await saveTransaction(transactionItem);
-
+      if (syncStage === 2) {
+        await store.dispatch(addTnxSyncCount());
+      }
       if (transaction.category === consts.APP_TRANS_TYPE_INCOMING) {
         const batch = {
           server_id: transaction.destination_batches[0].id,
@@ -478,34 +643,79 @@ const saveAllTransactions = async (response) => {
         await saveBatch(batch);
       }
 
+      /// saving transaction premium
       if (transaction.category !== consts.APP_TRANS_TYPE_LOSS) {
         const { premiums } = transaction;
-        premiums.map(async (premium) => {
-          const ids = await findPremiumByServerId(premium.premium.id);
-          if (ids.length > 0) {
-            const premiumId = ids[0];
-            await saveTransactionPremium(
-              premiumId.id,
-              transactionId,
-              premium.amount,
-            );
+        premiums.map(async (p) => {
+          const { premium, id } = p;
+          const isTransactionPremiumExist =
+            await findAllTransactionPremiumByServerId(id);
+
+          if (isTransactionPremiumExist.length === 0) {
+            const existingPremium = await findPremiumByServerId(premium.id);
+            const premiumId = existingPremium?.[0]?.id ?? null;
+
+            if (premiumId) {
+              const transactionPremium = {
+                premium_id: existingPremium[0].id,
+                transaction_id: transactionId,
+                amount: premium.amount,
+                server_id: id,
+                category: premium.category,
+                type:
+                  transaction.category === consts.APP_TRANS_TYPE_INCOMING
+                    ? consts.PAYMENT_OUTGOING
+                    : consts.PAYMENT_INCOMING,
+                verification_method: transaction.verification_method,
+                receipt: transaction?.invoice ?? '',
+                card_id: transaction?.card_id ?? '',
+                node_id: nodeId,
+                date: parseInt(transaction.created_on),
+                currency: transaction.currency,
+                source: transaction.destination.id,
+                destination: transaction.source.id,
+                verification_longitude: transaction.verification_longitude,
+                verification_latitude: transaction.verification_latitude,
+              };
+              await saveTransactionPremium(transactionPremium);
+            }
           }
         });
+      }
+
+      /// saving base price premium
+      if (transaction.category !== consts.APP_TRANS_TYPE_LOSS) {
+        const isBasePricePremiumExist =
+          await findAllTransactionPremiumByServerId(transaction.id);
+        if (isBasePricePremiumExist.length === 0) {
+          const basePricePremium = {
+            premium_id: '',
+            transaction_id: transactionId,
+            amount: transaction.price,
+            server_id: transaction.base_payment_id,
+            category: consts.TYPE_BASE_PRICE,
+            type:
+              transaction.category === consts.APP_TRANS_TYPE_INCOMING
+                ? consts.PAYMENT_OUTGOING
+                : consts.PAYMENT_INCOMING,
+            verification_method: transaction.verification_method,
+            receipt: transaction?.invoice ?? '',
+            card_id: transaction?.card_id ?? '',
+            node_id: nodeId,
+            date: parseInt(transaction.created_on),
+            currency: transaction.currency,
+            source: transaction.destination.id,
+            destination: transaction.source.id,
+            verification_longitude: transaction.verification_longitude,
+            verification_latitude: transaction.verification_latitude,
+          };
+          await saveTransactionPremium(basePricePremium);
+        }
       }
     }),
   )
     .then(async () => {
-      let lastUpdatedTransactions = new Date();
-      lastUpdatedTransactions = parseInt(
-        lastUpdatedTransactions.getTime() / 1000,
-      );
-      await AsyncStorage.setItem(
-        'last_updated_transactions',
-        lastUpdatedTransactions.toString(),
-      );
-      await getAllBatches(null);
-      await AsyncStorage.setItem('first_time_sync', 'false');
-      store.dispatch(SyncProcessComplete());
+      concludeTransactionSync(headers, nextUrl);
     })
     .catch((error) => {
       Sentry.captureMessage(`error in incoming transaction syncing - ${error}`);
@@ -513,41 +723,109 @@ const saveAllTransactions = async (response) => {
     });
 };
 
-export const getAllBatches = async (url) => {
-  let loggedInUser = await AsyncStorage.getItem('loggedInUser');
-  loggedInUser = JSON.parse(loggedInUser);
+const concludeTransactionSync = async (headers, nextUrl) => {
+  const { syncStage, tnxSyncTotal, tnxSyncCount, tnxSyncStage } =
+    store.getState().sync;
+  const { userProjectDetails } = store.getState().login;
+  const alreadySyncedCount = parseInt(tnxSyncTotal) - parseInt(tnxSyncCount);
+  store.dispatch(updateTnxSyncPrevTotal(alreadySyncedCount));
 
-  const headers = {
-    Bearer: loggedInUser.token,
-    'User-ID': loggedInUser.id,
-    'Node-ID': loggedInUser.default_node,
-    Version: DeviceInfo.getVersion(),
-    'Client-Code': api.API_CLIENT_CODE,
-  };
+  if (nextUrl) {
+    if (
+      syncStage !== 3 &&
+      tnxSyncStage === 2 &&
+      userProjectDetails?.sell_enabled
+    ) {
+      getBalanceTransactionsList(headers, nextUrl);
+    } else {
+      getTransactionsList(headers, nextUrl);
+    }
+  } else if (
+    syncStage !== 3 &&
+    tnxSyncStage === 1 &&
+    userProjectDetails?.sell_enabled
+  ) {
+    store.dispatch(updateTnxSyncPrevTotal(0));
+    store.dispatch(updateTnxSyncTotal(0));
+    store.dispatch(updateTnxSyncCount(0));
+    store.dispatch(updateTnxSyncStage(2));
 
+    getBalanceTransactionsList(headers);
+  } else {
+    if (tnxSyncStage === 2) {
+      store.dispatch(updateTnxSyncStage(3));
+    }
+
+    let lastUpdatedTransactions = new Date();
+    lastUpdatedTransactions = parseInt(
+      lastUpdatedTransactions.getTime() / 1000,
+    );
+    await AsyncStorage.setItem(
+      'last_updated_transactions',
+      lastUpdatedTransactions.toString(),
+    );
+
+    getAllBatches(headers, null);
+  }
+};
+
+export const getAllBatches = async (headers, url) => {
   const lastUpdatedBatches = await AsyncStorage.getItem('last_updated_batches');
-  let updatedAfter = '';
+  const { tnxUpdatedBefore } = store.getState().sync;
+
+  let params = '?limit=50&offset=0';
+
   if (lastUpdatedBatches) {
-    updatedAfter = `&updated_after=${lastUpdatedBatches}`;
+    params += `&updated_after=${lastUpdatedBatches}`;
+  } else if (tnxUpdatedBefore) {
+    params += `&updated_after=${tnxUpdatedBefore}`;
   }
 
-  const defaultUrl = `${api.API_URL}${api.API_VERSION}/projects/batch/details/?limit=50&offset=0${updatedAfter}`;
+  const defaultUrl = `${api.API_URL}${api.API_VERSION}/projects/batch/details/${params}`;
 
   const config = {
-    url: url == null ? defaultUrl : url,
+    url: url ?? defaultUrl,
     headers,
   };
 
   const response = await CommonFetchRequest(config);
 
   if (response.success) {
-    saveAllBatches(response);
+    saveAllBatches(headers, response, 'all_batches');
   } else {
     store.dispatch(SyncProcessFailed());
   }
 };
 
-const saveAllBatches = async (response) => {
+export const getAllBalanceBatches = async (headers, url) => {
+  const lastUpdatedBatches = await AsyncStorage.getItem('last_updated_batches');
+  const { tnxUpdatedBefore } = store.getState().sync;
+
+  let params = '?limit=50&offset=0';
+
+  if (lastUpdatedBatches) {
+    params += `&updated_after=${lastUpdatedBatches}`;
+  } else if (tnxUpdatedBefore) {
+    params += `&updated_before=${tnxUpdatedBefore}&only_quantity_available=true`;
+  }
+
+  const defaultUrl = `${api.API_URL}${api.API_VERSION}/projects/batch/details/${params}`;
+
+  const config = {
+    url: url ?? defaultUrl,
+    headers,
+  };
+
+  const response = await CommonFetchRequest(config);
+
+  if (response.success) {
+    saveAllBatches(headers, response, 'balance_batches');
+  } else {
+    store.dispatch(SyncProcessFailed());
+  }
+};
+
+const saveAllBatches = async (headers, response, type) => {
   const { next, results } = response.data;
   const nextUrl = next ?? null;
   const batches = results ?? [];
@@ -560,8 +838,14 @@ const saveAllBatches = async (response) => {
       return batch;
     }),
   ).then(async () => {
-    if (nextUrl != null) {
-      getAllBatches(nextUrl);
+    if (nextUrl) {
+      if (type === 'all_batches') {
+        getAllBatches(headers, nextUrl);
+      } else {
+        getAllBalanceBatches(headers, nextUrl);
+      }
+    } else if (type === 'all_batches') {
+      getAllBalanceBatches(headers, nextUrl);
     } else {
       let lastUpdatedBatches = new Date();
       lastUpdatedBatches = parseInt(lastUpdatedBatches.getTime() / 1000);
@@ -569,6 +853,146 @@ const saveAllBatches = async (response) => {
         'last_updated_batches',
         lastUpdatedBatches.toString(),
       );
+
+      completeSyncing();
     }
   });
+};
+
+export const getAllPayments = async (headers, url) => {
+  const lastUpdatedPayments = await AsyncStorage.getItem(
+    'last_updated_payments',
+  );
+  const { tnxUpdatedBefore } = store.getState().sync;
+
+  let params = '?limit=50&offset=0';
+
+  if (lastUpdatedPayments) {
+    params += `&updated_after=${lastUpdatedPayments}`;
+  } else if (tnxUpdatedBefore) {
+    params += `&updated_after=${tnxUpdatedBefore}`;
+  }
+
+  const defaultUrl = `${api.API_URL}${api.API_VERSION}/projects/projects/payments/${params}`;
+
+  const config = {
+    url: url ?? defaultUrl,
+    headers,
+  };
+
+  const response = await CommonFetchRequest(config);
+
+  if (response.success) {
+    saveAllPayments(headers, response, 'all_payments');
+  } else {
+    store.dispatch(SyncProcessFailed());
+  }
+};
+
+export const getAllBalancePayments = async (headers, url) => {
+  const lastUpdatedPayments = await AsyncStorage.getItem(
+    'last_updated_payments',
+  );
+  const { tnxUpdatedBefore } = store.getState().sync;
+
+  let params = '?limit=50&offset=0';
+
+  if (lastUpdatedPayments) {
+    params += `&updated_after=${lastUpdatedPayments}`;
+  } else if (tnxUpdatedBefore) {
+    params += `&updated_before=${tnxUpdatedBefore}&only_quantity_available=true`;
+  }
+
+  const defaultUrl = `${api.API_URL}${api.API_VERSION}/projects/projects/payments/${params}`;
+
+  const config = {
+    url: url ?? defaultUrl,
+    headers,
+  };
+
+  const response = await CommonFetchRequest(config);
+
+  if (response.success) {
+    saveAllPayments(headers, response, 'balance_payments');
+  } else {
+    store.dispatch(SyncProcessFailed());
+  }
+};
+
+const saveAllPayments = async (headers, response, type) => {
+  const { next, results } = response.data;
+  const nextUrl = next ?? null;
+  const payments = results ?? [];
+
+  Promise.all(
+    payments.map(async (payment) => {
+      const isExisting = await findAllTransactionPremiumByServerId(payment.id);
+      if (isExisting.length === 0) {
+        let premiumId = '';
+        let transactionId = '';
+
+        const premium = await findPremiumByServerId(payment.premium);
+        if (premium.length !== 0) {
+          premiumId = premium.id;
+        }
+
+        const transaction = await findTransactionByServerId(
+          payment.transaction,
+        );
+        if (transaction.length !== 0) {
+          transactionId = transaction.id;
+        }
+        const transactionPremium = {
+          premium_id: premiumId,
+          transaction_id: transactionId,
+          amount: payment.amount,
+          server_id: payment.server_id,
+          category: payment.direction,
+          type: payment.payment_type,
+          verification_method: payment?.card
+            ? consts.VERIFICATION_METHOD_CARD
+            : consts.VERIFICATION_METHOD_MANUAL,
+          receipt: payment?.invoice ?? '',
+          card_id: payment?.card ?? '',
+          node_id: node.source,
+          date: parseInt(payment.created_on),
+          currency: payment.currency,
+          source: payment.source,
+          destination: payment.destination,
+          verification_longitude: payment.verification_longitude,
+          verification_latitude: payment.verification_latitude,
+        };
+        await saveTransactionPremium(transactionPremium);
+      }
+      return premium;
+    }),
+  ).then(async () => {
+    if (nextUrl) {
+      if (type === 'all_payments') {
+        getAllPayments(headers, nextUrl);
+      } else {
+        getAllBalancePayments(headers, nextUrl);
+      }
+    } else if (type === 'all_payments') {
+      getAllBalanceBatches(headers, nextUrl);
+    } else {
+      let lastUpdatedPayments = new Date();
+      lastUpdatedPayments = parseInt(lastUpdatedPayments.getTime() / 1000);
+      await AsyncStorage.setItem(
+        'last_updated_payments',
+        lastUpdatedPayments.toString(),
+      );
+
+      completeSyncing();
+    }
+  });
+};
+
+const completeSyncing = async () => {
+  const { syncStage } = store.getState().sync;
+  if (syncStage === 2) {
+    store.dispatch(tnxSyncCompleted());
+    store.dispatch(updateSyncStage(3));
+  }
+  store.dispatch(SyncProcessComplete());
 };

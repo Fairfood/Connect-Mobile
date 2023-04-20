@@ -1,24 +1,28 @@
-/* eslint-disable import/no-unresolved */
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 // screens
-import HomeScreen from '../screens/home/HomeScreen';
-import BuyScreen from '../screens/home/BuyScreen';
-import SendScreen from '../screens/home/SendScreen';
-import VerificationScreen from '../screens/home/VerificationScreen';
-import SendVerificationScreen from '../screens/home/SendVerificationScreen';
-import TransactionCompleteScreen from '../screens/home/TransactionCompleteScreen';
-import TakePicture from '../screens/home/TakePicture';
-import SendTakePicture from '../screens/home/SendTakePicture';
-import ProfileScreen from '../screens/home/ProfileScreen';
+import HomeScreen from '../screens/home/dashboard/HomeScreen';
+import BuyScreen from '../screens/home/buy/BuyScreen';
+import SendScreen from '../screens/home/send/SendScreen';
+import VerificationScreen from '../screens/home/buy/VerificationScreen';
+import SendVerificationScreen from '../screens/home/send/SendVerificationScreen';
+import TransactionCompleteScreen from '../screens/home/buy/TransactionCompleteScreen';
+import TakePicture from '../screens/home/buy/TakePicture';
+import SendTakePicture from '../screens/home/send/SendTakePicture';
+import ProfileScreen from '../screens/home/profile/ProfileScreen';
 import TransactionDetailsScreen from '../screens/transactions/TransactionDetails';
 import SendTransactionDetails from '../screens/transactions/SendTransactionDetails';
-import EditProfile from '../screens/home/EditProfile';
-import ChangeLanguage from '../screens/home/ChangeLanguage';
-import SendTransactionCompleteScreen from '../screens/home/SendTransactionCompleteScreen';
-import HelpTutorialScreen from '../screens/home/HelpTutorialScreen';
-import SettingsScreen from '../screens/home/SettingsScreen';
-import ChooseProducts from '../screens/home/ChooseMutliProducts';
+import EditProfile from '../screens/home/profile/EditProfile';
+import ChangeLanguage from '../screens/home/profile/ChangeLanguage';
+import SendTransactionCompleteScreen from '../screens/home/send/SendTransactionCompleteScreen';
+import HelpTutorialScreen from '../screens/home/dashboard/HelpTutorialScreen';
+import SettingsScreen from '../screens/home/profile/SettingsScreen';
+import ChooseProducts from '../screens/home/buy/ChooseMutliProducts';
+import ChooseMultiPremiums from '../screens/home/payfarmer/ChooseMultiPremium';
+import PayFarmer from '../screens/home/payfarmer/PayFarmerScreen';
+import PayFarmerVerification from '../screens/home/payfarmer/PayFarmerVerificationScreen';
+import PayFarmerComplete from '../screens/home/payfarmer/PayFarmerCompleteScreen';
+import PayFarmerTakePicture from '../screens/home/payfarmer/PayFarmerTakePicture';
 
 const Home = createStackNavigator();
 
@@ -57,6 +61,11 @@ const HomeStack = () => {
         name='TransactionComplete'
         component={TransactionCompleteScreen}
       />
+      <Home.Screen name='ChooseMultiPremiums' component={ChooseMultiPremiums} />
+      <Home.Screen name='PayFarmer' component={PayFarmer} />
+      <Home.Screen name='PayFarmerVerification' component={PayFarmerVerification} />
+      <Home.Screen name='PayFarmerComplete' component={PayFarmerComplete} />
+      <Home.Screen name='PayFarmerTakePicture' component={PayFarmerTakePicture} />
     </Home.Navigator>
   );
 };

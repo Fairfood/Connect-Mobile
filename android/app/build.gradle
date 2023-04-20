@@ -136,8 +136,8 @@ android {
         applicationId "com.fairfood_collector"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 36
-        versionName "1.1.4"
+        versionCode 43
+        versionName "1.1.6"
         missingDimensionStrategy 'react-native-camera', 'general'
     }
     splits {

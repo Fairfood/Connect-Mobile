@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export default appSchema({
-  version: 6,
+  version: 7,
   tables: [
     tableSchema({
       name: 'nodes',
@@ -110,6 +110,7 @@ export default appSchema({
         { name: 'created_at', type: 'number' },
         { name: 'updated_at', type: 'number' },
         { name: 'applicable_activity', type: 'number' },
+        { name: 'category', type: 'string' },
       ],
     }),
     tableSchema({
@@ -120,6 +121,19 @@ export default appSchema({
         { name: 'amount', type: 'number' },
         { name: 'created_at', type: 'number' },
         { name: 'updated_at', type: 'number' },
+        { name: 'server_id', type: 'string' },
+        { name: 'category', type: 'string' },
+        { name: 'type', type: 'string' },
+        { name: 'verification_method', type: 'number' },
+        { name: 'receipt', type: 'string' },
+        { name: 'card_id', type: 'string' },
+        { name: 'node_id', type: 'string' },
+        { name: 'date', type: 'number' },
+        { name: 'currency', type: 'string' },
+        { name: 'source', type: 'string' },
+        { name: 'destination', type: 'string' },
+        { name: 'verification_latitude', type: 'number' },
+        { name: 'verification_longitude', type: 'number' },
       ],
     }),
     tableSchema({

@@ -10,19 +10,29 @@ import {
   Text,
 } from 'react-native';
 import { RNCamera } from 'react-native-camera';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import moment from 'moment';
 import Geolocation from 'react-native-geolocation-service';
-import { saveTransaction } from '../../services/transactionsHelper';
-import { saveBatch } from '../../services/batchesHelper';
-import { saveTransactionPremium } from '../../services/transactionPremiumHelper';
-import { syncTransactions } from '../../services/syncTransactions';
-import { InfoIcon, CloseIcon } from '../../assets/svg';
-import { requestPermission } from '../../services/commonFunctions';
-import CustomLeftHeader from '../../components/CustomLeftHeader';
-import CustomButton from '../../components/CustomButton';
-import I18n from '../../i18n/i18n';
-import * as consts from '../../services/constants';
+import { saveTransaction } from '../../../services/transactionsHelper';
+import { saveBatch } from '../../../services/batchesHelper';
+import { saveTransactionPremium } from '../../../services/transactionPremiumHelper';
+import { syncTransactions } from '../../../services/syncTransactions';
+import { InfoIcon, CloseIcon } from '../../../assets/svg';
+import { requestPermission } from '../../../services/commonFunctions';
+import { initSyncProcess } from '../../../redux/LoginStore';
+import {
+  MINIMUM_TRANSACTION_QUANTITY,
+  MAXIMUM_TRANSACTION_QUANTITY,
+  APP_TRANS_TYPE_INCOMING,
+  VERIFICATION_METHOD_MANUAL,
+  HIT_SLOP_FIFTEEN,
+  TYPE_TRANSACTION_PREMIUM,
+  TYPE_BASE_PRICE,
+  PAYMENT_OUTGOING,
+} from '../../../services/constants';
+import CustomLeftHeader from '../../../components/CustomLeftHeader';
+import CustomButton from '../../../components/CustomButton';
+import I18n from '../../../i18n/i18n';
 
 const { height, width } = Dimensions.get('window');
 const defaultPosition = { coords: { longitude: 0, latitude: 0 } };
@@ -30,29 +40,32 @@ const defaultPosition = { coords: { longitude: 0, latitude: 0 } };
 const TakePicture = ({ navigation, route }) => {
   const cameraRef = useRef(null);
   const { products, totalPrice, farmer } = route.params;
+
   const { isConnected } = useSelector((state) => state.connection);
-  const { userProjectDetails, syncInProgress } = useSelector(
+  const { userProjectDetails, syncInProgress, loggedInUser } = useSelector(
     (state) => state.login,
   );
+  const { theme } = useSelector((state) => state.common);
   const { currency } = userProjectDetails;
-  const [isLoading, setisLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [receipt, setReceipt] = useState(null);
   const [infoView, setInfoView] = useState(false);
   const [error, setError] = useState('');
+  const dispatch = useDispatch();
 
   /**
-   * taking picture from device camera for reciept verification
+   * taking picture from device camera for receipt verification
    */
   const onTakePicture = async () => {
-    setisLoading(true);
+    setIsLoading(true);
     if (cameraRef) {
       const options = { quality: 0.5, base64: false };
       const data = await cameraRef.current.takePictureAsync(options);
       setReceipt(data);
-      setisLoading(false);
+      setIsLoading(false);
     } else {
-      setisLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -85,7 +98,7 @@ const TakePicture = ({ navigation, route }) => {
   };
 
   /**
-   * get total amount of individual product excluding card depentent premium
+   * get total amount of individual product excluding card dependent premium
    *
    * @param   {number} productTotal   total premium
    * @param   {Array}  premiums       all premiums array
@@ -134,8 +147,8 @@ const TakePicture = ({ navigation, route }) => {
 
         if (
           quantity === '' ||
-          quantity <= consts.MINIMUM_TRANSACTION_QUANTITY ||
-          quantity >= consts.MAXIMUM_TRANSACTION_QUANTITY ||
+          quantity <= MINIMUM_TRANSACTION_QUANTITY ||
+          quantity >= MAXIMUM_TRANSACTION_QUANTITY ||
           price === '' ||
           price <= 0 ||
           total === '' ||
@@ -175,7 +188,7 @@ const TakePicture = ({ navigation, route }) => {
   };
 
   /**
-   * submit function. saving transaction premium and batces in local db.
+   * submit function. saving transaction premium and batches in local db.
    *
    * @param {object} position device's geo location coordinates
    */
@@ -196,22 +209,23 @@ const TakePicture = ({ navigation, route }) => {
 
         const transactionObj = {
           server_id: null,
-          node_id: farmer.node_id,
-          node_name: farmer.farmer_name,
+          node_id: farmer.id,
+          node_name: farmer.name,
           currency,
           product_id: product.id,
-          type: consts.APP_TRANS_TYPE_INCOMING,
+          type: APP_TRANS_TYPE_INCOMING,
           quantity,
           ref_number: null,
           price,
           total,
           invoice_file: receipt.uri,
+          card_id: '',
           date: moment(Math.round(date)).format('DD MMM YYYY'),
           created_on: parseInt(Math.round(date) / 1000),
           quality_correction: 100,
           product_price: productPrice,
           product_name: product.name,
-          verification_method: consts.VERIFICATION_METHOD_MANUAL,
+          verification_method: VERIFICATION_METHOD_MANUAL,
           verification_longitude: position.coords.longitude,
           verification_latitude: position.coords.latitude,
           extra_fields: extraFields ?? '',
@@ -244,7 +258,9 @@ const TakePicture = ({ navigation, route }) => {
           updatedPremiums,
           product.quantity,
           transactionId,
+          transactionObj,
         );
+        await saveBasePricePayment(transactionId, transactionObj);
       }),
     )
       .then(async () => {
@@ -252,11 +268,14 @@ const TakePicture = ({ navigation, route }) => {
 
         if (isConnected && !syncInProgress) {
           checkTransactionStatus = true;
+          dispatch(initSyncProcess());
           await syncTransactions();
         }
 
+        setIsVerifying(false);
+
         navigation.navigate('TransactionComplete', {
-          farmerName: farmer.farmer_name,
+          farmerName: farmer.name,
           total: totalPrice,
           transactionArray,
           checkTransactionStatus,
@@ -270,23 +289,74 @@ const TakePicture = ({ navigation, route }) => {
   /**
    * saving all transaction premiums
    *
-   * @param {Array}   appliedPremiums  all premiums applied for the transaction
-   * @param {number}  productQuality   product quantity
-   * @param {string}  transactionId    corresponding transaction id
+   * @param {Array}   appliedPremiums all premiums applied for the transaction
+   * @param {number}  productQuality  product quantity
+   * @param {string}  transactionId   corresponding transaction id
+   * @param {object}  transactionObj  transaction object
    */
   const saveAllTransactionPremium = async (
     appliedPremiums,
     productQuality,
     transactionId,
+    transactionObj,
   ) => {
     await Promise.all(
       appliedPremiums.map(async (premium) => {
         const amount =
           parseFloat(premium._raw.amount) * parseFloat(productQuality);
-        await saveTransactionPremium(premium._raw.id, transactionId, amount);
+
+        const transactionPremium = {
+          premium_id: premium._raw.id,
+          transaction_id: transactionId,
+          amount: parseFloat(amount),
+          server_id: '',
+          category: TYPE_TRANSACTION_PREMIUM,
+          type: PAYMENT_OUTGOING,
+          verification_method: transactionObj.verification_method,
+          receipt: transactionObj.invoice_file,
+          card_id: transactionObj.card_id,
+          node_id: transactionObj.node_id,
+          date: transactionObj.created_on,
+          currency: transactionObj.currency,
+          source: loggedInUser.default_node,
+          destination: farmer.server_id || farmer.id,
+          verification_longitude: transactionObj.verification_longitude,
+          verification_latitude: transactionObj.verification_latitude,
+        };
+        await saveTransactionPremium(transactionPremium);
       }),
     );
   };
+
+  /**
+   * saving all base price payment
+   *
+   * @param {string}  transactionId   corresponding transaction id
+   * @param {object}  transactionObj  transaction object
+   */
+  const saveBasePricePayment = async (transactionId, transactionObj) => {
+    const basePricePayment = {
+      premium_id: '',
+      transaction_id: transactionId,
+      amount: transactionObj.price,
+      server_id: '',
+      category: TYPE_BASE_PRICE,
+      type: PAYMENT_OUTGOING,
+      verification_method: transactionObj.verification_method,
+      receipt: transactionObj.invoice_file,
+      card_id: transactionObj.card_id,
+      node_id: transactionObj.node_id,
+      date: transactionObj.created_on,
+      currency: transactionObj.currency,
+      source: loggedInUser.default_node,
+      destination: farmer.server_id || farmer.id,
+      verification_longitude: transactionObj.verification_longitude,
+      verification_latitude: transactionObj.verification_latitude,
+    };
+    await saveTransactionPremium(basePricePayment);
+  };
+
+  const styles = StyleSheetFactory(theme);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -295,7 +365,7 @@ const TakePicture = ({ navigation, route }) => {
           backgroundColor='#4F4F4F'
           title={I18n.t('verify_with_photo')}
           leftIcon='arrow-left'
-          titleColor={consts.APP_BG_COLOR}
+          titleColor={theme.background_1}
           onPress={() => navigation.goBack(null)}
         />
       </View>
@@ -303,7 +373,10 @@ const TakePicture = ({ navigation, route }) => {
         {receipt == null && (
           <RNCamera
             ref={cameraRef}
-            style={styles.preview}
+            style={{
+              flex: 1,
+              width: '100%',
+            }}
             type={RNCamera.Constants.Type.back}
             flashMode={RNCamera.Constants.FlashMode.off}
           />
@@ -377,7 +450,7 @@ const TakePicture = ({ navigation, route }) => {
                   <TouchableOpacity
                     onPress={() => setInfoView(!infoView)}
                     style={styles.infoIconWrap}
-                    hitSlop={consts.HIT_SLOP_FIFTEEN}
+                    hitSlop={HIT_SLOP_FIFTEEN}
                   >
                     <InfoIcon
                       width={width * 0.05}
@@ -390,10 +463,7 @@ const TakePicture = ({ navigation, route }) => {
             )}
 
             {isVerifying ? (
-              <ActivityIndicator
-                size='large'
-                color={consts.BUTTON_COLOR_PRIMARY}
-              />
+              <ActivityIndicator size='large' color={theme.button_bg_1} />
             ) : (
               <CustomButton
                 buttonText={I18n.t('verify')}
@@ -438,94 +508,85 @@ const TakePicture = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    height,
-    backgroundColor: '#4F4F4F',
-    paddingHorizontal: width * 0.03,
-    justifyContent: 'space-between',
-  },
-  containerSub: {
-    flex: 1,
-    flexDirection: 'column',
-    backgroundColor: '#4F4F4F',
-    marginBottom: 10,
-  },
-  preview: {
-    height: height * 0.7,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  capture: {
-    flex: 1,
-    borderRadius: consts.BORDER_RADIUS,
-    padding: 15,
-    paddingHorizontal: 20,
-    alignSelf: 'center',
-    margin: 20,
-    position: 'absolute',
-    bottom: 20,
-    left: 110,
-  },
-  addIcon: {
-    height: 65,
-    width: 65,
-    borderRadius: 62,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 0.5,
-    backgroundColor: 'black',
-    borderColor: '#ffffff',
-    bottom: 0,
-  },
-  detail: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  textDetails: {
-    fontSize: 14,
-    color: '#FFFFFF',
-  },
-  infoHeader: {
-    fontSize: 14,
-    color: '#ffb74d',
-    fontWeight: '600',
-  },
-  infoMessage: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    marginTop: 3,
-  },
-  infoMsgContainer: {
-    backgroundColor: '#60605F',
-    flexDirection: 'row',
-    padding: width * 0.03,
-    justifyContent: 'space-between',
-    borderRadius: consts.BORDER_RADIUS,
-  },
-  infoCloseWrap: {
-    justifyContent: 'center',
-    alignSelf: 'flex-end',
-    alignItems: 'center',
-    width: width * 0.05,
-    height: width * 0.05,
-    borderRadius: (width * 0.05) / 2,
-  },
-  infoIconWrap: {
-    alignSelf: 'flex-end',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 10,
-  },
-  errorMessage: {
-    fontSize: 14,
-    fontFamily: consts.FONT_REGULAR,
-    lineHeight: 28,
-    paddingBottom: 10,
-    color: consts.TEXT_PRIMARY_COLOR,
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      height,
+      backgroundColor: '#4F4F4F',
+      paddingHorizontal: width * 0.03,
+      justifyContent: 'space-between',
+    },
+    containerSub: {
+      flex: 1,
+      flexDirection: 'column',
+      backgroundColor: '#4F4F4F',
+      marginBottom: 10,
+    },
+    preview: {
+      height: height * 0.7,
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+    },
+    addIcon: {
+      height: 65,
+      width: 65,
+      borderRadius: 62,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 0.5,
+      backgroundColor: 'black',
+      borderColor: '#ffffff',
+      bottom: 0,
+    },
+    detail: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 20,
+    },
+    textDetails: {
+      fontSize: 14,
+      color: '#FFFFFF',
+    },
+    infoHeader: {
+      fontSize: 14,
+      color: '#ffb74d',
+      fontWeight: '600',
+    },
+    infoMessage: {
+      fontSize: 12,
+      color: '#FFFFFF',
+      marginTop: 3,
+    },
+    infoMsgContainer: {
+      backgroundColor: '#60605F',
+      flexDirection: 'row',
+      padding: width * 0.03,
+      justifyContent: 'space-between',
+      borderRadius: theme.border_radius,
+    },
+    infoCloseWrap: {
+      justifyContent: 'center',
+      alignSelf: 'flex-end',
+      alignItems: 'center',
+      width: width * 0.05,
+      height: width * 0.05,
+      borderRadius: (width * 0.05) / 2,
+    },
+    infoIconWrap: {
+      alignSelf: 'flex-end',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 10,
+    },
+    errorMessage: {
+      fontSize: 14,
+      fontFamily: theme.font_regular,
+      lineHeight: 28,
+      paddingBottom: 10,
+      color: theme.text_1,
+    },
+  });
+};
 
 export default TakePicture;

@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
-import * as consts from '../services/constants';
+import { useSelector } from 'react-redux';
+import { ArrowDownIcon } from '../assets/svg';
 import Picker from './Picker';
 import Icon from '../icons';
-import { ArrowDownIcon } from '../assets/svg';
 
 const { width } = Dimensions.get('window');
 
@@ -20,7 +20,6 @@ const FormTextInput = (props) => {
     displayPicker,
     inputRef,
     secureTextEntry,
-    showPassoword,
     editable,
     onFocus,
     onBlur,
@@ -28,15 +27,19 @@ const FormTextInput = (props) => {
     extraStyle = {},
     visibility = true,
     autoCapitalize = 'none',
-    internalpadding,
+    internalPadding,
     values,
     onValueChange,
     defaultValue,
-    showPassword,
+    showPasswords,
     showEye,
     showDropdown,
     ...otherProps
   } = props;
+
+  const { theme } = useSelector((state) => state.common);
+  const styles = StyleSheetFactory(theme);
+
   return (
     <>
       {!displayPicker && visibility && (
@@ -44,7 +47,7 @@ const FormTextInput = (props) => {
           style={[
             styles.container,
             extraStyle,
-            { paddingLeft: internalpadding ?? 15 },
+            { paddingLeft: internalPadding ?? 15 },
           ]}
           ref={inputRef}
           autoCapitalize={autoCapitalize}
@@ -57,13 +60,13 @@ const FormTextInput = (props) => {
 
       {displayPicker && visibility && (
         <Picker
-          listofvalues={values}
-          borderColor={consts.INPUT_PLACEHOLDER}
+          listOfValues={values}
+          borderColor={theme.placeholder}
           onValueChange={onValueChange}
           disabled={false}
           value={defaultValue}
           ref={inputRef}
-          extrastyle={extraStyle}
+          extraStyle={extraStyle}
         />
       )}
 
@@ -77,22 +80,18 @@ const FormTextInput = (props) => {
 
           {showEye && (
             <TouchableOpacity
-              onPress={() => showPassword()}
+              onPress={() => showPasswords()}
               style={styles.showEyeWrap}
             >
               {secureTextEntry && (
                 <View style={{ opacity: 0.5 }}>
-                  <Icon name='eye' size={24} color={consts.INPUT_PLACEHOLDER} />
+                  <Icon name='eye' size={24} color={theme.placeholder} />
                 </View>
               )}
 
               {!secureTextEntry && (
                 <View style={{ opacity: 0.5 }}>
-                  <Icon
-                    name='eye-closed'
-                    size={24}
-                    color={consts.INPUT_PLACEHOLDER}
-                  />
+                  <Icon name='eye-closed' size={24} color={theme.placeholder} />
                 </View>
               )}
             </TouchableOpacity>
@@ -101,11 +100,7 @@ const FormTextInput = (props) => {
           {showDropdown && (
             <TouchableOpacity style={styles.dropdownWrap}>
               <View style={{ opacity: 0.5 }}>
-                <ArrowDownIcon
-                  width={12}
-                  height={12}
-                  fill={consts.TEXT_PRIMARY_COLOR}
-                />
+                <ArrowDownIcon width={12} height={12} fill={theme.text_1} />
               </View>
             </TouchableOpacity>
           )}
@@ -115,56 +110,58 @@ const FormTextInput = (props) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    width: '85%',
-    alignSelf: 'center',
-    borderColor: consts.INPUT_PLACEHOLDER,
-    borderWidth: 1,
-    borderRadius: consts.BORDER_RADIUS,
-    height: 53,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-    paddingLeft: 15,
-    fontSize: 18,
-    lineHeight: 24,
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontWeight: 'normal',
-  },
-  showEyeWrap: {
-    position: 'relative',
-    alignSelf: 'flex-end',
-    justifyContent: 'flex-end',
-    right: width * 0.01,
-    top: 7,
-    width: 30,
-  },
-  dropdownWrap: {
-    position: 'relative',
-    alignSelf: 'flex-end',
-    justifyContent: 'center',
-    alignItems: 'center',
-    right: width * 0.01,
-    top: 15,
-    width: 30,
-  },
-  subWrap: {
-    left: 5,
-    bottom: 60,
-    height: 25,
-    paddingHorizontal: 8,
-    justifyContent: 'space-between',
-  },
-  placeholderText: {
-    color: consts.INPUT_PLACEHOLDER,
-    backgroundColor: consts.APP_BG_COLOR,
-    alignSelf: 'flex-start',
-    fontSize: 12,
-    fontFamily: consts.FONT_REGULAR,
-    letterSpacing: 0.4,
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      width: '85%',
+      alignSelf: 'center',
+      borderColor: theme.placeholder,
+      borderWidth: 1,
+      borderRadius: theme.border_radius,
+      height: 53,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 10,
+      paddingLeft: 15,
+      fontSize: 18,
+      lineHeight: 24,
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontWeight: 'normal',
+    },
+    showEyeWrap: {
+      position: 'relative',
+      alignSelf: 'flex-end',
+      justifyContent: 'flex-end',
+      right: width * 0.01,
+      top: 7,
+      width: 30,
+    },
+    dropdownWrap: {
+      position: 'relative',
+      alignSelf: 'flex-end',
+      justifyContent: 'center',
+      alignItems: 'center',
+      right: width * 0.01,
+      top: 15,
+      width: 30,
+    },
+    subWrap: {
+      left: 5,
+      bottom: 60,
+      height: 25,
+      paddingHorizontal: 8,
+      justifyContent: 'space-between',
+    },
+    placeholderText: {
+      color: theme.placeholder,
+      backgroundColor: theme.background_1,
+      alignSelf: 'flex-start',
+      fontSize: 12,
+      fontFamily: theme.font_regular,
+      letterSpacing: 0.4,
+    },
+  });
+};
 
 export default FormTextInput;

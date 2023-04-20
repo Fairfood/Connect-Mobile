@@ -1,3 +1,4 @@
+/* eslint-disable function-paren-newline */
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -31,7 +32,11 @@ import FarmerListItem from '../../components/FarmerListItem';
 import CustomHeader from '../../components/CustomHeader';
 import I18n from '../../i18n/i18n';
 import SyncComponent from '../../components/SyncComponent';
-import * as consts from '../../services/constants';
+import {
+  SORT_MENUS,
+  AVATAR_AS_LETTERS,
+  AVATAR_BG_COLORS,
+} from '../../services/constants';
 
 const { width } = Dimensions.get('window');
 
@@ -39,12 +44,13 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
   const { syncInProgress, syncSuccessfull } = useSelector(
     (state) => state.login,
   );
+  const { theme } = useSelector((state) => state.common);
   const { isConnected } = useSelector((state) => state.connection);
   const [farmersList, setFarmersList] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [syncModal, setSyncModal] = useState(false);
   const [sortModal, setSortModal] = useState(false);
-  const [sortValue, setSortValue] = useState(consts.SORT_MENUS[0].key);
+  const [sortValue, setSortValue] = useState(SORT_MENUS[0].key);
   const [syncIcon, setSyncIcon] = useState(
     require('../../assets/images/sync_success.png'),
   );
@@ -52,14 +58,14 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    setupInitaialValues();
+    setupInitialValues();
   }, [FARMERS]);
 
   useEffect(() => {
     setupSyncingIcon();
   }, [isConnected, isFocused, syncInProgress, syncSuccessfull]);
 
-  const setupInitaialValues = async () => {
+  const setupInitialValues = async () => {
     // default sorting for farmers
     const sortedFarmers = await sortFarmers(FARMERS, sortValue);
     setFarmersList(sortedFarmers);
@@ -94,16 +100,16 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
    * start syncing
    */
   const checkSyncing = async () => {
-    await setInitailValues();
+    await setInitialValues();
     setSyncModal(true);
   };
 
   /**
-   * setting initail sync data
+   * setting initial sync data
    *
    * @returns {boolean} true
    */
-  const setInitailValues = async () => {
+  const setInitialValues = async () => {
     if (!syncInProgress) {
       const newFarmers = await newFarmersCount();
       const modifiedFarmers = await updatedFarmersCount();
@@ -140,13 +146,13 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
    */
   const onSearch = async (text) => {
     setSearchText(text);
-    textSerch = text.toLowerCase();
-    if (textSerch === '') {
+    const textSearch = text.toLowerCase();
+    if (textSearch === '') {
       onRefresh();
     } else {
       const filteredFarmers = FARMERS.filter((farmer) => {
         const name = farmer.name.toLowerCase();
-        return name.includes(textSerch);
+        return name.includes(textSearch);
       });
 
       const sortedFarmers = await sortFarmers(filteredFarmers, sortValue);
@@ -189,43 +195,39 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
    * @returns {Array}          sorted farmer list
    */
   const sortFarmers = async (farmers, sortKey) => {
-    const key = sortKey || sortValue || consts.SORT_MENUS[0].key;
+    const key = sortKey || sortValue || SORT_MENUS[0].key;
 
     switch (key) {
       case 'created_descending':
-        farmers.sort(
-          (a, b) => b.created_on.getTime() - a.created_on.getTime(),
-        );
+        farmers.sort((a, b) => b.created_on.getTime() - a.created_on.getTime());
         return farmers;
       case 'created_ascending':
-        farmers.sort(
-          (a, b) => a.created_on.getTime() - b.created_on.getTime(),
-        );
+        farmers.sort((a, b) => a.created_on.getTime() - b.created_on.getTime());
         return farmers;
       case 'name_ascending':
         farmers.sort((a, b) =>
-          a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+          a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
+        );
         return farmers;
       case 'name_descending':
         farmers.sort((a, b) =>
-          b.name.toLowerCase().localeCompare(a.name.toLowerCase()));
+          b.name.toLowerCase().localeCompare(a.name.toLowerCase()),
+        );
         return farmers;
       default:
-        farmers.sort(
-          (a, b) => b.created_on.getTime() - a.created_on.getTime(),
-        );
+        farmers.sort((a, b) => b.created_on.getTime() - a.created_on.getTime());
         return farmers;
     }
   };
 
   /**
-   * on refresh remobe sorted and search filter
+   * on refresh remove sorted and search filter
    */
   const onRefresh = async () => {
     setSearchText('');
-    const sortedFarmers = await sortFarmers(FARMERS, consts.SORT_MENUS[0].key);
+    const sortedFarmers = await sortFarmers(FARMERS, SORT_MENUS[0].key);
     setFarmersList(sortedFarmers);
-    setSortValue(consts.SORT_MENUS[0].key);
+    setSortValue(SORT_MENUS[0].key);
   };
 
   const renderItem = ({ item, index }) => (
@@ -233,13 +235,15 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
       item={item}
       onPress={onSelectNode}
       avatarBgColor={
-        consts.AVATAR_AS_LETTERS
-          ? consts.AVATAR_BG_COLORS[index % consts.AVATAR_BG_COLORS.length]
+        AVATAR_AS_LETTERS
+          ? AVATAR_BG_COLORS[index % AVATAR_BG_COLORS.length]
           : null
       }
       displayUnSync
     />
   );
+
+  const styles = StyleSheetFactory(theme);
 
   const emptyComponent = () => {
     return (
@@ -303,7 +307,7 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
 
       {sortModal && (
         <SortFarmerModal
-          data={consts.SORT_MENUS}
+          data={SORT_MENUS}
           activeValue={sortValue}
           visible={sortModal}
           hideModal={() => setSortModal(false)}
@@ -340,7 +344,7 @@ const SortFarmerModal = ({ ...props }) => {
               <Text style={styles.modalItem}>{I18n.t(item.title)}</Text>
               <View
                 style={[
-                  styles.radioOutter,
+                  styles.radioOuter,
                   {
                     borderColor:
                       props.activeValue === item.key ? '#4DCAF4' : '#003A60',
@@ -359,108 +363,107 @@ const SortFarmerModal = ({ ...props }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: consts.HEADER_BACKGROUND_COLOR,
-  },
-  floatingIcon: {
-    position: 'absolute',
-    bottom: 20,
-    right: -10,
-  },
-  emptyFarmerText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 16,
-    letterSpacing: 0.3,
-  },
-  emptyView: {
-    height: 100,
-    width: '100%',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    alignItems: 'center',
-    marginTop: 30,
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  flatListStyle: {
-    flex: 1,
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-  },
-  modalContainerSub: {
-    marginTop: 'auto',
-    paddingHorizontal: width * 0.05,
-    backgroundColor: '#ffffff',
-  },
-  modalTitleSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: width * 0.05,
-    paddingHorizontal: width * 0.03,
-  },
-  closeIconWrap: {
-    alignSelf: 'flex-end',
-  },
-  modalItemWrap: {
-    padding: width * 0.03,
-    marginBottom: width * 0.01,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  modalItem: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 14,
-    fontFamily: consts.FONT_REGULAR,
-  },
-  modalTitle: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 16,
-    fontFamily: consts.FONT_MEDIUM,
-    fontWeight: '500',
-    marginTop: 15,
-  },
-  radioOutter: {
-    width: 22,
-    height: 22,
-    borderRadius: 22 / 2,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioInner: {
-    width: 15,
-    height: 15,
-    borderRadius: 15 / 2,
-    backgroundColor: '#4DCAF4',
-  },
-  searchWrap: {
-    width: '90%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    alignSelf: 'center',
-  },
-  sortIconWrap: {
-    width: '15%',
-    height: 48,
-    marginVertical: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderColor: consts.BORDER_COLOR,
-    borderWidth: 1,
-    borderRadius: consts.BORDER_RADIUS,
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.header_bg,
+    },
+    floatingIcon: {
+      position: 'absolute',
+      bottom: 20,
+      right: -10,
+    },
+    emptyFarmerText: {
+      color: theme.text_1,
+      fontWeight: '500',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 16,
+      letterSpacing: 0.3,
+    },
+    emptyView: {
+      height: 100,
+      width: '100%',
+      justifyContent: 'center',
+      alignSelf: 'center',
+      alignItems: 'center',
+      marginTop: 30,
+      backgroundColor: theme.background_1,
+    },
+    flatListStyle: {
+      flex: 1,
+      backgroundColor: theme.background_1,
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    },
+    modalContainerSub: {
+      marginTop: 'auto',
+      paddingHorizontal: width * 0.05,
+      backgroundColor: '#ffffff',
+    },
+    modalTitleSection: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: width * 0.05,
+      paddingHorizontal: width * 0.03,
+    },
+    modalItemWrap: {
+      padding: width * 0.03,
+      marginBottom: width * 0.01,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    modalItem: {
+      color: theme.text_1,
+      fontSize: 14,
+      fontFamily: theme.font_regular,
+    },
+    modalTitle: {
+      color: theme.text_1,
+      fontSize: 16,
+      fontFamily: theme.font_medium,
+      fontWeight: '500',
+      marginTop: 15,
+    },
+    radioOuter: {
+      width: 22,
+      height: 22,
+      borderRadius: 22 / 2,
+      borderWidth: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    radioInner: {
+      width: 15,
+      height: 15,
+      borderRadius: 15 / 2,
+      backgroundColor: '#4DCAF4',
+    },
+    searchWrap: {
+      width: '90%',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      alignSelf: 'center',
+    },
+    sortIconWrap: {
+      width: '15%',
+      height: 48,
+      marginVertical: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: '#fff',
+      borderColor: theme.border_1,
+      borderWidth: 1,
+      borderRadius: theme.border_radius,
+    },
+  });
+};
 
 const enhanceWithWeights = withObservables([], () => ({
   FARMERS: observeFarmers(),
