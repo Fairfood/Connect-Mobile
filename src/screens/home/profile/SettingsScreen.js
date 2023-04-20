@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
-import { useSelector, useIsFocused } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
+import { useIsFocused } from '@react-navigation/native';
 import { signOutUser } from '../../../redux/LoginStore';
 import { database } from '../../../../App';
 import { store } from '../../../redux/store';
@@ -163,6 +164,7 @@ const SettingsScreen = ({ navigation }) => {
                   title={item.title}
                   onPress={() => toggleExpanded(item.key)}
                   collapsed={collapsed !== item.key}
+                  styles={styles}
                 >
                   <View
                     style={{
@@ -232,7 +234,7 @@ const SettingsScreen = ({ navigation }) => {
   );
 };
 
-const CommonCollapsible = ({ title, collapsed, onPress, children }) => {
+const CommonCollapsible = ({ title, collapsed, onPress, children, styles }) => {
   return (
     <>
       <TouchableOpacity
