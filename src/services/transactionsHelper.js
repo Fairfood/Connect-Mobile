@@ -99,7 +99,7 @@ export const findAllTransactionsById = async (id) => {
   return transactions.query(Q.where('node_id', id));
 };
 
-export const findAndupdateTransaction = async (transactionId, updates) => {
+export const findAndUpdateTransaction = async (transactionId, updates) => {
   await database.action(async () => {
     const transaction = await transactions.find(transactionId);
     await transaction.update((tx) => {
@@ -112,7 +112,7 @@ export const findAndupdateTransaction = async (transactionId, updates) => {
   });
 };
 
-export const findAndupdateTransactionInvoice = async (
+export const findAndUpdateTransactionInvoice = async (
   transactionId,
   invoiceFile,
 ) => {

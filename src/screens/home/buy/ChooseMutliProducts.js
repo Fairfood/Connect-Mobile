@@ -9,15 +9,16 @@ import {
   Dimensions,
   ScrollView,
 } from 'react-native';
-import I18n from '../../i18n/i18n';
-import CustomLeftHeader from '../../components/CustomLeftHeader';
-import { RightArrowIcon } from '../../assets/svg';
-import * as consts from '../../services/constants';
+import { useSelector } from 'react-redux';
+import I18n from '../../../i18n/i18n';
+import { RightArrowIcon } from '../../../assets/svg';
+import CustomLeftHeader from '../../../components/CustomLeftHeader';
 
 const { width, height } = Dimensions.get('window');
 
 const ChooseProducts = ({ navigation, route }) => {
   const { allProducts, locationAllowed, newFarmer } = route.params;
+  const { theme } = useSelector((state) => state.common);
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
@@ -41,6 +42,8 @@ const ChooseProducts = ({ navigation, route }) => {
     });
   };
 
+  const styles = StyleSheetFactory(theme);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
@@ -52,7 +55,7 @@ const ChooseProducts = ({ navigation, route }) => {
           />
           <View style={styles.imageSection}>
             <Image
-              source={require('../../assets/images/choose-products.png')}
+              source={require('../../../assets/images/choose-products.png')}
               style={{ resizeMode: 'contain', marginVertical: 10 }}
             />
             <View style={styles.itemTextWrap}>
@@ -64,7 +67,7 @@ const ChooseProducts = ({ navigation, route }) => {
           </View>
         </View>
         <Image
-          source={require('../../assets/images/lines.png')}
+          source={require('../../../assets/images/lines.png')}
           style={styles.linesImage}
         />
       </View>
@@ -85,7 +88,7 @@ const ChooseProducts = ({ navigation, route }) => {
             <RightArrowIcon
               width={width * 0.04}
               height={width * 0.04}
-              stroke={consts.ICON_COLOR}
+              stroke={theme.icon_1}
             />
           </TouchableOpacity>
         ))}
@@ -94,79 +97,81 @@ const ChooseProducts = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  productTitle: {
-    fontSize: 18,
-    fontFamily: consts.FONT_MEDIUM,
-    color: consts.TEXT_PRIMARY_COLOR,
-    marginVertical: height * 0.03,
-    marginHorizontal: width * 0.05,
-  },
-  itemWrap: {
-    marginBottom: height * 0.02,
-    padding: width * 0.04,
-    borderColor: consts.BORDER_COLOR,
-    borderWidth: 1,
-    borderRadius: 6,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  imageSection: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerContainer: {
-    height: '50%',
-    backgroundColor: '#92DDF6',
-  },
-  topSectionWrap: {
-    flex: 1,
-    paddingHorizontal: width * 0.05,
-  },
-  bottomSectionWrap: {
-    flex: 1,
-    paddingHorizontal: width * 0.05,
-  },
-  linesImage: {
-    width: '100%',
-    height: 40,
-    bottom: -5,
-  },
-  itemTextWrap: {
-    width: width * 0.8,
-    position: 'relative',
-  },
-  itemTitleText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_BOLD,
-    fontStyle: 'normal',
-    fontSize: 16,
-    lineHeight: 24,
-    textAlign: 'center',
-    marginTop: 10,
-  },
-  itemText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontFamily: consts.FONT_REGULAR,
-    fontSize: 16,
-  },
-  itemSubTitleText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 14,
-    letterSpacing: 0,
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background_1,
+    },
+    productTitle: {
+      fontSize: 18,
+      fontFamily: theme.font_medium,
+      color: theme.text_1,
+      marginVertical: height * 0.03,
+      marginHorizontal: width * 0.05,
+    },
+    itemWrap: {
+      marginBottom: height * 0.02,
+      padding: width * 0.04,
+      borderColor: theme.border_1,
+      borderWidth: 1,
+      borderRadius: 6,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    imageSection: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerContainer: {
+      height: '50%',
+      backgroundColor: '#92DDF6',
+    },
+    topSectionWrap: {
+      flex: 1,
+      paddingHorizontal: width * 0.05,
+    },
+    bottomSectionWrap: {
+      flex: 1,
+      paddingHorizontal: width * 0.05,
+    },
+    linesImage: {
+      width: '100%',
+      height: 40,
+      bottom: -5,
+    },
+    itemTextWrap: {
+      width: width * 0.8,
+      position: 'relative',
+    },
+    itemTitleText: {
+      color: theme.text_1,
+      fontWeight: '500',
+      fontFamily: theme.font_bold,
+      fontStyle: 'normal',
+      fontSize: 16,
+      lineHeight: 24,
+      textAlign: 'center',
+      marginTop: 10,
+    },
+    itemText: {
+      color: theme.text_1,
+      fontFamily: theme.font_regular,
+      fontSize: 16,
+    },
+    itemSubTitleText: {
+      color: theme.text_1,
+      fontWeight: '500',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 14,
+      letterSpacing: 0,
+      lineHeight: 24,
+      textAlign: 'center',
+    },
+  });
+};
 
 export default ChooseProducts;

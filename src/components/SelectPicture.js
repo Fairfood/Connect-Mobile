@@ -8,12 +8,15 @@ import {
   Dimensions,
   StyleSheet,
 } from 'react-native';
-import * as consts from '../services/constants';
+import { useSelector } from 'react-redux';
 
 const { height } = Dimensions.get('window');
 
 const SelectPicture = ({ ...props }) => {
   const { visible, onSelectGallery, onSelectCamera, hideModal } = props;
+  const { theme } = useSelector((state) => state.common);
+  const styles = StyleSheetFactory(theme);
+
   return (
     <Modal
       animationType='slide'
@@ -44,47 +47,49 @@ const SelectPicture = ({ ...props }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  modalContainer: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0, 58, 96, 0.2)',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  modalContentWrap: {
-    width: '100%',
-    height: height * 0.125,
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    paddingVertical: 10,
-  },
-  galleyText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    textAlign: 'center',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 12,
-  },
-  iconWrap: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingLeft: 25,
-  },
-  topSection: {
-    height: height * 0.875,
-    width: '100%',
-  },
-  galleryImage: {
-    height: height * 0.07,
-    width: height * 0.07,
-    borderRadius: consts.BORDER_RADIUS,
-  },
-  cameraImage: {
-    height: height * 0.08,
-    width: height * 0.08,
-    borderRadius: consts.BORDER_RADIUS,
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    modalContainer: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(0, 58, 96, 0.2)',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    modalContentWrap: {
+      width: '100%',
+      height: height * 0.125,
+      flexDirection: 'row',
+      backgroundColor: '#ffffff',
+      paddingVertical: 10,
+    },
+    galleyText: {
+      color: theme.text_1,
+      textAlign: 'center',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 12,
+    },
+    iconWrap: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingLeft: 25,
+    },
+    topSection: {
+      height: height * 0.875,
+      width: '100%',
+    },
+    galleryImage: {
+      height: height * 0.07,
+      width: height * 0.07,
+      borderRadius: theme.border_radius,
+    },
+    cameraImage: {
+      height: height * 0.08,
+      width: height * 0.08,
+      borderRadius: theme.border_radius,
+    },
+  });
+};
 
 export default SelectPicture;

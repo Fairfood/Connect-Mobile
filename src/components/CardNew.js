@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import I18n from '../i18n/i18n';
+import { useSelector } from 'react-redux';
 import { getCustomFieldValue } from '../services/commonFunctions';
-import * as consts from '../services/constants';
+import I18n from '../i18n/i18n';
 
 const CardNew = ({
   products,
@@ -12,18 +12,21 @@ const CardNew = ({
   totalPrice,
   currency,
 }) => {
+  const { theme } = useSelector((state) => state.common);
+  const styles = StyleSheetFactory(theme);
+
   return (
     <View
       style={[
         styles.cardContainer,
-        { backgroundColor: cardColor ?? consts.CARD_BACKGROUND_COLOR },
+        { backgroundColor: cardColor ?? theme.background_2 },
       ]}
     >
       <View style={{ marginVertical: 5, paddingVertical: 0 }}>
         <Text
           style={[
             styles.transactionSummaryText,
-            { color: textColor ?? consts.TEXT_PRIMARY_COLOR },
+            { color: textColor ?? theme.text_1 },
           ]}
         >
           {I18n.t('transaction_summary')}
@@ -41,7 +44,7 @@ const CardNew = ({
                   style={[
                     styles.cardLeftItem,
                     {
-                      color: textColor ?? consts.TEXT_PRIMARY_COLOR,
+                      color: textColor ?? theme.text_1,
                       width: '70%',
                     },
                   ]}
@@ -55,7 +58,7 @@ const CardNew = ({
                     styles.cardRightItem,
                     {
                       fontWeight: '600',
-                      color: textColor ?? consts.TEXT_PRIMARY_COLOR,
+                      color: textColor ?? theme.text_1,
                     },
                   ]}
                 >
@@ -75,7 +78,7 @@ const CardNew = ({
                             style={[
                               styles.cardLeftItem,
                               {
-                                color: textColor ?? consts.TEXT_PRIMARY_COLOR,
+                                color: textColor ?? theme.text_1,
                                 width: '70%',
                               },
                             ]}
@@ -87,7 +90,7 @@ const CardNew = ({
                               styles.cardRightItem,
                               {
                                 fontWeight: '600',
-                                color: textColor ?? consts.TEXT_PRIMARY_COLOR,
+                                color: textColor ?? theme.text_1,
                               },
                             ]}
                           >
@@ -107,10 +110,7 @@ const CardNew = ({
       {premiums.map((premium, index) => (
         <View key={index.toString()} style={styles.cardItem}>
           <Text
-            style={[
-              styles.cardLeftItem,
-              { color: textColor ?? consts.TEXT_PRIMARY_COLOR },
-            ]}
+            style={[styles.cardLeftItem, { color: textColor ?? theme.text_1 }]}
           >
             {`${premium.name}:`}
           </Text>
@@ -119,7 +119,7 @@ const CardNew = ({
               styles.cardRightItem,
               {
                 fontWeight: '600',
-                color: textColor ?? consts.TEXT_PRIMARY_COLOR,
+                color: textColor ?? theme.text_1,
               },
             ]}
           >
@@ -137,7 +137,7 @@ const CardNew = ({
             {
               opacity: 1,
               textTransform: 'uppercase',
-              color: textColor ?? consts.TEXT_PRIMARY_COLOR,
+              color: textColor ?? theme.text_1,
               paddingTop: 5,
             },
           ]}
@@ -150,7 +150,7 @@ const CardNew = ({
             {
               fontWeight: '700',
               fontSize: 20,
-              color: textColor ?? consts.TEXT_PRIMARY_COLOR,
+              color: textColor ?? theme.text_1,
             },
           ]}
         >
@@ -163,63 +163,66 @@ const CardNew = ({
   );
 };
 
-const styles = StyleSheet.create({
-  cardContainer: {
-    width: '100%',
-    alignSelf: 'center',
-    marginHorizontal: 15,
-    marginTop: 10,
-    paddingHorizontal: 20,
-  },
-  cardItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignContent: 'space-between',
-    marginVertical: 3,
-  },
-  cardLeftItem: {
-    fontFamily: consts.FONT_REGULAR,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    fontSize: 12,
-    color: consts.TEXT_PRIMARY_COLOR,
-    opacity: 0.7,
-    letterSpacing: 0.2,
-  },
-  cardRightItem: {
-    fontFamily: consts.FONT_REGULAR,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    fontSize: 12,
-    color: consts.TEXT_PRIMARY_COLOR,
-  },
-  quantityText: {
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    letterSpacing: 0.2,
-    opacity: 1,
-    fontSize: 12,
-    fontWeight: '500',
-    textTransform: 'none',
-    marginBottom: 3,
-  },
-  transactionSummaryText: {
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    letterSpacing: 0.2,
-    opacity: 1,
-    fontWeight: '500',
-    fontSize: 16,
-    textTransform: 'none',
-    marginVertical: 10,
-    marginBottom: 0,
-  },
-  dottedLine: {
-    borderStyle: 'dotted',
-    borderWidth: 1,
-    borderRadius: consts.BORDER_RADIUS,
-    borderColor: consts.APP_BG_COLOR,
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    cardContainer: {
+      width: '100%',
+      alignSelf: 'center',
+      marginHorizontal: 15,
+      marginTop: 10,
+      paddingHorizontal: 20,
+      borderRadius: theme.border_radius,
+    },
+    cardItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignContent: 'space-between',
+      marginVertical: 3,
+    },
+    cardLeftItem: {
+      fontFamily: theme.font_regular,
+      fontWeight: '400',
+      fontStyle: 'normal',
+      fontSize: 12,
+      color: theme.text_1,
+      opacity: 0.7,
+      letterSpacing: 0.2,
+    },
+    cardRightItem: {
+      fontFamily: theme.font_regular,
+      fontWeight: '400',
+      fontStyle: 'normal',
+      fontSize: 12,
+      color: theme.text_1,
+    },
+    quantityText: {
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      letterSpacing: 0.2,
+      opacity: 1,
+      fontSize: 12,
+      fontWeight: '500',
+      textTransform: 'none',
+      marginBottom: 3,
+    },
+    transactionSummaryText: {
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      letterSpacing: 0.2,
+      opacity: 1,
+      fontWeight: '500',
+      fontSize: 16,
+      textTransform: 'none',
+      marginVertical: 10,
+      marginBottom: 0,
+    },
+    dottedLine: {
+      borderStyle: 'dotted',
+      borderWidth: 1,
+      borderRadius: theme.border_radius,
+      borderColor: theme.background_1,
+    },
+  });
+};
 
 export default CardNew;

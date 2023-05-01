@@ -11,18 +11,18 @@ import {
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { TriangleIcon } from '../assets/svg';
+import { AVATAR_BG_COLORS, HIT_SLOP_FIFTEEN } from '../services/constants';
 import I18n from '../i18n/i18n';
 import Icon from '../icons';
 import CustomSmallButton from './CustomSmallButton';
 import Avatar from './Avatar';
-import * as consts from '../services/constants';
 
 const { height, width } = Dimensions.get('window');
 const screenCount = 4;
 
 const HelpTutorial = ({ ...props }) => {
+  const { theme } = useSelector((state) => state.common);
   const { loggedInUser } = useSelector((state) => state.login);
   const [currentScreen, setCurrentScreen] = useState(1);
 
@@ -43,6 +43,8 @@ const HelpTutorial = ({ ...props }) => {
     props.hideModal();
   };
 
+  const styles = StyleSheetFactory(theme);
+
   return (
     <Modal animationType='slide' transparent visible={props.visible}>
       <View
@@ -62,11 +64,13 @@ const HelpTutorial = ({ ...props }) => {
               text2={I18n.t('tutorial_farmer_sub')}
               onSkip={() => onSkip()}
               onNext={() => onNext()}
+              styles={styles}
             />
             <RoundView
               roundStyle={styles.round1}
               roundIcon={<Icon name='farmer' size={20} color='#5691AE' />}
               roundText={I18n.t('farmers')}
+              theme={theme}
             />
           </>
         )}
@@ -82,11 +86,13 @@ const HelpTutorial = ({ ...props }) => {
               text2={I18n.t('tutorial_transaction_sub')}
               onSkip={() => onSkip()}
               onNext={() => onNext()}
+              styles={styles}
             />
             <RoundView
               roundStyle={styles.round2}
               roundIcon={<Icon name='transaction' size={20} color='#5691AE' />}
               roundText={I18n.t('transactions')}
+              theme={theme}
             />
           </>
         )}
@@ -102,6 +108,7 @@ const HelpTutorial = ({ ...props }) => {
               text2={I18n.t('tutorial_profile_sub')}
               onSkip={() => onSkip()}
               onNext={() => onNext()}
+              styles={styles}
             />
             <RoundView
               roundStyle={styles.round3}
@@ -109,11 +116,12 @@ const HelpTutorial = ({ ...props }) => {
                 <Avatar
                   image={loggedInUser.image}
                   containerStyle={styles.profileIcon}
-                  avatarBgColor={consts.AVATAR_BG_COLORS[0]}
+                  avatarBgColor={AVATAR_BG_COLORS[0]}
                   avatarName={`${loggedInUser.first_name} ${loggedInUser.last_name}`}
                   avatarNameStyle={styles.avatarNameStyle}
                 />
               )}
+              theme={theme}
             />
           </>
         )}
@@ -129,6 +137,7 @@ const HelpTutorial = ({ ...props }) => {
               text2={I18n.t('tutorial_sync_sub')}
               onSkip={() => onSkip()}
               onNext={() => onNext()}
+              styles={styles}
             />
             <RoundView
               roundStyle={styles.round4}
@@ -138,6 +147,7 @@ const HelpTutorial = ({ ...props }) => {
                   style={{ width: 25, height: 25 }}
                 />
               )}
+              theme={theme}
             />
           </>
         )}
@@ -158,6 +168,7 @@ const WhiteBoxView = ({ ...props }) => {
     text2,
     onSkip,
     onNext,
+    styles,
   } = props;
   return (
     <View
@@ -181,10 +192,7 @@ const WhiteBoxView = ({ ...props }) => {
         <Text style={styles.text2Style}>{text2}</Text>
         <View style={styles.actionWrap}>
           {onSkip ? (
-            <TouchableOpacity
-              onPress={onSkip}
-              hitSlop={consts.HIT_SLOP_FIFTEEN}
-            >
+            <TouchableOpacity onPress={onSkip} hitSlop={HIT_SLOP_FIFTEEN}>
               <Text style={styles.skipText}>{I18n.t('skip_tutorial')}</Text>
             </TouchableOpacity>
           ) : (
@@ -211,7 +219,7 @@ const WhiteBoxView = ({ ...props }) => {
 };
 
 const RoundView = ({ ...props }) => {
-  const { roundStyle, roundIcon, roundText } = props;
+  const { roundStyle, roundIcon, roundText, theme } = props;
   return (
     <View style={roundStyle}>
       <View style={{ alignItems: 'center', justifyContent: 'center' }}>
@@ -219,9 +227,9 @@ const RoundView = ({ ...props }) => {
         {roundText ? (
           <Text
             style={{
-              color: consts.TEXT_PRIMARY_LIGHT_COLOR,
+              color: theme.text_2,
               fontSize: 12,
-              fontFamily: consts.FONT_REGULAR,
+              fontFamily: theme.font_regular,
             }}
           >
             {roundText}
@@ -232,102 +240,104 @@ const RoundView = ({ ...props }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  round1: {
-    position: 'absolute',
-    bottom: -20,
-    left: width * 0.4,
-    width: width * 0.2,
-    height: 70,
-    borderRadius: 40,
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: 7,
-  },
-  round2: {
-    position: 'absolute',
-    bottom: -20,
-    left: width * 0.75,
-    width: width * 0.2,
-    height: 70,
-    borderRadius: 40,
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: 7,
-  },
-  round3: {
-    position: 'absolute',
-    top: 15,
-    right: 15,
-    width: 45,
-    height: 45,
-    borderRadius: 45 / 2,
-    backgroundColor: '#92DDF6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  round4: {
-    position: 'absolute',
-    top: 15,
-    right: 55,
-    width: 45,
-    height: 45,
-    borderRadius: 45 / 2,
-    backgroundColor: '#92DDF6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  arrowTopWrap: {
-    position: 'absolute',
-    top: -10,
-    transform: [{ rotate: '180deg' }],
-  },
-  arrowBottomWrap: {
-    position: 'absolute',
-    top: -5,
-  },
-  whiteWrap: {
-    width: width * 0.8,
-    padding: width * 0.05,
-    backgroundColor: 'white',
-    zIndex: 99,
-  },
-  text1Style: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 15,
-    fontFamily: consts.FONT_BOLD,
-  },
-  text2Style: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 15,
-    fontFamily: consts.FONT_REGULAR,
-    marginTop: 5,
-  },
-  actionWrap: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  skipText: {
-    color: '#EA2553',
-    fontSize: 15,
-    fontFamily: consts.FONT_MEDIUM,
-  },
-  profileIcon: {
-    width: 25,
-    height: 25,
-    borderRadius: 25 / 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarNameStyle: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontFamily: consts.FONT_BOLD,
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    round1: {
+      position: 'absolute',
+      bottom: -20,
+      left: width * 0.4,
+      width: width * 0.2,
+      height: 70,
+      borderRadius: 40,
+      backgroundColor: '#ffffff',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingBottom: 7,
+    },
+    round2: {
+      position: 'absolute',
+      bottom: -20,
+      left: width * 0.75,
+      width: width * 0.2,
+      height: 70,
+      borderRadius: 40,
+      backgroundColor: '#ffffff',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingBottom: 7,
+    },
+    round3: {
+      position: 'absolute',
+      top: 15,
+      right: 15,
+      width: 45,
+      height: 45,
+      borderRadius: 45 / 2,
+      backgroundColor: '#92DDF6',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    round4: {
+      position: 'absolute',
+      top: 15,
+      right: 55,
+      width: 45,
+      height: 45,
+      borderRadius: 45 / 2,
+      backgroundColor: '#92DDF6',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    arrowTopWrap: {
+      position: 'absolute',
+      top: -10,
+      transform: [{ rotate: '180deg' }],
+    },
+    arrowBottomWrap: {
+      position: 'absolute',
+      top: -5,
+    },
+    whiteWrap: {
+      width: width * 0.8,
+      padding: width * 0.05,
+      backgroundColor: 'white',
+      zIndex: 99,
+    },
+    text1Style: {
+      color: theme.text_1,
+      fontSize: 15,
+      fontFamily: theme.font_bold,
+    },
+    text2Style: {
+      color: theme.text_1,
+      fontSize: 15,
+      fontFamily: theme.font_regular,
+      marginTop: 5,
+    },
+    actionWrap: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 10,
+    },
+    skipText: {
+      color: '#EA2553',
+      fontSize: 15,
+      fontFamily: theme.font_medium,
+    },
+    profileIcon: {
+      width: 25,
+      height: 25,
+      borderRadius: 25 / 2,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarNameStyle: {
+      color: '#ffffff',
+      fontSize: 11,
+      fontFamily: theme.font_bold,
+    },
+  });
+};
 
 export default HelpTutorial;

@@ -13,11 +13,11 @@ import { useSelector } from 'react-redux';
 import { SuccessScreenTickIcon } from '../../assets/svg';
 import { getAllProducts } from '../../services/productsHelper';
 import { requestPermission } from '../../services/commonFunctions';
+import { AVATAR_BG_COLORS } from '../../services/constants';
 import CustomButton from '../../components/CustomButton';
 import TransparentButton from '../../components/TransparentButton';
 import I18n from '../../i18n/i18n';
 import Avatar from '../../components/Avatar';
-import * as consts from '../../services/constants';
 
 const { height, width } = Dimensions.get('window');
 
@@ -25,6 +25,7 @@ const FarmerSuccessScreen = ({ navigation, route }) => {
   const isFocused = useIsFocused();
   const { farmer, newFarmer, cardId, fairId } = route.params;
   const { userCompanyDetails } = useSelector((state) => state.login);
+  const { theme } = useSelector((state) => state.common);
   const [buttonLoading, setButtonLoading] = useState(false);
 
   useEffect(() => {
@@ -51,7 +52,7 @@ const FarmerSuccessScreen = ({ navigation, route }) => {
 
     const allProducts = await getAllProducts();
 
-    // filtering products only eligilbe for that company
+    // filtering products only eligible for that company
     const companyProducts = userCompanyDetails?.products ?? [];
     const filteredProducts = allProducts.filter((prod) => {
       return companyProducts.includes(prod.server_id);
@@ -123,6 +124,8 @@ const FarmerSuccessScreen = ({ navigation, route }) => {
     return address;
   };
 
+  const styles = StyleSheetFactory(theme);
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.topSection}>
@@ -148,7 +151,7 @@ const FarmerSuccessScreen = ({ navigation, route }) => {
             <Avatar
               image={farmer.image}
               containerStyle={styles.person}
-              avatarBgColor={consts.AVATAR_BG_COLORS[0]}
+              avatarBgColor={AVATAR_BG_COLORS[0]}
               avatarName={farmer.name}
               avatarNameStyle={styles.avatarNameStyle}
             />
@@ -208,10 +211,7 @@ const FarmerSuccessScreen = ({ navigation, route }) => {
 
             <View style={[styles.buttonWrap, { justifyContent: 'center' }]}>
               {buttonLoading ? (
-                <ActivityIndicator
-                  color={consts.ERROR_ICON_COLOR}
-                  size='small'
-                />
+                <ActivityIndicator color={theme.icon_error} size='small' />
               ) : (
                 <TransparentButton
                   buttonText={I18n.t('back_to_home')}
@@ -229,95 +229,97 @@ const FarmerSuccessScreen = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  topSection: {
-    width,
-    height: height * 0.4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: consts.HEADER_BACKGROUND_COLOR,
-  },
-  bottomSection: {
-    width,
-    height: height * 0.6,
-    alignItems: 'center',
-  },
-  newFarmWrap: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: width * 0.1,
-    paddingVertical: width * 0.15,
-  },
-  fieldWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'center',
-  },
-  detailsText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 16,
-    fontFamily: consts.FONT_MEDIUM,
-    marginBottom: 15,
-  },
-  successTitle: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 20,
-    textAlign: 'center',
-    marginTop: 30,
-  },
-  person: {
-    backgroundColor: '#F2F2F2',
-    height: 70,
-    width: 70,
-    borderRadius: 70 / 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarNameStyle: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontFamily: consts.FONT_BOLD,
-  },
-  title: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 16,
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: consts.INPUT_PLACEHOLDER,
-    fontSize: 14,
-    fontFamily: consts.FONT_REGULAR,
-    fontWeight: 'normal',
-    fontStyle: 'normal',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  buttonWrap: {
-    width: width * 0.85,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 'auto',
-  },
-  cardFieldText: {
-    color: consts.INPUT_PLACEHOLDER,
-    fontSize: 16,
-    fontFamily: consts.FONT_REGULAR,
-    fontWeight: 'normal',
-    fontStyle: 'normal',
-    textAlign: 'center',
-    marginTop: 10,
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background_1,
+    },
+    topSection: {
+      width,
+      height: height * 0.4,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.header_bg,
+    },
+    bottomSection: {
+      width,
+      height: height * 0.6,
+      alignItems: 'center',
+    },
+    newFarmWrap: {
+      flex: 1,
+      alignItems: 'center',
+      paddingHorizontal: width * 0.1,
+      paddingVertical: width * 0.15,
+    },
+    fieldWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'center',
+    },
+    detailsText: {
+      color: theme.text_1,
+      fontSize: 16,
+      fontFamily: theme.font_medium,
+      marginBottom: 15,
+    },
+    successTitle: {
+      color: theme.text_1,
+      fontWeight: '500',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 20,
+      textAlign: 'center',
+      marginTop: 30,
+    },
+    person: {
+      backgroundColor: '#F2F2F2',
+      height: 70,
+      width: 70,
+      borderRadius: 70 / 2,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarNameStyle: {
+      color: '#ffffff',
+      fontSize: 20,
+      fontFamily: theme.font_bold,
+    },
+    title: {
+      color: theme.text_1,
+      fontSize: 16,
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      marginTop: 10,
+      textAlign: 'center',
+    },
+    subtitle: {
+      color: theme.placeholder,
+      fontSize: 14,
+      fontFamily: theme.font_regular,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      marginTop: 10,
+      textAlign: 'center',
+    },
+    buttonWrap: {
+      width: width * 0.85,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 'auto',
+    },
+    cardFieldText: {
+      color: theme.placeholder,
+      fontSize: 16,
+      fontFamily: theme.font_regular,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textAlign: 'center',
+      marginTop: 10,
+    },
+  });
+};
 
 export default FarmerSuccessScreen;

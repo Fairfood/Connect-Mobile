@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import * as consts from '../services/constants';
+import { useSelector } from 'react-redux';
 
 const CustomButton = ({
   buttonText,
@@ -16,54 +16,59 @@ const CustomButton = ({
   disabled,
   extraStyle = {},
   testID = 'CustomButton',
-}) => (
-  <TouchableOpacity
-    style={[
-      styles.container,
-      extraStyle,
-      { backgroundColor: backgroundColor ?? consts.BUTTON_COLOR_PRIMARY },
-    ]}
-    disabled={disabled}
-    onPress={onPress}
-    activeOpacity={0.5}
-    testID={testID}
-  >
-    {!isLoading && (
-      <Text
-        style={[
-          styles.buttonText,
-          {
-            color: backgroundColor
-              ? consts.BUTTON_COLOR_PRIMARY
-              : consts.APP_BG_COLOR,
-            fontFamily: medium ? consts.FONT_MEDIUM : consts.FONT_REGULAR,
-          },
-        ]}
-      >
-        {buttonText}
-      </Text>
-    )}
-    {isLoading && <ActivityIndicator color={consts.APP_BG_COLOR} />}
-  </TouchableOpacity>
-);
+}) => {
+  const { theme } = useSelector((state) => state.common);
+  const styles = StyleSheetFactory(theme);
 
-const styles = StyleSheet.create({
-  container: {
-    alignSelf: 'center',
-    width: '85%',
-    backgroundColor: consts.COLOR_PRIMARY,
-    height: 55,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderColor: consts.COLOR_PRIMARY,
-    borderWidth: 1,
-    borderRadius: consts.BORDER_RADIUS,
-  },
-  buttonText: {
-    color: consts.APP_BG_COLOR,
-    fontStyle: 'normal',
-    fontWeight: '500',
-  },
-});
+  return (
+    <TouchableOpacity
+      style={[
+        styles.container,
+        extraStyle,
+        { backgroundColor: backgroundColor ?? theme.button_bg_1 },
+      ]}
+      disabled={disabled}
+      onPress={onPress}
+      activeOpacity={0.5}
+      testID={testID}
+    >
+      {!isLoading && (
+        <Text
+          style={[
+            styles.buttonText,
+            {
+              color: backgroundColor ? theme.button_bg_1 : theme.background_1,
+              fontFamily: medium ? theme.font_medium : theme.font_regular,
+            },
+          ]}
+        >
+          {buttonText}
+        </Text>
+      )}
+      {isLoading && <ActivityIndicator color={theme.background_1} />}
+    </TouchableOpacity>
+  );
+};
+
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      alignSelf: 'center',
+      width: '85%',
+      backgroundColor: theme.primary,
+      height: 55,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderColor: theme.primary,
+      borderWidth: 1,
+      borderRadius: theme.border_radius,
+    },
+    buttonText: {
+      color: theme.background_1,
+      fontStyle: 'normal',
+      fontWeight: '500',
+    },
+  });
+};
 
 export default CustomButton;

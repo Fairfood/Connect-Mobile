@@ -8,69 +8,91 @@ import {
   Text,
   Dimensions,
   SectionList,
+  ActivityIndicator,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useIsFocused } from '@react-navigation/native';
 import withObservables from '@nozbe/with-observables';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
+import * as Progress from 'react-native-progress';
 import {
   erroredTransactionsCount,
   observeTransactions,
   newTransactionsCount,
 } from '../../services/transactionsHelper';
-import { findProductById, getAllProducts } from '../../services/productsHelper';
 import {
   findFarmerById,
+  findFarmerByServerId,
   newFarmersCount,
   updatedFarmersCount,
 } from '../../services/farmersHelper';
+import { findProductById } from '../../services/productsHelper';
 import { updateSyncPercentage } from '../../redux/LoginStore';
 import { FilterIcon } from '../../assets/svg';
+import { observeTransactionPremiums } from '../../services/transactionPremiumHelper';
+import { findPremiumById } from '../../services/premiumsHelper';
 import CustomHeader from '../../components/CustomHeader';
 import SearchComponent from '../../components/SearchComponent';
 import TransactionListItem from '../../components/TransactionListItem';
 import I18n from '../../i18n/i18n';
 import SyncComponent from '../../components/SyncComponent';
 import TransactionFilter from '../../components/TransactionFilter';
+import PaymentFilter from '../../components/PaymentFilter';
 import * as consts from '../../services/constants';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-const Transactions = ({ navigation, TRANSACTIONS }) => {
-  const { syncInProgress, syncSuccessfull } = useSelector(
+const Transactions = ({ navigation, TRANSACTIONS, TRANSACTION_PREMIUMS }) => {
+  const { theme } = useSelector((state) => state.common);
+  const { syncInProgress, syncSuccessfull, userProjectDetails } = useSelector(
     (state) => state.login,
   );
+  const { currency } = userProjectDetails;
   const { isConnected } = useSelector((state) => state.connection);
+  const {
+    tnxSyncing,
+    tnxSyncCount,
+    tnxSyncTotal,
+    tnxSyncStatus,
+    tnxSyncStage,
+  } = useSelector((state) => state.sync);
   const [transactionsList, setTransactionsList] = useState([]);
+  const [paymentList, setPaymentList] = useState([]);
   const [syncIcon, setSyncIcon] = useState(
     require('../../assets/images/sync_success.png'),
   );
-  const [searchText, setSearchText] = useState('');
+  const [activeTab, setActiveTab] = useState(0);
+  const [transactionSearchText, setTransactionSearchText] = useState('');
+  const [paymentSearchText, setPaymentSearchText] = useState('');
   const [syncModal, setSyncModal] = useState(false);
-  const [filterItem, setFilterItem] = useState(null);
-  const [filterModal, setFilterModal] = useState(false);
-  const [products, setProducts] = useState(false);
-  const [filterApplied, setFilterApplied] = useState(false);
+  const [transactionFilterItem, setTransactionFilterItem] = useState(null);
+  const [transactionFilterModal, setTransactionFilterModal] = useState(false);
+  const [paymentFilterItem, setPaymentFilterItem] = useState(null);
+  const [paymentFilterModal, setPaymentFilterModal] = useState(false);
+  const [transactionFilterApplied, setTransactionFilterApplied] =
+    useState(false);
+  const [paymentFilterApplied, setPaymentFilterApplied] = useState(false);
   const isFocused = useIsFocused();
   const dispatch = useDispatch();
 
   useEffect(() => {
-    setupInitialValues();
+    setUpTransactionValues();
   }, [TRANSACTIONS]);
+
+  useEffect(() => {
+    setUpPaymentValues();
+  }, [TRANSACTION_PREMIUMS]);
 
   useEffect(() => {
     setupSyncingIcon();
   }, [isConnected, isFocused, syncInProgress, syncSuccessfull]);
 
-  useEffect(() => {
-    setupProducts();
-  }, []);
-
   /**
    * setting initial values and sorting transaction list
    */
-  const setupInitialValues = async () => {
+  const setUpTransactionValues = async () => {
     const buyers = JSON.parse(await AsyncStorage.getItem('buyers'));
     TRANSACTIONS.map(async (tx) => {
       if (
@@ -114,14 +136,55 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
       }
     });
 
-    setSectionListData(TRANSACTIONS);
+    setSectionListData('transaction', TRANSACTIONS);
+  };
+
+  /**
+   * setting initial values and sorting transaction list
+   */
+  const setUpPaymentValues = async () => {
+    const buyers = JSON.parse(await AsyncStorage.getItem('buyers'));
+    TRANSACTION_PREMIUMS.map(async (tx) => {
+      if (!tx.node_name || !tx.premium_name) {
+        let node = null;
+        let premium = null;
+        if (tx._raw.type === consts.PAYMENT_OUTGOING) {
+          if (tx._raw.destination === '') {
+            tx.node_name = node?.[0]?.name ?? 'Not available';
+            tx.node_image = node?.[0]?.image ?? '';
+          } else {
+            node = await findFarmerByServerId(tx._raw.destination);
+            if (node.length > 0) {
+              tx.node_name = node?.[0]?.name ?? 'Not available';
+              tx.node_image = node?.[0]?.image ?? '';
+            } else {
+              node = await findFarmerById(tx._raw.destination);
+              tx.node_name = node?.name ?? 'Not available';
+              tx.node_image = node?.image ?? '';
+            }
+          }
+        } else {
+          node = buyers?.[0] ?? null;
+          tx.node_name = node?.name ?? 'Not available';
+          tx.node_image = node?.image ?? '';
+        }
+
+        if (tx._raw.category === consts.TYPE_BASE_PRICE) {
+          tx.premium_name = 'Base price';
+        } else {
+          premium = await findPremiumById(tx._raw.premium_id);
+          tx.premium_name = premium?.name ?? 'Not available';
+        }
+      }
+    });
+    setSectionListData('payment', TRANSACTION_PREMIUMS);
   };
 
   /**
    * setting syncing icon
    */
   const setupSyncingIcon = async () => {
-    setSearchText('');
+    setTransactionSearchText('');
     const newFarmers = await newFarmersCount();
     const modifiedFarmers = await updatedFarmersCount();
     const newTransactions = await newTransactionsCount();
@@ -137,17 +200,6 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
     } else {
       setSyncIcon(require('../../assets/images/sync_pending.png'));
     }
-  };
-
-  /**
-   * setting active products
-   */
-  const setupProducts = async () => {
-    const allProducts = await getAllProducts();
-    const activeProducts = allProducts.reverse().filter((prod) => {
-      return prod.is_active;
-    });
-    setProducts(activeProducts);
   };
 
   /**
@@ -168,20 +220,38 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
   /**
    * sorting and setting section list data
    *
-   * @param {Array} transactions transaction list
+   * @param {string}  type  array type
+   * @param {Array}   data  data array
    */
-  const setSectionListData = (transactions) => {
-    const localeData = transactions.map((item) => {
-      item.key = moment(item.created_on * 1000).format('YYYY-MM-DD');
-      return item;
-    });
+  const setSectionListData = (type, data) => {
+    let localeData = null;
 
-    // Sort data by datetime
-    localeData.sort((a, b) => {
-      return (
-        moment(b.created_on * 1000).unix() - moment(a.created_on * 1000).unix()
-      );
-    });
+    if (type === 'transaction') {
+      localeData = data.map((item) => {
+        item.key = moment(item.created_on * 1000).format('YYYY-MM-DD');
+        return item;
+      });
+
+      // Sort data by date time
+      localeData.sort((a, b) => {
+        return (
+          moment(b.created_on * 1000).unix() -
+          moment(a.created_on * 1000).unix()
+        );
+      });
+    } else {
+      localeData = data.map((item) => {
+        item.key = moment(item._raw.date * 1000).format('YYYY-MM-DD');
+        return item;
+      });
+
+      // Sort data by date time
+      localeData.sort((a, b) => {
+        return (
+          moment(b._raw.date * 1000).unix() - moment(a._raw.date * 1000).unix()
+        );
+      });
+    }
 
     // Reduce data for SectionList
     const groupedData = localeData.reduce(
@@ -205,7 +275,11 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
       [],
     );
 
-    setTransactionsList(groupedData);
+    if (type === 'transaction') {
+      setTransactionsList(groupedData);
+    } else {
+      setPaymentList(groupedData);
+    }
   };
 
   /**
@@ -214,26 +288,50 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
    * @param {string} text farmer name
    */
   const onSearch = (text) => {
-    setSearchText(text);
-    textSerch = text.toLowerCase();
+    if (activeTab === 0) {
+      setTransactionSearchText(text);
+      const textSearch = text.toLowerCase();
 
-    if (textSerch === '') {
-      setSectionListData(TRANSACTIONS);
-      setSearchText('');
+      if (textSearch === '') {
+        setSectionListData('transaction', TRANSACTIONS);
+        setTransactionSearchText('');
+      } else {
+        const filteredTransactions = TRANSACTIONS.filter((trans) => {
+          if (trans.node_name && trans.node_name !== '') {
+            let nodeName = trans.node_name;
+            nodeName = nodeName.toLowerCase();
+            let productName = trans.product_name;
+            productName = productName.toLowerCase();
+            return (
+              nodeName.includes(textSearch) || productName.includes(textSearch)
+            );
+          }
+        });
+
+        setSectionListData('transaction', filteredTransactions);
+      }
     } else {
-      const filteredTransactions = TRANSACTIONS.filter((trans) => {
-        if (trans.node_name && trans.node_name !== '') {
-          let nodeName = trans.node_name;
-          nodeName = nodeName.toLowerCase();
-          let productName = trans.product_name;
-          productName = productName.toLowerCase();
-          return (
-            nodeName.includes(textSerch) || productName.includes(textSerch)
-          );
-        }
-      });
+      setPaymentSearchText(text);
+      const textSearch = text.toLowerCase();
 
-      setSectionListData(filteredTransactions);
+      if (textSearch === '') {
+        setSectionListData('payment', TRANSACTION_PREMIUMS);
+        setPaymentSearchText('');
+      } else {
+        const filteredPayments = TRANSACTION_PREMIUMS.filter((pay) => {
+          if (pay.node_name && pay.node_name !== '') {
+            let nodeName = pay.node_name;
+            nodeName = nodeName.toLowerCase();
+            let premiumName = pay.premium_name;
+            premiumName = premiumName.toLowerCase();
+            return (
+              nodeName.includes(textSearch) || premiumName.includes(textSearch)
+            );
+          }
+        });
+
+        setSectionListData('payment', filteredPayments);
+      }
     }
   };
 
@@ -241,14 +339,14 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
    * start syncing
    */
   const checkSyncing = async () => {
-    await setInitailValues();
+    await setInitialValues();
     setSyncModal(true);
   };
 
   /**
    * setting initial sync data
    */
-  const setInitailValues = async () => {
+  const setInitialValues = async () => {
     try {
       if (!syncInProgress) {
         const newFarmers = await newFarmersCount();
@@ -279,7 +377,7 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
       }
       return true;
     } catch (error) {
-      // console.log('errorrrrrrrrr', error);
+      // console.log('error', error);
     }
   };
 
@@ -289,13 +387,13 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
    * @param {object}  filter  filter object
    * @param {boolean} applied true if filter applied, false if not applied
    */
-  const applyFilters = (filter, applied) => {
-    setFilterItem(filter);
+  const applyTransactionFilters = (filter, applied) => {
+    setTransactionFilterItem(filter);
 
     if (!applied) {
-      setSectionListData(TRANSACTIONS);
-      setFilterApplied(0);
-      setFilterModal(false);
+      setSectionListData('transaction', TRANSACTIONS);
+      setTransactionFilterApplied(0);
+      setTransactionFilterModal(false);
       return;
     }
 
@@ -395,39 +493,211 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
       }
     }
 
-    setSectionListData(currentTransactions);
-    setFilterApplied(filterCount);
-    setFilterModal(false);
+    setSectionListData('transaction', currentTransactions);
+    setTransactionFilterApplied(filterCount);
+    setTransactionFilterModal(false);
+  };
+
+  /**
+   * apply filter on payment list
+   *
+   * @param {object}  filter  filter object
+   * @param {boolean} applied true if filter applied, false if not applied
+   */
+  const applyPaymentFilters = (filter, applied) => {
+    setPaymentFilterItem(filter);
+
+    if (!applied) {
+      setSectionListData('payment', TRANSACTION_PREMIUMS);
+      setPaymentFilterApplied(0);
+      setPaymentFilterModal(false);
+      return;
+    }
+
+    const { date, paymentType, premium, verificationMethod, amount } = filter;
+    let currentPayments = TRANSACTION_PREMIUMS;
+    let filterCount = 0;
+
+    if (date) {
+      const { startDate, endDate } = date;
+      if (startDate && endDate) {
+        currentPayments = currentPayments.filter((tx) => {
+          return (
+            tx._raw.date >= startDate / 1000 && tx._raw.date <= endDate / 1000
+          );
+        });
+        filterCount += 1;
+      } else if (startDate) {
+        currentPayments = currentPayments.filter((tx) => {
+          return tx._raw.date >= startDate / 1000;
+        });
+        filterCount += 1;
+      } else if (endDate) {
+        currentPayments = currentPayments.filter((tx) => {
+          return tx._raw.date <= endDate / 1000;
+        });
+        filterCount += 1;
+      }
+    }
+
+    if (paymentType) {
+      const payArr = [];
+      const { credit, debit } = paymentType;
+      if (credit) {
+        payArr.push(consts.PAYMENT_INCOMING);
+      }
+      if (debit) {
+        payArr.push(consts.PAYMENT_OUTGOING);
+      }
+
+      if (payArr.length > 0) {
+        currentPayments = currentPayments.filter((tx) => {
+          return payArr.includes(tx._raw.type);
+        });
+        filterCount += 1;
+      }
+    }
+
+    if (premium && premium.length > 0) {
+      currentPayments = currentPayments.filter((tx) => {
+        return premium.includes(tx.premium_name);
+      });
+      filterCount += 1;
+    }
+
+    if (verificationMethod) {
+      const verifyArr = [];
+      const { card, manual } = verificationMethod;
+      if (card) {
+        verifyArr.push(parseInt(consts.VERIFICATION_METHOD_CARD));
+      }
+      if (manual) {
+        verifyArr.push(parseInt(consts.VERIFICATION_METHOD_MANUAL));
+      }
+
+      if (verifyArr.length > 0) {
+        currentPayments = currentPayments.filter((tx) => {
+          return verifyArr.includes(tx._raw.verification_method);
+        });
+        filterCount += 1;
+      }
+    }
+
+    if (amount) {
+      const { minAmount, maxAmount } = amount;
+      if (minAmount && maxAmount) {
+        currentPayments = currentPayments.filter((tx) => {
+          return (
+            parseFloat(tx.amount) >= parseFloat(minAmount) &&
+            parseFloat(tx.amount) <= maxAmount
+          );
+        });
+        filterCount += 1;
+      } else if (minAmount) {
+        currentPayments = currentPayments.filter((tx) => {
+          return parseFloat(tx.amount) >= parseFloat(minAmount);
+        });
+        filterCount += 1;
+      } else if (maxAmount) {
+        currentPayments = currentPayments.filter((tx) => {
+          return parseFloat(tx.amount) <= parseFloat(maxAmount);
+        });
+        filterCount += 1;
+      }
+    }
+
+    setSectionListData('payments', currentPayments);
+    setPaymentFilterApplied(filterCount);
+    setPaymentFilterModal(false);
   };
 
   /**
    * on refresh transaction list, removing filters
    */
   const onRefresh = () => {
-    setSectionListData(TRANSACTIONS);
-    setSearchText('');
-    setFilterItem(null);
-    setFilterApplied(0);
+    if (activeTab === 0) {
+      setSectionListData('transaction', TRANSACTIONS);
+      setTransactionSearchText('');
+      setTransactionFilterItem(null);
+      setTransactionFilterApplied(0);
+    } else {
+      setSectionListData('payment', TRANSACTION_PREMIUMS);
+      setPaymentSearchText('');
+      setPaymentFilterItem(null);
+      setPaymentFilterApplied(0);
+    }
+  };
+
+  const onPressFilterArea = () => {
+    if (tnxSyncing) {
+      Toast.show({
+        type: 'warning',
+        text1: I18n.t('fetching_transactions'),
+        text2: I18n.t('tnx_sync_filter_msg'),
+      });
+    }
+  };
+
+  const openModals = () => {
+    if (activeTab === 0) {
+      setTransactionFilterModal(true);
+    } else {
+      setPaymentFilterModal(true);
+    }
   };
 
   const emptyView = () => {
     return (
       <View style={styles.emptyView}>
-        <Text style={styles.emptyText}>{I18n.t('no_transactions')}</Text>
+        {tnxSyncing && (
+          <Text style={styles.emptyText}>{I18n.t('loading')}</Text>
+        )}
+        {!tnxSyncing && activeTab === 0 && (
+          <Text style={styles.emptyText}>{I18n.t('no_transactions')}</Text>
+        )}
+        {!tnxSyncing && activeTab === 1 && (
+          <Text style={styles.emptyText}>{I18n.t('no_payments')}</Text>
+        )}
       </View>
     );
   };
 
   const renderItem = ({ item }) => {
+    if (activeTab === 0) {
+      return (
+        <TransactionListItem
+          item={item}
+          onSelect={onSelectItem}
+          listView
+          displayUnSync
+        />
+      );
+    }
+
     return (
       <TransactionListItem
         item={item}
-        onSelect={onSelectItem}
-        listview
+        onSelect={() => {}}
+        currency={currency}
+        paymentView
         displayUnSync
       />
     );
   };
+
+  const getProgressBarValue = () => {
+    if (tnxSyncStage === 3) {
+      return 1;
+    }
+
+    if (tnxSyncCount !== 0 && tnxSyncTotal !== 0) {
+      return tnxSyncCount / tnxSyncTotal;
+    }
+
+    return 0;
+  };
+
+  const styles = StyleSheetFactory(theme);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -438,43 +708,137 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
         rightImageSize={25}
       />
 
-      <View style={styles.searchWrap}>
+      <TouchableOpacity
+        onPress={() => onPressFilterArea()}
+        style={styles.searchWrap}
+      >
         <SearchComponent
-          placeholder={I18n.t('search_transactions')}
+          placeholder={
+            activeTab === 0
+              ? I18n.t('search_transactions')
+              : I18n.t('search_payments')
+          }
           onChangeText={(text) => onSearch(text)}
-          value={searchText}
+          value={activeTab === 0 ? transactionSearchText : paymentSearchText}
           extraStyle={{ width: '80%' }}
+          editable={!tnxSyncing}
         />
 
         <TouchableOpacity
-          onPress={() => setFilterModal(true)}
+          onPress={() => openModals()}
           style={styles.sortIconWrap}
+          disabled={tnxSyncing}
         >
           <FilterIcon width={18} height={18} />
-          {filterApplied > 0 && (
-            <View
-              style={{
-                width: 15,
-                height: 15,
-                borderRadius: consts.BORDER_RADIUS,
-                position: 'absolute',
-                justifyContent: 'center',
-                alignItems: 'center',
-                top: 2,
-                right: 2,
-                backgroundColor: '#003A60',
-              }}
-            >
+          {activeTab === 0 && transactionFilterApplied > 0 && (
+            <View style={styles.filterCountWrap}>
               <Text style={{ color: '#fff', fontSize: 9 }}>
-                {filterApplied}
+                {transactionFilterApplied}
+              </Text>
+            </View>
+          )}
+          {activeTab === 1 && paymentFilterApplied > 0 && (
+            <View style={styles.filterCountWrap}>
+              <Text style={{ color: '#fff', fontSize: 9 }}>
+                {paymentFilterApplied}
               </Text>
             </View>
           )}
         </TouchableOpacity>
+      </TouchableOpacity>
+
+      {tnxSyncing && isConnected && (
+        <View style={styles.tnxSyncWrap}>
+          <View style={{ width: '85%' }}>
+            <Text style={styles.tnxSyncTitle}>
+              {`${I18n.t('fetching_transactions')}...`}
+            </Text>
+            <Progress.Bar
+              progress={getProgressBarValue()}
+              width={width * 0.75}
+              height={8}
+              color='#27AE60'
+            />
+            {tnxSyncCount === 0 ? (
+              <View>
+                {tnxSyncStage === 3 ? (
+                  <Text style={styles.tnxSyncCount}>
+                    {`${I18n.t('almost_finished')}..`}
+                  </Text>
+                ) : (
+                  <Text style={styles.tnxSyncCount}>
+                    {`${I18n.t('calculating')}..`}
+                  </Text>
+                )}
+              </View>
+            ) : (
+              <Text style={styles.tnxSyncCount}>
+                {`${tnxSyncCount}/${tnxSyncTotal}`}
+              </Text>
+            )}
+          </View>
+          <View style={styles.loadingWarp}>
+            <ActivityIndicator size='small' color='#27AE60' />
+          </View>
+        </View>
+      )}
+
+      {!tnxSyncing && tnxSyncStatus === 'failed' && (
+        <View style={styles.tnxSyncErrWrap}>
+          <Text style={styles.tnxSyncTitle}>
+            {`${I18n.t('trans_fetch_pending')}..`}
+          </Text>
+          <Text style={styles.tnxSyncCount}>
+            {`${I18n.t('trans_fetch_warning')}..`}
+          </Text>
+        </View>
+      )}
+
+      <View style={styles.tabWrap}>
+        <TouchableOpacity
+          onPress={() => setActiveTab(0)}
+          style={[
+            styles.tabSubWrap,
+            { borderBottomWidth: activeTab === 0 ? 3 : 0 },
+          ]}
+          disabled={activeTab === 0}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              {
+                color:
+                  activeTab === 0 ? theme.text_1 : theme.text_3,
+              },
+            ]}
+          >
+            Product
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setActiveTab(1)}
+          style={[
+            styles.tabSubWrap,
+            { borderBottomWidth: activeTab === 1 ? 3 : 0 },
+          ]}
+          disabled={activeTab === 1}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              {
+                color:
+                  activeTab === 1 ? theme.text_1 : theme.text_3,
+              },
+            ]}
+          >
+            Payments
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <SectionList
-        sections={transactionsList}
+        sections={activeTab === 0 ? transactionsList : paymentList}
         renderItem={renderItem}
         keyExtractor={(item, index) => item + index}
         keyboardShouldPersistTaps='always'
@@ -488,7 +852,7 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
             {moment(title).format('DD MMM YYYY')}
           </Text>
         )}
-        style={{ backgroundColor: consts.APP_BG_COLOR }}
+        style={{ backgroundColor: theme.background_1 }}
       />
 
       {syncModal && (
@@ -498,73 +862,143 @@ const Transactions = ({ navigation, TRANSACTIONS }) => {
         />
       )}
 
-      {filterModal && (
+      {transactionFilterModal && (
         <TransactionFilter
-          filterItem={filterItem}
-          products={products}
-          visible={filterModal}
-          applyFilters={applyFilters}
-          hideModal={() => setFilterModal(false)}
+          visible={transactionFilterModal}
+          filterItem={transactionFilterItem}
+          applyFilters={applyTransactionFilters}
+          hideModal={() => setTransactionFilterModal(false)}
+        />
+      )}
+
+      {paymentFilterModal && (
+        <PaymentFilter
+          visible={paymentFilterModal}
+          filterItem={paymentFilterItem}
+          currency={currency}
+          applyFilters={applyPaymentFilters}
+          hideModal={() => setPaymentFilterModal(false)}
         />
       )}
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#92DDF6',
-  },
-  emptyText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 16,
-    letterSpacing: 0.3,
-  },
-  header: {
-    fontFamily: consts.FONT_REGULAR,
-    fontSize: 14,
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '400',
-    backgroundColor: '#C5EDFA',
-    width,
-    paddingVertical: 10,
-    paddingHorizontal: '7%',
-  },
-  emptyView: {
-    height: 100,
-    width: '100%',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    alignItems: 'center',
-    marginTop: 30,
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  searchWrap: {
-    width: '90%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    alignSelf: 'center',
-  },
-  sortIconWrap: {
-    width: '15%',
-    height: 48,
-    marginVertical: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderColor: consts.BORDER_COLOR,
-    borderWidth: 1,
-    borderRadius: consts.BORDER_RADIUS,
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#92DDF6',
+    },
+    tnxSyncWrap: {
+      width: '100%',
+      backgroundColor: theme.background_2,
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: width * 0.05,
+    },
+    tnxSyncErrWrap: {
+      width: '100%',
+      backgroundColor: '#f9a19a',
+      padding: width * 0.05,
+    },
+    tnxSyncTitle: {
+      color: theme.text_1,
+      fontFamily: theme.font_medium,
+      fontSize: 15,
+      marginVertical: 5,
+    },
+    tnxSyncCount: {
+      color: theme.text_1,
+      fontFamily: theme.font_regular,
+      fontSize: 14,
+      marginVertical: 5,
+    },
+    loadingWarp: {
+      width: '15%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyText: {
+      color: theme.text_1,
+      fontWeight: '500',
+      fontFamily: theme.font_regular,
+      fontSize: 16,
+      letterSpacing: 0.3,
+    },
+    header: {
+      fontFamily: theme.font_regular,
+      fontSize: 14,
+      color: theme.text_1,
+      fontWeight: '400',
+      backgroundColor: '#C5EDFA',
+      width,
+      paddingVertical: 10,
+      paddingHorizontal: '7%',
+    },
+    emptyView: {
+      height: 100,
+      width: '100%',
+      justifyContent: 'center',
+      alignSelf: 'center',
+      alignItems: 'center',
+      marginTop: 30,
+      backgroundColor: theme.background_1,
+    },
+    searchWrap: {
+      width: '90%',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      alignSelf: 'center',
+    },
+    sortIconWrap: {
+      width: '15%',
+      height: 48,
+      marginVertical: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: '#fff',
+      borderColor: theme.border_1,
+      borderWidth: 1,
+      borderRadius: theme.border_radius,
+    },
+    filterCountWrap: {
+      width: 15,
+      height: 15,
+      borderRadius: theme.border_radius,
+      position: 'absolute',
+      justifyContent: 'center',
+      alignItems: 'center',
+      top: 2,
+      right: 2,
+      backgroundColor: '#003A60',
+    },
+    tabWrap: {
+      width: '100%',
+      height: height * 0.075,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#ffffff',
+    },
+    tabSubWrap: {
+      width: '50%',
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderBottomColor: '#003A60',
+    },
+    tabText: {
+      fontSize: 16,
+      letterSpacing: 0.3,
+      fontFamily: theme.font_regular,
+    },
+  });
+};
 
 const enhanceWithWeights = withObservables([], () => ({
   TRANSACTIONS: observeTransactions(),
+  TRANSACTION_PREMIUMS: observeTransactionPremiums(),
 }));
 
 export default enhanceWithWeights(Transactions);

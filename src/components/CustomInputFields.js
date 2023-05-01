@@ -9,16 +9,18 @@ import {
   Modal,
 } from 'react-native';
 import DatePicker from 'react-native-date-picker';
-import I18n from '../i18n/i18n';
+import { useSelector } from 'react-redux';
 import { ISOdateConvert } from '../services/commonFunctions';
+import { HIT_SLOP_FIFTEEN } from '../services/constants';
+import I18n from '../i18n/i18n';
 import FormTextInput from './FormTextInput';
 import SearchComponent from './SearchComponent';
-import * as consts from '../services/constants';
 
 const { width } = Dimensions.get('window');
 
 const CustomInputFields = ({ ...props }) => {
   const { key, item, index, productId = null, updatedItem } = props;
+  const { theme } = useSelector((state) => state.common);
 
   const defaultBooleanValue =
     item.type === 'bool' ? item.value ?? 'true' : 'true';
@@ -43,14 +45,14 @@ const CustomInputFields = ({ ...props }) => {
 
   useEffect(() => {
     if (item.type === 'date' && !defaultDateValue) {
-      let newdate = new Date();
-      newdate = newdate.getTime();
-      updateItem(newdate);
+      let newDate = new Date();
+      newDate = newDate.getTime();
+      updateItem(newDate);
     }
   }, []);
 
   /**
-   * For changing boolean input fieled
+   * For changing boolean input field
    *
    * @param {string} value 'true' or 'false'
    */
@@ -70,7 +72,7 @@ const CustomInputFields = ({ ...props }) => {
   };
 
   /**
-   * For textinput field
+   * For text-input field
    *
    * @param {string} value input value type: 'string','int' or 'float'
    */
@@ -82,7 +84,7 @@ const CustomInputFields = ({ ...props }) => {
 
     setInput(inputValue);
 
-    // value is converting to the curresponding type
+    // value is converting to the corresponding type
     if (item.type === 'string') {
       inputValue = inputValue.toString();
     } else if (item.type === 'int') {
@@ -157,6 +159,8 @@ const CustomInputFields = ({ ...props }) => {
     );
   };
 
+  const styles = StyleSheetFactory(theme);
+
   return (
     <View key={key}>
       {(item.type === 'string' ||
@@ -169,7 +173,7 @@ const CustomInputFields = ({ ...props }) => {
           onChangeText={(text) => changeInput(text)}
           keyboardType={item.type === 'int' ? 'numeric' : null}
           autoCapitalize='sentences'
-          color={consts.TEXT_PRIMARY_COLOR}
+          color={theme.text_1}
           extraStyle={{ width: '100%' }}
         />
       )}
@@ -186,9 +190,9 @@ const CustomInputFields = ({ ...props }) => {
               <TouchableOpacity
                 onPress={() => changeBooleanValue('true')}
                 style={styles.radioItemSub}
-                hitSlop={consts.HIT_SLOP_FIFTEEN}
+                hitSlop={HIT_SLOP_FIFTEEN}
               >
-                <View style={styles.radioOutter}>
+                <View style={styles.radioOuter}>
                   {booleanValue === 'true' ? (
                     <View style={styles.radioInner} />
                   ) : null}
@@ -201,9 +205,9 @@ const CustomInputFields = ({ ...props }) => {
               <TouchableOpacity
                 onPress={() => changeBooleanValue('false')}
                 style={styles.radioItemSub}
-                hitSlop={consts.HIT_SLOP_FIFTEEN}
+                hitSlop={HIT_SLOP_FIFTEEN}
               >
-                <View style={styles.radioOutter}>
+                <View style={styles.radioOuter}>
                   {booleanValue === 'false' ? (
                     <View style={styles.radioInner} />
                   ) : null}
@@ -228,9 +232,9 @@ const CustomInputFields = ({ ...props }) => {
                 <TouchableOpacity
                   onPress={() => changeRadio(i.value)}
                   style={styles.radioItemSub}
-                  hitSlop={consts.HIT_SLOP_FIFTEEN}
+                  hitSlop={HIT_SLOP_FIFTEEN}
                 >
-                  <View style={styles.radioOutter}>
+                  <View style={styles.radioOuter}>
                     {radio === i.value ? (
                       <View style={styles.radioInner} />
                     ) : null}
@@ -251,7 +255,7 @@ const CustomInputFields = ({ ...props }) => {
                 mandatory={item.required}
                 placeholder={item.label.en ?? item.key}
                 value={dropdownValue.toString()}
-                color={consts.TEXT_PRIMARY_COLOR}
+                color={theme.text_1}
                 extraStyle={{ width: '100%' }}
                 showDropdown
               />
@@ -268,7 +272,7 @@ const CustomInputFields = ({ ...props }) => {
                 mandatory={item.required}
                 placeholder={item.label.en ?? item.key}
                 value={ISOdateConvert(dateValue)}
-                color={consts.TEXT_PRIMARY_COLOR}
+                color={theme.text_1}
                 extraStyle={{ width: '100%' }}
                 showDropdown
               />
@@ -299,7 +303,7 @@ const CustomInputFields = ({ ...props }) => {
                 data={dropdownList}
                 renderItem={renderItem}
                 keyboardShouldPersistTaps='always'
-                style={styles.countryFlatlist}
+                style={styles.countryFlatList}
                 ListEmptyComponent={() => (
                   <Text style={styles.emptyText}>
                     {I18n.t('no_matches_found')}
@@ -328,88 +332,90 @@ const CustomInputFields = ({ ...props }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  customBoolWrap: {
-    marginBottom: 10,
-  },
-  radioWrap: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  radioTitle: {
-    color: consts.INPUT_PLACEHOLDER,
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 12,
-    marginBottom: 15,
-  },
-  radioItemSub: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  radioItemWrap: {
-    width: '50%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-    marginLeft: 5,
-  },
-  radioOutter: {
-    height: width * 0.06,
-    width: width * 0.06,
-    borderRadius: (width * 0.06) / 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderColor: consts.INPUT_PLACEHOLDER,
-    borderWidth: 1.5,
-  },
-  radioInner: {
-    height: width * 0.04,
-    width: width * 0.04,
-    borderRadius: (width * 0.04) / 2,
-    backgroundColor: consts.TEXT_PRIMARY_COLOR,
-  },
-  countryItems: {
-    flex: 1,
-    height: 40,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.12)',
-    alignContent: 'center',
-    justifyContent: 'center',
-  },
-  countryItemText: {
-    marginLeft: 10,
-    fontFamily: consts.FONT_REGULAR,
-    color: consts.TEXT_PRIMARY_LIGHT_COLOR,
-  },
-  countryModalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 58, 96, 0.2);',
-  },
-  countryModalSub: {
-    height: '60%',
-    marginTop: 'auto',
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  countryFlatlist: {
-    flex: 1,
-    marginHorizontal: 10,
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  radioText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 13,
-    fontFamily: consts.FONT_REGULAR,
-    paddingLeft: 5,
-  },
-  emptyText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 13,
-    fontFamily: consts.FONT_REGULAR,
-    textAlign: 'center',
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    customBoolWrap: {
+      marginBottom: 10,
+    },
+    radioWrap: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    radioTitle: {
+      color: theme.placeholder,
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 12,
+      marginBottom: 15,
+    },
+    radioItemSub: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    radioItemWrap: {
+      width: '50%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 10,
+      marginLeft: 5,
+    },
+    radioOuter: {
+      height: width * 0.06,
+      width: width * 0.06,
+      borderRadius: (width * 0.06) / 2,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderColor: theme.placeholder,
+      borderWidth: 1.5,
+    },
+    radioInner: {
+      height: width * 0.04,
+      width: width * 0.04,
+      borderRadius: (width * 0.04) / 2,
+      backgroundColor: theme.text_1,
+    },
+    countryItems: {
+      flex: 1,
+      height: 40,
+      marginTop: 10,
+      borderWidth: 1,
+      borderColor: 'rgba(0, 0, 0, 0.12)',
+      alignContent: 'center',
+      justifyContent: 'center',
+    },
+    countryItemText: {
+      marginLeft: 10,
+      fontFamily: theme.font_regular,
+      color: theme.text_2,
+    },
+    countryModalContainer: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 58, 96, 0.2);',
+    },
+    countryModalSub: {
+      height: '60%',
+      marginTop: 'auto',
+      backgroundColor: theme.background_1,
+    },
+    countryFlatList: {
+      flex: 1,
+      marginHorizontal: 10,
+      backgroundColor: theme.background_1,
+    },
+    radioText: {
+      color: theme.text_1,
+      fontSize: 13,
+      fontFamily: theme.font_regular,
+      paddingLeft: 5,
+    },
+    emptyText: {
+      color: theme.text_1,
+      fontSize: 13,
+      fontFamily: theme.font_regular,
+      textAlign: 'center',
+    },
+  });
+};
 
 export default CustomInputFields;

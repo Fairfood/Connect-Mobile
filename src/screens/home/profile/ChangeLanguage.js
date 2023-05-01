@@ -6,20 +6,20 @@ import {
   Dimensions,
   TouchableOpacity,
 } from 'react-native';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import RadioForm, {
   RadioButton,
   RadioButtonInput,
   RadioButtonLabel,
 } from 'react-native-simple-radio-button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { changeFooterItems } from '../../redux/LoginStore';
-import CustomLeftHeader from '../../components/CustomLeftHeader';
-import { ChangeLanguageIcon } from '../../assets/svg';
-import CustomButton from '../../components/CustomButton';
-import CommonAlert from '../../components/CommonAlert';
-import I18n from '../../i18n/i18n';
-import * as consts from '../../services/constants';
+import { changeFooterItems } from '../../../redux/CommonStore';
+import { HIT_SLOP_TEN } from '../../../services/constants';
+import { ChangeLanguageIcon } from '../../../assets/svg';
+import CustomLeftHeader from '../../../components/CustomLeftHeader';
+import CustomButton from '../../../components/CustomButton';
+import CommonAlert from '../../../components/CommonAlert';
+import I18n from '../../../i18n/i18n';
 
 const { width } = Dimensions.get('window');
 const languages = [
@@ -29,6 +29,7 @@ const languages = [
 
 const ChangeLanguage = ({ navigation }) => {
   const dispatch = useDispatch();
+  const { theme } = useSelector((state) => state.common);
   const [appLanguage, setAppLanguage] = useState('en-GB');
   const [previousLanguage, setPreviousAppLanguage] = useState('en-GB');
   const [alertModal, setAlertModal] = useState(false);
@@ -38,7 +39,7 @@ const ChangeLanguage = ({ navigation }) => {
   }, []);
 
   /**
-   * setting initial langaue value from async storage
+   * setting initial language value from async storage
    */
   const setupInitialValues = async () => {
     const language = await AsyncStorage.getItem('app_language');
@@ -85,11 +86,13 @@ const ChangeLanguage = ({ navigation }) => {
     navigation.goBack();
   };
 
+  const styles = StyleSheetFactory(theme);
+
   return (
     <View style={styles.container}>
       <View style={{ flex: 1 }}>
         <CustomLeftHeader
-          backgroundColor={consts.APP_BG_COLOR}
+          backgroundColor={theme.background_1}
           title={I18n.t('language')}
           leftIcon='arrow-left'
           onPress={() => navigation.goBack(null)}
@@ -104,7 +107,7 @@ const ChangeLanguage = ({ navigation }) => {
               <TouchableOpacity
                 onPress={() => selectLanguage(obj)}
                 style={styles.radioWrap}
-                hitSlop={consts.HIT_SLOP_TEN}
+                hitSlop={HIT_SLOP_TEN}
               >
                 <RadioButtonLabel
                   obj={obj}
@@ -160,105 +163,38 @@ const ChangeLanguage = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    height: '100%',
-    backgroundColor: consts.APP_BG_COLOR,
-    paddingHorizontal: width * 0.05,
-  },
-  text_desc: {
-    fontSize: 13,
-    fontFamily: consts.FONT_REGULAR,
-    lineHeight: 20,
-    paddingBottom: 30,
-    color: consts.TEXT_PRIMARY_COLOR,
-    marginVertical: 20,
-  },
-  online: {
-    color: '#27AE60',
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 16,
-    marginLeft: 10,
-    marginTop: 10,
-  },
-  fields: {
-    fontSize: 20,
-    fontFamily: consts.FONT_REGULAR,
-    color: consts.TEXT_PRIMARY_COLOR,
-    paddingLeft: 10,
-    marginLeft: 15,
-    marginTop: 10,
-  },
-  logo_container: {
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-    marginBottom: 15,
-    marginHorizontal: 20,
-  },
-  forgotpassword: {
-    fontSize: 14,
-    fontFamily: consts.FONT_REGULAR,
-    lineHeight: 28,
-    paddingBottom: 10,
-    textAlign: 'left',
-    marginRight: 30,
-    color: consts.TEXT_PRIMARY_COLOR,
-  },
-  form_title_container: {
-    marginHorizontal: 25,
-    marginVertical: 7,
-  },
-  form_title: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 16,
-    letterSpacing: 0.3,
-  },
-  horizontal_line: {
-    borderBottomWidth: 1,
-    borderColor: consts.BORDER_COLOR,
-    marginTop: 20,
-  },
-  list_item: {
-    width: '90%',
-    height: 40,
-    marginLeft: 25,
-    justifyContent: 'space-between',
-    alignContent: 'space-between',
-    flexDirection: 'row',
-    marginVertical: 5,
-  },
-  list_item_left: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 16,
-    letterSpacing: 0.15,
-  },
-  list_item_right_icon: {
-    alignSelf: 'center',
-  },
-  radioWrap: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignContent: 'space-around',
-    width: '100%',
-    marginVertical: 10,
-  },
-  labelStyle: {
-    fontSize: 16,
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontFamily: consts.FONT_REGULAR,
-  },
-  labelWrapStyle: {
-    justifyContent: 'flex-start',
-    alignSelf: 'flex-start',
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      height: '100%',
+      backgroundColor: theme.background_1,
+      paddingHorizontal: width * 0.05,
+    },
+    text_desc: {
+      fontSize: 13,
+      fontFamily: theme.font_regular,
+      lineHeight: 20,
+      paddingBottom: 30,
+      color: theme.text_1,
+      marginVertical: 20,
+    },
+    radioWrap: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignContent: 'space-around',
+      width: '100%',
+      marginVertical: 10,
+    },
+    labelStyle: {
+      fontSize: 16,
+      color: theme.text_1,
+      fontFamily: theme.font_regular,
+    },
+    labelWrapStyle: {
+      justifyContent: 'flex-start',
+      alignSelf: 'flex-start',
+    },
+  });
+};
 
 export default ChangeLanguage;

@@ -10,7 +10,6 @@ import {
   ScrollView,
   Keyboard,
   Dimensions,
-  ToastAndroid,
   ActivityIndicator,
   TouchableOpacity,
   Modal,
@@ -20,22 +19,24 @@ import Collapsible from 'react-native-collapsible';
 import withObservables from '@nozbe/with-observables';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Geolocation from 'react-native-geolocation-service';
-import { observeProducts } from '../../services/productsHelper';
-import { findPremiumByServerId } from '../../services/premiumsHelper';
-import { findAllPremiumsByProduct } from '../../services/productPremiumHelper';
-import { stringToJson } from '../../services/commonFunctions';
-import I18n from '../../i18n/i18n';
-import FormTextInput from '../../components/FormTextInput';
-import CustomLeftHeader from '../../components/CustomLeftHeader';
-import CustomButton from '../../components/CustomButton';
-import CustomInputFields from '../../components/CustomInputFields';
+import Toast from 'react-native-toast-message';
+
+import { observeProducts } from '../../../services/productsHelper';
+import { findPremiumByServerId } from '../../../services/premiumsHelper';
+import { findAllPremiumsByProduct } from '../../../services/productPremiumHelper';
+import { stringToJson } from '../../../services/commonFunctions';
+import I18n from '../../../i18n/i18n';
+import FormTextInput from '../../../components/FormTextInput';
+import CustomLeftHeader from '../../../components/CustomLeftHeader';
+import CustomButton from '../../../components/CustomButton';
+import CustomInputFields from '../../../components/CustomInputFields';
 import {
   BlueRoundTickIcon,
   DeleteBinIcon,
   PlusRoundIcon,
-  ThinArrowDowncon,
-} from '../../assets/svg';
-import * as consts from '../../services/constants';
+  ThinArrowDownIcon,
+} from '../../../assets/svg';
+import * as consts from '../../../services/constants';
 
 const { width, height } = Dimensions.get('window');
 
@@ -49,6 +50,7 @@ const BuyScreen = ({ navigation, route }) => {
   const { userProjectDetails, userCompanyDetails } = useSelector(
     (state) => state.login,
   );
+  const { theme } = useSelector((state) => state.common);
   const { currency } = userProjectDetails;
   const qualityCorrection = userProjectDetails.quality_correction;
   const appCustomFields = userCompanyDetails?.app_custom_fields
@@ -78,9 +80,9 @@ const BuyScreen = ({ navigation, route }) => {
     setupInitialValues();
   }, []);
 
-   /**
-    * setting up initial product values
-    */
+  /**
+   * setting up initial product values
+   */
   const setupInitialValues = async () => {
     setLoading(true);
     if (locationAllowed) {
@@ -93,9 +95,9 @@ const BuyScreen = ({ navigation, route }) => {
       (await AsyncStorage.getItem('product_base_prices')) || '{}';
     productPrices = JSON.parse(productPrices);
 
-    const localprice = await AsyncStorage.getItem('LocalPrice');
-    if (localprice != null) {
-      setLocalPrice(localprice);
+    const savedLocalPrice = await AsyncStorage.getItem('LocalPrice');
+    if (savedLocalPrice !== null) {
+      setLocalPrice(savedLocalPrice);
     } else {
       setLocalPrice('');
     }
@@ -233,26 +235,26 @@ const BuyScreen = ({ navigation, route }) => {
     });
   };
 
-   /**
-    * creating an alert message that card is already assigned
-    *
-    * @param {Array} products updated product array
-    */
+  /**
+   * creating an alert message that card is already assigned
+   *
+   * @param {Array} products updated product array
+   */
   const updateValues = (products) => {
     setProducts((products) => products);
     calculatePremiums(products);
-    validateDatas();
+    validateData();
     setLoad(!load);
   };
 
   /**
-   * setting qunatity of each product based on the array index
+   * setting quantity of each product based on the array index
    *
    * @param {string}  quantity product quantity
    * @param {number}  orIndex  index of updated product in product array
    */
   const onChangeQuantity = (quantity, orIndex) => {
-    productQuantity = quantity.toString().replace(',', '.');
+    let productQuantity = quantity.toString().replace(',', '.');
 
     if (productQuantity === '.') {
       productQuantity = '0.';
@@ -265,7 +267,7 @@ const BuyScreen = ({ navigation, route }) => {
   };
 
   /**
-   * setting qunatity of each product based on the array index
+   * setting quantity of each product based on the array index
    *
    * @param {string}  price   product base price
    * @param {number}  orIndex index of updated product in product array
@@ -278,10 +280,11 @@ const BuyScreen = ({ navigation, route }) => {
     }
 
     if (parseInt(basePrice) > consts.MAX_BASE_PRICE) {
-      ToastAndroid.show(
-        `${I18n.t('max_baseprice_is')} ${consts.MAX_BASE_PRICE}`,
-        ToastAndroid.SHORT,
-      );
+      Toast.show({
+        type: 'error',
+        text1: I18n.t('validation'),
+        text2: `${I18n.t('max_base_price_is')} ${consts.MAX_BASE_PRICE}`,
+      });
     } else {
       products.find((i, index) => index === orIndex).base_price = basePrice;
       setProducts((products) => products);
@@ -302,7 +305,10 @@ const BuyScreen = ({ navigation, route }) => {
       priceLocal = '0.';
     }
 
-    if (priceLocal !== '' && parseInt(priceLocal) > consts.MAX_LOCAL_MARKET_PRICE) {
+    if (
+      priceLocal !== '' &&
+      parseInt(priceLocal) > consts.MAX_LOCAL_MARKET_PRICE
+    ) {
       setError(
         `${I18n.t('max_local_marketprice_is')} ${
           consts.MAX_LOCAL_MARKET_PRICE
@@ -317,7 +323,7 @@ const BuyScreen = ({ navigation, route }) => {
   /**
    * validating input data
    */
-  const validateDatas = async () => {
+  const validateData = async () => {
     if (products.length === 0) {
       setValid(false);
       setLoad(!load);
@@ -525,7 +531,7 @@ const BuyScreen = ({ navigation, route }) => {
   /**
    * updating custom field values based on productId and index
    *
-   * @param {object}  item        updated custom fileld object
+   * @param {object}  item        updated custom fields object
    * @param {number}  index       index of updated product in product array
    * @param {Array}   productId   updated product's productId
    */
@@ -541,7 +547,7 @@ const BuyScreen = ({ navigation, route }) => {
 
           setProducts((products) => products);
           setLoad(!load);
-          validateDatas();
+          validateData();
         }
       }
     });
@@ -606,18 +612,18 @@ const BuyScreen = ({ navigation, route }) => {
     }
   };
 
+  const styles = StyleSheetFactory(theme);
+
   return (
     <SafeAreaView style={styles.container}>
       <CustomLeftHeader
-        backgroundColor={consts.APP_BG_COLOR}
+        backgroundColor={theme.background_1}
         title={I18n.t('buy')}
         leftIcon='arrow-left'
         onPress={() => backNavigation()}
       />
 
-      {loading && (
-        <ActivityIndicator size='small' color={consts.TEXT_PRIMARY_COLOR} />
-      )}
+      {loading && <ActivityIndicator size='small' color={theme.text_1} />}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -648,14 +654,14 @@ const BuyScreen = ({ navigation, route }) => {
                     <DeleteBinIcon
                       width={width * 0.04}
                       height={width * 0.04}
-                      fill={consts.ERROR_ICON_COLOR}
+                      fill={theme.icon_error}
                     />
                     <Text style={styles.removeText}>{I18n.t('remove')}</Text>
                   </TouchableOpacity>
                 )}
 
                 {activeCollapse !== item.id && allProducts.length > 1 && (
-                  <ThinArrowDowncon
+                  <ThinArrowDownIcon
                     width={width * 0.04}
                     height={width * 0.04}
                     fill='#7091A6'
@@ -670,8 +676,8 @@ const BuyScreen = ({ navigation, route }) => {
                       styles.detailsText,
                       {
                         color: item.quantity
-                          ? consts.INPUT_PLACEHOLDER
-                          : consts.ERROR_ICON_COLOR,
+                          ? theme.placeholder
+                          : theme.icon_error,
                       },
                     ]}
                   >
@@ -687,8 +693,8 @@ const BuyScreen = ({ navigation, route }) => {
                       styles.detailsText,
                       {
                         color: item.base_price
-                          ? consts.INPUT_PLACEHOLDER
-                          : consts.ERROR_ICON_COLOR,
+                          ? theme.placeholder
+                          : theme.icon_error,
                       },
                     ]}
                   >
@@ -715,7 +721,7 @@ const BuyScreen = ({ navigation, route }) => {
                     }
                   }}
                   keyboardType='number-pad'
-                  color={consts.TEXT_PRIMARY_COLOR}
+                  color={theme.text_1}
                   returnKeyType='next'
                   onSubmitEditing={() => {
                     if (basePriceRefs?.current?.[index]) {
@@ -745,7 +751,7 @@ const BuyScreen = ({ navigation, route }) => {
                     fieldVisibility ? fieldVisibility?.base_price : true
                   }
                   keyboardType='number-pad'
-                  color={consts.TEXT_PRIMARY_COLOR}
+                  color={theme.text_1}
                   returnKeyType='next'
                   onSubmitEditing={() => {
                     if (qualityCorrection) {
@@ -777,12 +783,12 @@ const BuyScreen = ({ navigation, route }) => {
                       fieldVisibility ? fieldVisibility?.market_price : true
                     }
                     keyboardType='numeric'
-                    color={consts.TEXT_PRIMARY_COLOR}
+                    color={theme.text_1}
                     extraStyle={{ width: '100%' }}
                   />
                 )}
 
-                {/* custom fileds */}
+                {/* custom fields */}
                 {item?.extra_fields?.custom_fields?.buy_txn_fields && (
                   <>
                     {item.extra_fields.custom_fields.buy_txn_fields.map(
@@ -811,12 +817,21 @@ const BuyScreen = ({ navigation, route }) => {
             style={styles.addProductWarp}
             add_another_product
           >
-            <Text style={styles.addText}>{I18n.t('add_another_product')}</Text>
-            <PlusRoundIcon
-              width={width * 0.05}
-              height={width * 0.05}
-              fill='#4DCAF4'
-            />
+            <Text style={styles.addText}>
+              {initialProducts.length > 0 &&
+              initialProducts.length === products.length
+                ? I18n.t('all_products_added')
+                : I18n.t('add_another_product')}
+            </Text>
+
+            {initialProducts.length > 0 &&
+            initialProducts.length === products.length ? null : (
+              <PlusRoundIcon
+                width={width * 0.05}
+                height={width * 0.05}
+                fill='#4DCAF4'
+              />
+            )}
           </TouchableOpacity>
         )}
 
@@ -862,7 +877,7 @@ const BuyScreen = ({ navigation, route }) => {
 
             <View style={styles.dottedLine} />
 
-            <View style={styles.premiumWrap}>
+            <View style={styles.totalWrap}>
               <View style={{ width: '30%' }}>
                 <Text style={styles.totalText}>
                   {`${I18n.t('total').toUpperCase()}:`}
@@ -895,6 +910,7 @@ const BuyScreen = ({ navigation, route }) => {
           products={products}
           hideModal={() => setProductModal(false)}
           addProduct={addProduct}
+          theme={theme}
         />
       )}
     </SafeAreaView>
@@ -907,6 +923,7 @@ const ProductsModal = ({
   initialProducts,
   hideModal,
   addProduct,
+  theme,
 }) => {
   const getIsSelected = (id) => {
     const isExist = products.filter((x) => {
@@ -914,6 +931,8 @@ const ProductsModal = ({
     });
     return isExist.length > 0;
   };
+
+  const styles = StyleSheetFactory(theme);
 
   return (
     <Modal
@@ -929,7 +948,6 @@ const ProductsModal = ({
       <View style={styles.modalContainerSub}>
         <View style={styles.modalTitleSection}>
           <Text style={styles.modalTitle}>{I18n.t('add_another_product')}</Text>
-          {/* <CloseIcon width={width * 0.04} height={width * 0.04}/> */}
         </View>
 
         {initialProducts.map((item, index) => (
@@ -956,191 +974,184 @@ const ProductsModal = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: consts.APP_BG_COLOR,
-    paddingHorizontal: width * 0.05,
-  },
-  productWrap: {
-    borderColor: consts.INPUT_PLACEHOLDER,
-    borderWidth: 1,
-    borderRadius: consts.BORDER_RADIUS,
-    marginTop: height * 0.02,
-  },
-  fieldTitle: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontFamily: consts.FONT_MEDIUM,
-    fontSize: 16,
-  },
-  removeText: {
-    color: consts.ERROR_ICON_COLOR,
-    fontFamily: consts.FONT_MEDIUM,
-    fontSize: 14,
-    paddingLeft: width * 0.01,
-  },
-  detailsText: {
-    color: consts.INPUT_PLACEHOLDER,
-    fontFamily: consts.FONT_MEDIUM,
-    fontSize: 12,
-    marginTop: height * 0.005,
-  },
-  topWrap: {
-    padding: width * 0.04,
-    borderRadius: consts.BORDER_RADIUS,
-  },
-  titleWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  detailsWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  bottomWrap: {
-    paddingHorizontal: width * 0.03,
-  },
-  addProductWarp: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderColor: '#4DCAF4',
-    borderWidth: 1,
-    borderRadius: consts.BORDER_RADIUS,
-    padding: width * 0.035,
-    marginVertical: height * 0.02,
-  },
-  addText: {
-    color: '#4DCAF4',
-    fontFamily: consts.FONT_REGULAR,
-    fontSize: 16,
-    marginRight: width * 0.03,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-  },
-  modalContainerSub: {
-    marginTop: 'auto',
-    paddingHorizontal: width * 0.05,
-    backgroundColor: '#ffffff',
-  },
-  modalTitleSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: width * 0.05,
-    paddingHorizontal: width * 0.03,
-  },
-  closeIconWrap: {
-    alignSelf: 'flex-end',
-  },
-  modalItemWrap: {
-    padding: width * 0.035,
-    marginBottom: height * 0.015,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderColor: consts.BORDER_COLOR,
-    borderWidth: 1,
-    borderRadius: consts.BORDER_RADIUS,
-  },
-  modalItem: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 15,
-    fontFamily: consts.FONT_REGULAR,
-  },
-  modalTitle: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 17,
-    fontFamily: consts.FONT_MEDIUM,
-    fontWeight: '500',
-    marginTop: 15,
-  },
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background_1,
+      paddingHorizontal: width * 0.05,
+    },
+    productWrap: {
+      borderColor: theme.placeholder,
+      borderWidth: 1,
+      borderRadius: theme.border_radius,
+      marginTop: height * 0.02,
+    },
+    fieldTitle: {
+      color: theme.text_1,
+      fontFamily: theme.font_medium,
+      fontSize: 16,
+    },
+    removeText: {
+      color: theme.icon_error,
+      fontFamily: theme.font_medium,
+      fontSize: 14,
+      paddingLeft: width * 0.01,
+    },
+    detailsText: {
+      color: theme.placeholder,
+      fontFamily: theme.font_medium,
+      fontSize: 12,
+      marginTop: height * 0.005,
+    },
+    topWrap: {
+      padding: width * 0.04,
+      borderRadius: theme.border_radius,
+    },
+    titleWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    detailsWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    bottomWrap: {
+      paddingHorizontal: width * 0.03,
+    },
+    addProductWarp: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderColor: '#4DCAF4',
+      borderWidth: 1,
+      borderRadius: theme.border_radius,
+      padding: width * 0.035,
+      marginVertical: height * 0.02,
+    },
+    addText: {
+      color: '#4DCAF4',
+      fontFamily: theme.font_regular,
+      fontSize: 16,
+      marginRight: width * 0.03,
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    },
+    modalContainerSub: {
+      marginTop: 'auto',
+      paddingHorizontal: width * 0.05,
+      backgroundColor: '#ffffff',
+    },
+    modalTitleSection: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: width * 0.05,
+      paddingHorizontal: width * 0.03,
+    },
+    modalItemWrap: {
+      padding: width * 0.035,
+      marginBottom: height * 0.015,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderColor: theme.border_1,
+      borderWidth: 1,
+      borderRadius: theme.border_radius,
+    },
+    modalItem: {
+      color: theme.text_1,
+      fontSize: 15,
+      fontFamily: theme.font_regular,
+    },
+    modalTitle: {
+      color: theme.text_1,
+      fontSize: 17,
+      fontFamily: theme.font_medium,
+      fontWeight: '500',
+      marginTop: 15,
+    },
+    errorMessage: {
+      fontSize: 14,
+      fontFamily: theme.font_regular,
+      lineHeight: 28,
+      paddingBottom: 10,
+      textAlign: 'center',
+      marginHorizontal: 30,
+      color: theme.button_bg_1,
+    },
+    cardContainer: {
+      marginVertical: 30,
+      padding: 10,
+      backgroundColor: theme.background_2,
+    },
+    cardLeftItem: {
+      fontFamily: theme.font_regular,
+      fontWeight: '400',
+      fontStyle: 'normal',
+      fontSize: 14,
+      color: theme.text_1,
+      opacity: 0.7,
+      letterSpacing: 0.2,
+    },
+    cardRightItem: {
+      fontFamily: theme.font_regular,
+      fontWeight: '400',
+      fontStyle: 'normal',
+      fontSize: 13,
+      color: theme.text_1,
+      textAlign: 'right',
+    },
+    totalText: {
+      fontFamily: theme.font_bold,
+      fontStyle: 'normal',
+      fontSize: 20,
+      color: theme.text_1,
+      opacity: 0.7,
+      letterSpacing: 0.2,
+    },
+    totalValue: {
+      fontFamily: theme.font_bold,
+      fontStyle: 'normal',
+      fontSize: 20,
+      color: theme.text_1,
+      textAlign: 'right',
+    },
+    dottedLine: {
+      borderStyle: 'dotted',
+      borderWidth: 1,
+      borderRadius: theme.border_radius,
+      borderColor: theme.text_2,
+      marginHorizontal: 0,
+      marginTop: 5,
+    },
+    basePriceWrap: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    premiumWrap: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    totalWrap: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: 10,
+    },
+    buttonWrap: {
+      justifyContent: 'flex-end',
+      marginBottom: 20,
+    },
+  });
+};
 
-  formTitleContainer: {
-    marginVertical: 10,
-  },
-  formTitle: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 16,
-  },
-  errorMessage: {
-    fontSize: 14,
-    fontFamily: consts.FONT_REGULAR,
-    lineHeight: 28,
-    paddingBottom: 10,
-    textAlign: 'center',
-    marginHorizontal: 30,
-    color: consts.BUTTON_COLOR_PRIMARY,
-  },
-  cardContainer: {
-    marginVertical: 30,
-    padding: 10,
-    backgroundColor: consts.CARD_BACKGROUND_COLOR,
-  },
-  cardLeftItem: {
-    fontFamily: consts.FONT_REGULAR,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    fontSize: 14,
-    color: consts.TEXT_PRIMARY_COLOR,
-    opacity: 0.7,
-    letterSpacing: 0.2,
-  },
-  cardRightItem: {
-    fontFamily: consts.FONT_REGULAR,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    fontSize: 13,
-    color: consts.TEXT_PRIMARY_COLOR,
-    textAlign: 'right',
-  },
-  totalText: {
-    fontFamily: consts.FONT_BOLD,
-    fontStyle: 'normal',
-    fontSize: 20,
-    color: consts.TEXT_PRIMARY_COLOR,
-    opacity: 0.7,
-    letterSpacing: 0.2,
-  },
-  totalValue: {
-    fontFamily: consts.FONT_BOLD,
-    fontStyle: 'normal',
-    fontSize: 20,
-    color: consts.TEXT_PRIMARY_COLOR,
-    textAlign: 'right',
-  },
-  dottedLine: {
-    borderStyle: 'dotted',
-    borderWidth: 1,
-    borderRadius: consts.BORDER_RADIUS,
-    borderColor: consts.TEXT_PRIMARY_LIGHT_COLOR,
-    marginHorizontal: 0,
-    marginTop: 5,
-  },
-  basePriceWrap: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  premiumWrap: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  buttonWrap: {
-    justifyContent: 'flex-end',
-    marginBottom: 20,
-  },
-});
-
-// export default BuyScreen;
 const enhanceWithWeights = withObservables([], () => ({
   PRODUCTS: observeProducts(),
 }));

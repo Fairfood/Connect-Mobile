@@ -3,7 +3,9 @@
  Common functions
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform, PermissionsAndroid, ToastAndroid } from 'react-native';
+import { Platform, PermissionsAndroid } from 'react-native';
+import Toast from 'react-native-toast-message';
+
 import I18n from '../i18n/i18n';
 import {
   findAllPremiumsByTransaction,
@@ -11,7 +13,7 @@ import {
 } from './transactionPremiumHelper';
 import {
   clearAllBatchesByTransactionId,
-  findAndupdateBatchQuantity,
+  findAndUpdateBatchQuantity,
   findBatchById,
 } from './batchesHelper';
 import { deleteTransactionById } from './transactionsHelper';
@@ -19,7 +21,12 @@ import {
   clearAllSourceBatchesByTransactionId,
   getAllSourceBatchesByTransaction,
 } from './sourceBatchesHelper';
-import * as consts from './constants';
+import {
+  APP_TRANS_TYPE_INCOMING,
+  APP_TRANS_TYPE_OUTGOING,
+  SAVE_DELETE_TRANSACTION_INVOICE,
+  VERIFICATION_METHOD_MANUAL,
+} from './constants';
 
 export const getCustomFieldValue = (field) => {
   if (field?.value) {
@@ -79,7 +86,9 @@ export const removeLocalStorage = async () => {
     'last_updated_transactions',
     'last_updated_batches',
     'last_synced_time',
+    'last_updated_premiums',
     'first_time_sync',
+    'second_time_sync',
     'country',
     'province',
     'syncData',
@@ -127,7 +136,11 @@ export const requestPermission = async (type = null) => {
 export const deleteTransaction = async (transaction, type) => {
   const transactionId = transaction.id;
   if (!transactionId) {
-    ToastAndroid.show(I18n.t('something_went_wrong'), ToastAndroid.SHORT);
+    Toast.show({
+      type: 'error',
+      text1: I18n.t('error'),
+      text2: I18n.t('something_went_wrong'),
+    });
     return;
   }
 
@@ -135,9 +148,9 @@ export const deleteTransaction = async (transaction, type) => {
   await deleteTransactionById(transactionId);
 
   // delete batches
-  if (type === consts.APP_TRANS_TYPE_INCOMING) {
+  if (type === APP_TRANS_TYPE_INCOMING) {
     await clearAllBatchesByTransactionId(transactionId);
-  } else if (type === consts.APP_TRANS_TYPE_OUTGOING) {
+  } else if (type === APP_TRANS_TYPE_OUTGOING) {
     const sourceBatches = await getAllSourceBatchesByTransaction(transactionId);
 
     // setting buy transaction batch current_quantity to initial_quantity for buy again.
@@ -145,7 +158,7 @@ export const deleteTransaction = async (transaction, type) => {
       sourceBatches.map(async (sourceBatch) => {
         const batch = await findBatchById(sourceBatch.batch_id);
         if (batch.length > 0) {
-          await findAndupdateBatchQuantity(batch[0].id, {
+          await findAndUpdateBatchQuantity(batch[0].id, {
             current_quantity: batch[0].initial_quantity,
           });
         }
@@ -165,9 +178,9 @@ export const deleteTransaction = async (transaction, type) => {
   );
 
   // saving transaction invoice in local storage
-  if (consts.SAVE_DELETE_TRANSACTION_INVOICE) {
+  if (SAVE_DELETE_TRANSACTION_INVOICE) {
     if (
-      transaction.verification_method === consts.VERIFICATION_METHOD_MANUAL &&
+      transaction.verification_method === VERIFICATION_METHOD_MANUAL &&
       transaction.invoice_file !== ''
     ) {
       let savedInvoices =
@@ -195,7 +208,7 @@ export const deleteTransaction = async (transaction, type) => {
  *
  * @param   {string} date   current date string
  * @param   {string} format needed format for date
- * @returns {string}        formated date
+ * @returns {string}        formatted date
  */
 export function ISOdateConvert(date = null, format = 'date') {
   let covertDate = new Date();
@@ -289,19 +302,18 @@ export const checkMandatory = async (fields) => {
   return [valid, errMsg];
 };
 
-// check mandatory fields
-export const updateTransactionStatus = async (productId) => {
-  if (productId) {
-    let transationStatus =
-      (await AsyncStorage.getItem('transationStatus')) || '{}';
-    transationStatus = JSON.parse(transationStatus);
-
-    transationStatus.push(productId);
-    await AsyncStorage.setItem(
-      'transationStatus',
-      JSON.stringify(transationStatus),
-    );
-  } else {
-    await AsyncStorage.setItem('transationStatus', JSON.stringify({}));
+export const getSkipCardText = (actionType) => {
+  if (actionType === 'buy') {
+    return I18n.t('no_farmer_card');
   }
+  if (actionType === 'send') {
+    return I18n.t('no_buyer_card');
+  }
+  if (actionType === 'issue_card') {
+    return I18n.t('skip_the_card');
+  }
+  if (actionType === 'reissue_card') {
+    return I18n.t('skip_the_card');
+  }
+  return I18n.t('skip');
 };

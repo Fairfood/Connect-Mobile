@@ -1,10 +1,13 @@
 import React, { useEffect } from 'react';
 import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NfcManager from 'react-native-nfc-manager';
 import { useDispatch } from 'react-redux';
 import { LogBox } from 'react-native';
 import { setConnectionStatus } from '../redux/ConnectionStore';
 import { DEFAULT_SYNC_DATA } from '../services/constants';
+import { updateSyncStage, updateTnxSyncStage } from '../redux/SyncStore';
+import { updateNfcSupported } from '../redux/CommonStore';
 import Navigator from '../navigation/Navigator';
 import I18n from '../i18n/i18n';
 
@@ -13,7 +16,9 @@ const Root = () => {
 
   const ignoreWarns = [
     'Animated: `useNativeDriver`',
-    'ViewPropTypes will be removed from React Native. Migrate to ViewPropTypes exported from \'deprecated-react-native-prop-types.',
+    'ViewPropTypes',
+    '[WatermelonDB]',
+    'JSI SQLiteAdapter',
   ];
 
   useEffect(() => {
@@ -36,6 +41,19 @@ const Root = () => {
     }
 
     await AsyncStorage.setItem('syncData', JSON.stringify(DEFAULT_SYNC_DATA));
+    const firstTimeSync = await AsyncStorage.getItem('first_time_sync');
+    if (firstTimeSync && firstTimeSync === 'false') {
+      dispatch(updateSyncStage(3));
+      dispatch(updateTnxSyncStage(3));
+    }
+
+    NfcManager.isSupported().then(async (supported) => {
+      if (supported) {
+        dispatch(updateNfcSupported(true));
+      } else {
+        dispatch(updateNfcSupported(false));
+      }
+    });
   };
 
   const setupConnection = async () => {

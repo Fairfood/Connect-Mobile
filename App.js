@@ -3,6 +3,7 @@
 import React from 'react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/lib/integration/react';
+import Toast from 'react-native-toast-message';
 // db related
 import { Database } from '@nozbe/watermelondb';
 import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
@@ -25,6 +26,7 @@ import Premium from './src/models/Premium';
 import Card from './src/models/Card';
 // screens
 import Root from './src/screens/Root';
+import ToastConfig from './src/components/ToastConfig';
 
 if (__DEV__) {
   import('./ReactotronConfig').then(() => 'Reactotron Configured');
@@ -72,6 +74,7 @@ const MyApp = () => {
           <Root />
         </PersistGate>
       </Provider>
+      <Toast config={ToastConfig} visibilityTime={2000} />
     </DatabaseProvider>
   );
 };

@@ -1,11 +1,15 @@
 import React from 'react';
 import { View, Modal, StyleSheet } from 'react-native';
+import { useSelector } from 'react-redux';
 import FastImage from 'react-native-fast-image';
+
 import CustomLeftHeader from './CustomLeftHeader';
-import * as consts from '../services/constants';
 import I18n from '../i18n/i18n';
 
 const InvoiceModal = ({ openSetUpModal, closeModal, imageUri }) => {
+  const { theme } = useSelector((state) => state.common);
+  const styles = StyleSheetFactory(theme);
+
   return (
     <Modal
       animationType='slide'
@@ -15,7 +19,7 @@ const InvoiceModal = ({ openSetUpModal, closeModal, imageUri }) => {
     >
       <View style={styles.container}>
         <CustomLeftHeader
-          backgroundColor={consts.APP_BG_COLOR}
+          backgroundColor={theme.background_1}
           title={I18n.t('invoice_details')}
           leftIcon='arrow-left'
           onPress={closeModal}
@@ -33,18 +37,20 @@ const InvoiceModal = ({ openSetUpModal, closeModal, imageUri }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  invoiceImage: {
-    height: '100%',
-    width: '100%',
-    borderWidth: 1,
-    backgroundColor: '#000000',
-    alignSelf: 'center',
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background_1,
+    },
+    invoiceImage: {
+      height: '100%',
+      width: '100%',
+      borderWidth: 1,
+      backgroundColor: '#000000',
+      alignSelf: 'center',
+    },
+  });
+};
 
 export default InvoiceModal;

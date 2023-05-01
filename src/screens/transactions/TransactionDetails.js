@@ -13,7 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSelector } from 'react-redux';
 import { useIsFocused } from '@react-navigation/native';
 import moment from 'moment';
-import { findAllPremiumsByTransaction } from '../../services/transactionPremiumHelper';
+import { findAllPremiumsByTransactionAndCategory } from '../../services/transactionPremiumHelper';
 import { findPremiumById } from '../../services/premiumsHelper';
 import {
   stringToJson,
@@ -24,19 +24,26 @@ import { erroredTransactionsCount } from '../../services/transactionsHelper';
 import { populateDatabase } from '../../services/populateDatabase';
 import { DeleteConfirmIcon } from '../../assets/svg';
 import InvoiceModal from '../../components/InvoiceModal';
+import {
+  TYPE_TRANSACTION_PREMIUM,
+  APP_TRANS_TYPE_INCOMING,
+  DELETE_TRANSACTION_ENABLED,
+  APP_TRANS_TYPE_LOSS,
+  HIT_SLOP_FIFTEEN,
+} from '../../services/constants';
 import CustomLeftHeader from '../../components/CustomLeftHeader';
 import Card from '../../components/Card';
 import Icon from '../../icons';
 import I18n from '../../i18n/i18n';
 import CommonAlert from '../../components/CommonAlert';
 import DeleteTransactionView from '../../components/DeleteTransactionView';
-import * as consts from '../../services/constants';
 
 const { width } = Dimensions.get('window');
 
 const TransactionDetails = ({ navigation, route }) => {
   const isFocused = useIsFocused();
   const { transactionItem } = route.params;
+  const { theme } = useSelector((state) => state.common);
   const { userProjectDetails } = useSelector((state) => state.login);
   const { currency, quality_correction } = userProjectDetails;
   const [quantity, setQuantity] = useState(0);
@@ -88,8 +95,9 @@ const TransactionDetails = ({ navigation, route }) => {
       setFilename(name);
     }
 
-    const transactionPremiums = await findAllPremiumsByTransaction(
+    const transactionPremiums = await findAllPremiumsByTransactionAndCategory(
       transactionItem.id,
+      TYPE_TRANSACTION_PREMIUM,
     );
     setQuantity(transactionItem.quantity);
     setBasePrice(transactionItem.price);
@@ -131,7 +139,7 @@ const TransactionDetails = ({ navigation, route }) => {
   };
 
   /**
-   * get toatal price (base price + premium)
+   * get total price (base price + premium)
    *
    * @returns {number} total price
    */
@@ -143,10 +151,10 @@ const TransactionDetails = ({ navigation, route }) => {
   };
 
   /**
-   * delete transaqction
+   * delete transaction
    */
   const handleDelete = async () => {
-    await deleteTransaction(transactionItem, consts.APP_TRANS_TYPE_INCOMING);
+    await deleteTransaction(transactionItem, APP_TRANS_TYPE_INCOMING);
     const count = await erroredTransactionsCount();
     if (count === 0) {
       populateDatabase();
@@ -163,10 +171,12 @@ const TransactionDetails = ({ navigation, route }) => {
     navigation.goBack(null);
   };
 
+  const styles = StyleSheetFactory(theme);
+
   return (
     <SafeAreaView style={styles.container}>
       <CustomLeftHeader
-        backgroundColor={consts.APP_BG_COLOR}
+        backgroundColor={theme.background_1}
         title={I18n.t('transaction_details')}
         leftIcon='arrow-left'
         onPress={() => backNavigation()}
@@ -192,12 +202,12 @@ const TransactionDetails = ({ navigation, route }) => {
           transactionItem.error !== '' && (
             <DeleteTransactionView
               error={transactionItem.error}
-              deleteButton={consts.DELETE_TRANSACTION_ENABLED && deleteButton}
+              deleteButton={DELETE_TRANSACTION_ENABLED && deleteButton}
               onDelete={() => setAlertModal(true)}
             />
           )}
 
-        {transactionItem.type === consts.APP_TRANS_TYPE_LOSS && (
+        {transactionItem.type === APP_TRANS_TYPE_LOSS && (
           <View style={styles.lossTitleWrap}>
             <View style={styles.person}>
               <Text style={styles.lossSymbol}>!</Text>
@@ -206,7 +216,7 @@ const TransactionDetails = ({ navigation, route }) => {
           </View>
         )}
 
-        {transactionItem.type !== consts.APP_TRANS_TYPE_LOSS && (
+        {transactionItem.type !== APP_TRANS_TYPE_LOSS && (
           <View style={styles.formTitleContainer}>
             <Text style={styles.formSubTitle}>
               {I18n.t('transaction_received_from')}
@@ -226,7 +236,7 @@ const TransactionDetails = ({ navigation, route }) => {
 
         <View style={styles.formTitleContainer}>
           <Text style={styles.formSubTitle}>
-            {transactionItem.type === consts.APP_TRANS_TYPE_LOSS
+            {transactionItem.type === APP_TRANS_TYPE_LOSS
               ? `${I18n.t('quantity_lost')} Kg`
               : `${I18n.t('total_quantity')} Kg`}
           </Text>
@@ -268,7 +278,7 @@ const TransactionDetails = ({ navigation, route }) => {
                 <TouchableOpacity
                   onPress={() => setOpenSetUpModal(true)}
                   style={{ width: '30%' }}
-                  hitSlop={consts.HIT_SLOP_FIFTEEN}
+                  hitSlop={HIT_SLOP_FIFTEEN}
                 >
                   <Text style={styles.viewImageButtonText}>
                     {`${I18n.t('view_image')} >`}
@@ -278,7 +288,7 @@ const TransactionDetails = ({ navigation, route }) => {
             </View>
           )}
 
-        {transactionItem.type !== consts.APP_TRANS_TYPE_LOSS && (
+        {transactionItem.type !== APP_TRANS_TYPE_LOSS && (
           <View style={styles.cardWrap}>
             <Card
               displayPremium
@@ -328,105 +338,107 @@ const TransactionDetails = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: consts.APP_BG_COLOR,
-  },
-  formTitleContainer: {
-    alignSelf: 'center',
-    width: '90%',
-    marginVertical: 10,
-  },
-  formTitle: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 16,
-  },
-  formSubTitle: {
-    fontWeight: '500',
-    fontFamily: consts.FONT_REGULAR,
-    fontStyle: 'normal',
-    fontSize: 16,
-    marginBottom: 10,
-    color: '#5691AE',
-  },
-  lossTitleWrap: {
-    width: '90%',
-    alignSelf: 'center',
-    marginVertical: 10,
-    backgroundColor: '#DDF3FF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: width * 0.025,
-  },
-  lossTitle: {
-    fontWeight: '500',
-    fontStyle: 'normal',
-    fontSize: 17,
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontFamily: consts.FONT_REGULAR,
-    marginLeft: width * 0.02,
-  },
-  lossSymbol: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontFamily: consts.FONT_BOLD,
-  },
-  person: {
-    backgroundColor: '#EA2553',
-    height: 30,
-    width: 30,
-    borderRadius: 30 / 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  viewImage: {
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'space-between',
-    alignContent: 'space-between',
-  },
-  viewImageText: {
-    fontSize: 12,
-    marginBottom: 10,
-    color: consts.TEXT_PRIMARY_LIGHT_COLOR,
-    justifyContent: 'center',
-    alignSelf: 'center',
-    width: '60%',
-    marginVertical: 10,
-  },
-  viewImageButtonText: {
-    fontSize: 13,
-    textDecorationLine: 'underline',
-    color: '#4DCAF4',
-    fontFamily: consts.FONT_BOLD,
-    textAlign: 'right',
-    marginVertical: 10,
-  },
-  syncWarningWrap: {
-    width: '90%',
-    alignSelf: 'center',
-    backgroundColor: '#DDF3FF',
-    alignItems: 'center',
-    flexDirection: 'row',
-    paddingVertical: 5,
-  },
-  syncMsg: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontWeight: '500',
-    fontFamily: consts.FONT_MEDIUM,
-    fontStyle: 'normal',
-    fontSize: 12,
-    letterSpacing: 0.3,
-  },
-  cardWrap: {
-    width: '90%',
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background_1,
+    },
+    formTitleContainer: {
+      alignSelf: 'center',
+      width: '90%',
+      marginVertical: 10,
+    },
+    formTitle: {
+      color: theme.text_1,
+      fontWeight: '500',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 16,
+    },
+    formSubTitle: {
+      fontWeight: '500',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 16,
+      marginBottom: 10,
+      color: '#5691AE',
+    },
+    lossTitleWrap: {
+      width: '90%',
+      alignSelf: 'center',
+      marginVertical: 10,
+      backgroundColor: '#DDF3FF',
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: width * 0.025,
+    },
+    lossTitle: {
+      fontWeight: '500',
+      fontStyle: 'normal',
+      fontSize: 17,
+      color: theme.text_1,
+      fontFamily: theme.font_regular,
+      marginLeft: width * 0.02,
+    },
+    lossSymbol: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontFamily: theme.font_bold,
+    },
+    person: {
+      backgroundColor: '#EA2553',
+      height: 30,
+      width: 30,
+      borderRadius: 30 / 2,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    viewImage: {
+      flexDirection: 'row',
+      width: '100%',
+      justifyContent: 'space-between',
+      alignContent: 'space-between',
+    },
+    viewImageText: {
+      fontSize: 12,
+      marginBottom: 10,
+      color: theme.text_2,
+      justifyContent: 'center',
+      alignSelf: 'center',
+      width: '60%',
+      marginVertical: 10,
+    },
+    viewImageButtonText: {
+      fontSize: 13,
+      textDecorationLine: 'underline',
+      color: '#4DCAF4',
+      fontFamily: theme.font_bold,
+      textAlign: 'right',
+      marginVertical: 10,
+    },
+    syncWarningWrap: {
+      width: '90%',
+      alignSelf: 'center',
+      backgroundColor: '#DDF3FF',
+      alignItems: 'center',
+      flexDirection: 'row',
+      paddingVertical: 5,
+    },
+    syncMsg: {
+      color: theme.text_1,
+      fontWeight: '500',
+      fontFamily: theme.font_medium,
+      fontStyle: 'normal',
+      fontSize: 12,
+      letterSpacing: 0.3,
+    },
+    cardWrap: {
+      width: '90%',
+      alignSelf: 'center',
+      marginBottom: 20,
+    },
+  });
+};
 
 export default TransactionDetails;

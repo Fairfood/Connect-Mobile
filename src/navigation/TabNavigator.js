@@ -14,7 +14,7 @@ import I18n from '../i18n/i18n';
 const Tabs = createBottomTabNavigator();
 
 const TabNavigator = () => {
-  const { footerItems } = useSelector((state) => state.login);
+  const { footerItems } = useSelector((state) => state.common);
 
   return (
     <Tabs.Navigator
@@ -48,7 +48,12 @@ const TabNavigator = () => {
               routeName === 'TransactionComplete' ||
               routeName === 'TakePicture' ||
               routeName === 'SendTransactionCompleteScreen' ||
-              routeName === 'Send'
+              routeName === 'Send' ||
+              routeName === 'ChooseMultiPremiums' ||
+              routeName === 'PayFarmer' ||
+              routeName === 'PayFarmerVerification' ||
+              routeName === 'PayFarmerComplete' ||
+              routeName === 'PayFarmerTakePicture'
             ) {
               return false;
             }

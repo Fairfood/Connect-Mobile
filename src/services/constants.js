@@ -11,9 +11,22 @@ export const PREMIUM_APPLICABLE_ACTIVITY_SELL = 201;
 export const VERIFICATION_METHOD_MANUAL = 1;
 export const VERIFICATION_METHOD_CARD = 2;
 
+// payment category
+export const TYPE_TRANSACTION_PREMIUM = 'TRANSACTION_PREMIUM';
+export const TYPE_GENERIC_PREMIUM = 'PREMIUM';
+export const TYPE_BASE_PRICE = 'TRANSACTION';
+
+// payment type
+export const PAYMENT_INCOMING = 'INCOMING';
+export const PAYMENT_OUTGOING = 'OUTGOING';
+
 // Transaction quantity in Kg
 export const MINIMUM_TRANSACTION_QUANTITY = 0.01;
 export const MAXIMUM_TRANSACTION_QUANTITY = 99999999;
+
+// pay farmer amount unit
+export const MINIMUM_PAY_FARMER_AMOUNT = 0.01;
+export const MAXIMUM_PAY_FARMER_AMOUNT = 99999999;
 
 // Price
 export const MAX_BASE_PRICE = 99999999;
@@ -23,32 +36,10 @@ export const MAX_LOCAL_MARKET_PRICE = 99999999;
 export const DELETE_TRANSACTION_ENABLED = true;
 export const SAVE_DELETE_TRANSACTION_INVOICE = false;
 
-// Colors new
-export const COLOR_PRIMARY = '#EA2353';
-export const COLOR_SECONDARY = '#D9D9D9';
-export const APP_BG_COLOR = '#FFFFFF';
-export const TEXT_PRIMARY_COLOR = '#003A60';
-export const TEXT_SECONDARY_COLOR = '#858585';
-export const TEXT_PRIMARY_LIGHT_COLOR = '#5691AE';
-export const INPUT_PLACEHOLDER = '#5691AE';
-export const BTN_PRIMARY_TEXT_COLOR = '#FFFFFF';
-export const BTN_SECONDARY_COLOR = '#333333';
-export const CARD_BACKGROUND_COLOR = '#DDF3FF';
-export const BUTTON_COLOR_PRIMARY = '#EA2353';
-export const HEADER_BACKGROUND_COLOR = '#92DDF6';
-export const SUCCESS_ICON_COLOR = '#219653';
-export const WARNING_ICON_COLOR = '#F2994A';
-export const ERROR_ICON_COLOR = '#EA2553';
-export const ICON_COLOR = '#003A60';
-export const BORDER_COLOR = '#E5EBEF';
+// transaction limit days
+export const TRANSACTION_LIMIT_DAYS = 60;
 
-// Fonts
-export const FONT_REGULAR = 'Moderat-Regular';
-export const FONT_MEDIUM = 'Moderat-Medium';
-export const FONT_BOLD = 'Moderat-Bold';
-export const FONT_LIGHT = 'Moderat-Mono-Light';
-
-// Hitslop
+// Hit slop
 export const HIT_SLOP_TEN = {
   top: 10,
   right: 10,
@@ -68,7 +59,7 @@ export const HIT_SLOP_TWENTY = {
   left: 20,
 };
 
-// commmon borderRadius
+// common borderRadius
 export const BORDER_RADIUS = 6;
 
 // profile pic avatar
@@ -104,11 +95,11 @@ export const LONG_MONTH_ARRAY = [
 ];
 
 export const PROFILE_MENUS = [
-  {
-    key: 'language',
-    title: 'language',
-    rightArrow: true,
-  },
+  // {
+  //   key: 'language',
+  //   title: 'language',
+  //   rightArrow: true,
+  // },
   {
     key: 'privacy_statement',
     title: 'privacy_statement',
@@ -120,13 +111,23 @@ export const PROFILE_MENUS = [
     rightArrow: true,
   },
   {
-    key: 'contact_us',
-    title: 'contact_us',
+    key: 'help',
+    title: 'help',
     rightArrow: true,
   },
   {
-    key: 'help',
-    title: 'help',
+    key: 'how_to_use',
+    title: 'how_to_use',
+    rightArrow: true,
+  },
+  {
+    key: 'report_issue',
+    title: 'report_an_issue',
+    rightArrow: true,
+  },
+  {
+    key: 'contact_us',
+    title: 'contact_us',
     rightArrow: true,
   },
   {
@@ -160,6 +161,11 @@ export const SORT_MENUS = [
 
 export const SETTINGS_MENUS = [
   {
+    key: 'language',
+    title: 'language',
+    rightArrow: true,
+  },
+  {
     key: 'developer_options',
     title: 'developer_options',
     rightArrow: true,
@@ -172,4 +178,12 @@ export const DEFAULT_TRANSACTION_FILTER = {
   product: [],
   verificationMethod: { card: false, manual: false },
   quantity: { minQuantity: '', maxQuantity: '' },
+};
+
+export const DEFAULT_PAYMENT_FILTER = {
+  date: { startDate: '', endDate: '' },
+  paymentType: { credit: false, debit: false },
+  premium: [],
+  verificationMethod: { card: false, manual: false },
+  amount: { minAmount: '', maxAmount: '' },
 };

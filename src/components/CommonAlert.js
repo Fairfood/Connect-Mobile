@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, Dimensions, Image } from 'react-native';
+import { useSelector } from 'react-redux';
 import I18n from '../i18n/i18n';
 import CustomButton from './CustomButton';
 import TransparentButton from './TransparentButton';
-import * as consts from '../services/constants';
 
 const { width, height } = Dimensions.get('window');
 
@@ -21,6 +21,9 @@ const CommonAlert = ({
   submitText,
   icon,
 }) => {
+  const { theme } = useSelector((state) => state.common);
+  const styles = StyleSheetFactory(theme);
+
   return (
     <Modal
       animationType='slide'
@@ -29,7 +32,7 @@ const CommonAlert = ({
       onRequestClose={onRequestClose ?? null}
     >
       <View style={styles.container}>
-        <View style={styles.topsection}>
+        <View style={styles.topSection}>
           <Image
             source={require('../assets/images/alert-bg.png')}
             style={styles.imageWrap}
@@ -98,81 +101,83 @@ const CommonAlert = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 58, 96, 0.4)',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  topsection: {
-    width: '100%',
-    height: height * 0.27,
-    backgroundColor: '#ffffff',
-  },
-  iconWrap: {
-    position: 'absolute',
-    bottom: 0,
-    alignSelf: 'center',
-  },
-  imageWrap: {
-    width: '100%',
-    resizeMode: 'contain',
-  },
-  contentWrap: {
-    width: '100%',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: width * 0.06,
-    paddingBottom: width * 0.06,
-  },
-  fieldText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 14,
-    fontFamily: consts.FONT_REGULAR,
-  },
-  valueText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 14,
-    fontFamily: consts.FONT_BOLD,
-    textAlign: 'right',
-  },
-  infoText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 14,
-    fontFamily: consts.FONT_BOLD,
-    marginBottom: 5,
-  },
-  titleText: {
-    color: consts.ERROR_ICON_COLOR,
-    fontSize: 16,
-    fontFamily: consts.FONT_MEDIUM,
-    textAlign: 'center',
-    marginVertical: height * 0.03,
-  },
-  messageText: {
-    color: consts.TEXT_PRIMARY_COLOR,
-    fontSize: 15,
-    fontFamily: consts.FONT_REGULAR,
-    textAlign: 'center',
-    marginVertical: height * 0.03,
-  },
-  buttonWrap: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dataMainWrap: {
-    width: '100%',
-    backgroundColor: '#DDF3FF',
-    padding: width * 0.05,
-    marginBottom: 20,
-  },
-  dataWrap: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 5,
-  },
-});
+const StyleSheetFactory = (theme) => {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 58, 96, 0.4)',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+    },
+    topSection: {
+      width: '100%',
+      height: height * 0.27,
+      backgroundColor: '#ffffff',
+    },
+    iconWrap: {
+      position: 'absolute',
+      bottom: 0,
+      alignSelf: 'center',
+    },
+    imageWrap: {
+      width: '100%',
+      resizeMode: 'contain',
+    },
+    contentWrap: {
+      width: '100%',
+      backgroundColor: '#ffffff',
+      paddingHorizontal: width * 0.06,
+      paddingBottom: width * 0.06,
+    },
+    fieldText: {
+      color: theme.text_1,
+      fontSize: 14,
+      fontFamily: theme.font_regular,
+    },
+    valueText: {
+      color: theme.text_1,
+      fontSize: 14,
+      fontFamily: theme.font_bold,
+      textAlign: 'right',
+    },
+    infoText: {
+      color: theme.text_1,
+      fontSize: 14,
+      fontFamily: theme.font_bold,
+      marginBottom: 5,
+    },
+    titleText: {
+      color: theme.icon_error,
+      fontSize: 16,
+      fontFamily: theme.font_medium,
+      textAlign: 'center',
+      marginVertical: height * 0.03,
+    },
+    messageText: {
+      color: theme.text_1,
+      fontSize: 15,
+      fontFamily: theme.font_regular,
+      textAlign: 'center',
+      marginVertical: height * 0.03,
+    },
+    buttonWrap: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    dataMainWrap: {
+      width: '100%',
+      backgroundColor: '#DDF3FF',
+      padding: width * 0.05,
+      marginBottom: 20,
+    },
+    dataWrap: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: 5,
+    },
+  });
+};
 
 export default CommonAlert;

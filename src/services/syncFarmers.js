@@ -1,30 +1,28 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DeviceInfo from 'react-native-device-info';
 import { CommonFetchRequest } from '../api/middleware';
-import {
-  initSyncProcess,
-  SyncProcessFailed,
-  manageSyncData,
-} from '../redux/LoginStore';
+import { SyncProcessFailed, manageSyncData } from '../redux/LoginStore';
 import { store } from '../redux/store';
 import {
   findAllNewFarmers,
   findAllUpdatedFarmers,
-  findAndupdateFarmer,
+  findAndUpdateFarmer,
   findAndUpdateFarmerDetails,
   findAndUpdateFarmerImage,
   findFarmerById,
   findFarmerByServerId,
 } from './farmersHelper';
-import { getProductsList } from './populateDatabase';
+import { getPremiumList } from './populateDatabase';
 import { syncTransactions } from './syncTransactions';
 import { getAllUnSyncCards, updateCardServerID } from './cardsHelper';
 import { stringToJson } from './commonFunctions';
 import api from '../api/config';
+import {
+  findAllTransactionPremiumByDestination,
+  updateTransactionPremiumDestination,
+} from './transactionPremiumHelper';
 
 export const syncFarmers = async () => {
-  store.dispatch(initSyncProcess());
-
   let lastSyncedTime = new Date();
   lastSyncedTime = parseInt(lastSyncedTime.getTime() / 1000);
   await AsyncStorage.setItem('last_synced_time', lastSyncedTime.toString());
@@ -88,7 +86,23 @@ export const syncFarmers = async () => {
         const serverId = response.data.id;
         const isExisting = await findFarmerByServerId(serverId);
         if (isExisting.length === 0) {
-          await findAndupdateFarmer(node.id, serverId);
+          // updating farmer server_id in node table
+          await findAndUpdateFarmer(node.id, serverId);
+
+          // finding all transaction premium with local node_id and updating with server_id
+          const destinations = await findAllTransactionPremiumByDestination(
+            node.id,
+          );
+          if (destinations.length > 0) {
+            await destinations.map(async (destination) => {
+              await updateTransactionPremiumDestination(
+                destination.id,
+                serverId,
+              );
+            });
+          }
+
+          // uploading farmer image
           if (node.image !== '') {
             await uploadProfilePicture(serverId, node);
           }
@@ -108,27 +122,14 @@ export const syncFarmers = async () => {
         return;
       }
 
-      await syncCards();
+      syncCards(headers);
     })
     .catch(() => {
       store.dispatch(SyncProcessFailed());
     });
 };
 
-export const syncCards = async () => {
-  let loggedInUser = await AsyncStorage.getItem('loggedInUser');
-  loggedInUser = JSON.parse(loggedInUser);
-
-  const headers = {
-    Bearer: loggedInUser.token,
-    'Content-Type': 'application/json',
-    'User-ID': loggedInUser.id,
-    'Node-ID': loggedInUser.default_node,
-    'Project-ID': loggedInUser.project_id,
-    Version: DeviceInfo.getVersion(),
-    'Client-Code': api.API_CLIENT_CODE,
-  };
-
+export const syncCards = async (headers) => {
   const cards = await getAllUnSyncCards();
 
   Promise.all(
@@ -163,7 +164,7 @@ export const syncCards = async () => {
         return;
       }
 
-      await syncTransactions();
+      syncTransactions();
     })
     .catch(() => {
       store.dispatch(SyncProcessFailed());
@@ -184,20 +185,20 @@ export const uploadProfilePicture = async (userId, node) => {
     'Client-Code': api.API_CLIENT_CODE,
   };
 
-  const formdata = new FormData();
+  const formData = new FormData();
 
   const { image } = node;
   if (image.includes('file://')) {
     const filename = image.replace(/^.*[\\/]/, '');
     const imageData = { name: filename, type: 'image/jpg', uri: image };
-    formdata.append('image', imageData);
+    formData.append('image', imageData);
   }
 
   const config = {
     method: 'PATCH',
     url: `${api.API_URL}${api.API_VERSION}/projects/farmer/${userId}/`,
     headers,
-    data: formdata,
+    data: formData,
   };
 
   const response = await CommonFetchRequest(config);
@@ -229,26 +230,26 @@ export const updateAllFarmerDetails = async () => {
       let phone = node.phone.trim();
       phone = phone.includes(' ') ? phone : '';
 
-      const formdata = new FormData();
-      formdata.append('first_name', node.name);
-      formdata.append('last_name', '');
-      formdata.append('phone', phone);
-      formdata.append('street', node.street);
-      formdata.append('city', node.city);
-      formdata.append('province', node.province);
-      formdata.append('country', node.country);
-      formdata.append('zipcode', node.zipcode);
-      formdata.append('updated_on', node.updated_on / 1000);
-      formdata.append('id_no', node.ktp);
+      const formData = new FormData();
+      formData.append('first_name', node.name);
+      formData.append('last_name', '');
+      formData.append('phone', phone);
+      formData.append('street', node.street);
+      formData.append('city', node.city);
+      formData.append('province', node.province);
+      formData.append('country', node.country);
+      formData.append('zipcode', node.zipcode);
+      formData.append('updated_on', node.updated_on / 1000);
+      formData.append('id_no', node.ktp);
 
       let extraFields = node.extra_fields;
       if (extraFields) {
         if (typeof extraFields === 'string') {
           extraFields = JSON.stringify(stringToJson(extraFields));
-          formdata.append('extra_fields', extraFields);
+          formData.append('extra_fields', extraFields);
         } else if (typeof extraFields === 'object') {
           extraFields = JSON.stringify(extraFields);
-          formdata.append('extra_fields', extraFields);
+          formData.append('extra_fields', extraFields);
         }
       }
 
@@ -256,14 +257,14 @@ export const updateAllFarmerDetails = async () => {
       if (image.includes('file://')) {
         const filename = image.replace(/^.*[\\/]/, '');
         const imageData = { name: filename, type: 'image/jpg', uri: image };
-        formdata.append('image', imageData);
+        formData.append('image', imageData);
       }
 
       const config = {
         method: 'PATCH',
         url: `${api.API_URL}${api.API_VERSION}/projects/farmer/${node.server_id}/`,
         headers,
-        data: formdata,
+        data: formData,
       };
 
       const response = await CommonFetchRequest(config);
@@ -292,7 +293,7 @@ export const updateAllFarmerDetails = async () => {
         return;
       }
 
-      getProductsList();
+      getPremiumList();
     })
     .catch(() => {
       store.dispatch(SyncProcessFailed());

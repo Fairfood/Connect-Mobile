@@ -3,13 +3,12 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable no-alert */
 /**
- * middlwware
+ * middleware
  */
-
-import { ToastAndroid } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';
+import Toast from 'react-native-toast-message';
 import { signOutUser } from '../redux/LoginStore';
+import { tnxSyncFailed } from '../redux/SyncStore';
 import { store } from '../redux/store';
 import axios from '../axios';
 import I18n from '../i18n/i18n';
@@ -23,53 +22,76 @@ export const CommonFetchRequest = async (config) => {
 
 // error handler
 export const ErrorHandler = async (response) => {
-  const firstTimeSync = await AsyncStorage.getItem('first_time_sync');
+  const { syncStage } = store.getState().sync;
+
+  if (response?.data?.success === true) {
+    return response.data;
+  }
 
   if (!response) {
-    ToastAndroid.show(I18n.t('bad_internet_connection'), ToastAndroid.SHORT);
-    if (firstTimeSync && firstTimeSync === 'true') {
-      alert(I18n.t('contact_support'));
+    Toast.show({
+      type: 'error',
+      text1: I18n.t('connection_error'),
+      text2: I18n.t('bad_internet_connection'),
+    });
+
+    if (syncStage === 2) {
+      store.dispatch(tnxSyncFailed());
     }
+
     return { success: false, error: I18n.t('bad_internet_connection') };
   }
   const { status } = response;
-  const { success, detail } = response.data;
-
-  if (success === true) {
-    return response.data;
-  }
+  const { detail } = response.data;
 
   const errorObj = detail ?? {};
 
   if (!status) {
-    ToastAndroid.show(I18n.t('something_went_wrong'), ToastAndroid.SHORT);
-    Sentry.captureMessage(`fetch_error_1: + ${errorObj}`);
+    Toast.show({
+      type: 'error',
+      text1: I18n.t('error'),
+      text2: I18n.t('something_went_wrong'),
+    });
+
+    Sentry.captureMessage(`fetch_error_1: ${JSON.stringify(errorObj)}`);
+
+    if (syncStage === 2) {
+      store.dispatch(tnxSyncFailed());
+    }
+
     return { success: false, error: I18n.t('something_went_wrong') };
   }
-  if (
-    firstTimeSync &&
-    firstTimeSync === 'true' &&
-    status !== 200 &&
-    status !== 201
-  ) {
-    ToastAndroid.show(I18n.t('something_went_wrong'), ToastAndroid.SHORT);
-    Sentry.captureMessage(`fetch_error_2: ${errorObj}`);
-    alert(I18n.t('contact_support'));
-    store.dispatch(signOutUser());
+
+  if (syncStage === 2) {
+    store.dispatch(tnxSyncFailed());
     return { success: false };
   }
+
   const errorMsg = await setErrorMsg(errorObj);
   if (errorMsg) {
     if (errorMsg.includes('Invalid Bearer token')) {
-      alert(I18n.t('force_logout'));
-      store.dispatch(signOutUser());
-      return { success: false };
+      const { isLoggedIn } = store.getState().login;
+      if (isLoggedIn) {
+        alert(I18n.t('force_logout'));
+        store.dispatch(signOutUser());
+        return { success: false };
+      }
+    } else {
+      Toast.show({
+        type: 'error',
+        text1: I18n.t('error'),
+        text2: errorMsg,
+      });
+      return { success: false, error: errorMsg };
     }
-    ToastAndroid.show(errorMsg, ToastAndroid.SHORT);
-    return { success: false, error: errorMsg };
   }
-  ToastAndroid.show(I18n.t('something_went_wrong'), ToastAndroid.SHORT);
-  Sentry.captureMessage(`fetch_error_3: ${errorObj}`);
+
+  Toast.show({
+    type: 'error',
+    text1: I18n.t('error'),
+    text2: I18n.t('something_went_wrong'),
+  });
+  Sentry.captureMessage(`fetch_error_4: ${JSON.stringify(errorObj)}`);
   return { success: false, error: I18n.t('something_went_wrong') };
 };
 
@@ -99,11 +121,11 @@ const setErrorMsg = async (errorObj) => {
         if (Array.isArray(value)) {
           if (value.length > 1) {
             for (j = 0; j < value.length; j++) {
-              const msgText = await compainAttribute(key, value[j]);
+              const msgText = await combineAttribute(key, value[j]);
               errorMsg += msgText;
             }
           } else {
-            const msgText = await compainAttribute(key, value[0]);
+            const msgText = await combineAttribute(key, value[0]);
             errorMsg = msgText;
           }
         }
@@ -115,8 +137,8 @@ const setErrorMsg = async (errorObj) => {
   return null;
 };
 
-// compaining error attribute into the error message
-const compainAttribute = async (key, value) => {
+// combining error attribute into the error message
+const combineAttribute = async (key, value) => {
   let keyText = key;
   let valueText = value;
   if (valueText.includes('This field') && keyText !== 'non_field_errors') {
