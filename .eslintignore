@@ -65,3 +65,8 @@ buck-out/
 .env
 .env.development
 .env.production
+
+# testing
+/coverage
+
+metro.config.js

@@ -51,6 +51,7 @@ import {
 } from './transactionPremiumHelper';
 import { syncFarmers } from './syncFarmers';
 import {
+  findCardByServerId,
   getAllCards,
   getAllCardsByNodeId,
   saveCard,
@@ -64,6 +65,7 @@ import {
 import I18n from '../i18n/i18n';
 import api from '../api/config';
 import * as consts from './constants';
+import { startDbMigration } from '../db/DatabaseMigration';
 
 const transactionLimit = 50;
 
@@ -128,19 +130,20 @@ export const getPremiumList = async () => {
   };
 
   let lastUpdatedPremiums = await AsyncStorage.getItem('last_updated_premiums');
-  let updatedAfter = '';
-  if (lastUpdatedPremiums) {
-    updatedAfter = `?updated_after=${parseInt(lastUpdatedPremiums)}`;
-  }
+  // let updatedAfter = '';
+  // if (lastUpdatedPremiums) {
+  //   updatedAfter = `?updated_after=${parseInt(lastUpdatedPremiums)}`;
+  // }
 
   const config = {
-    url: `${api.API_URL}${api.API_VERSION}/projects/projects/premiums/${updatedAfter}`,
+    url: `${api.API_URL}${api.API_VERSION}/projects/projects/premiums/`,
     headers,
   };
 
   const response = await CommonFetchRequest(config);
   if (response.success) {
     const premiums = response.data.results;
+
     premiums.map(async (premium) => {
       const isExisting = await findPremiumByServerId(premium.id);
       if (isExisting.length === 0) {
@@ -537,7 +540,7 @@ const getNodeId = async (id) => {
     return node[0].id;
   }
 
-  return null;
+  return '';
 };
 
 const getProductId = async (product) => {
@@ -563,22 +566,20 @@ const saveAllTransactions = async (headers, response) => {
 
   if (syncStage === 2) {
     if (tnxSyncTotal === 0) {
-      const currenTotal = tnxSyncPrevTotal !== 0 ? tnxSyncPrevTotal : tnxCount;
-      await store.dispatch(updateTnxSyncTotal(currenTotal));
+      const currentTotal = tnxSyncPrevTotal !== 0 ? tnxSyncPrevTotal : tnxCount;
+      await store.dispatch(updateTnxSyncTotal(currentTotal));
     }
     await store.dispatch(updateTnxSyncNextUrl(nextUrl));
   }
 
   Promise.all(
     transactions.map(async (transaction) => {
-      const nodeId =
-        transaction.category === consts.APP_TRANS_TYPE_LOSS
-          ? ''
-          : await getNodeId(
-              transaction.category === consts.APP_TRANS_TYPE_INCOMING
-                ? transaction.source.id
-                : transaction.destination.id,
-            );
+      let nodeId = '';
+      if (transaction.category === consts.APP_TRANS_TYPE_INCOMING) {
+        nodeId = await getNodeId(transaction.source.id);
+      } else if (transaction.category === consts.APP_TRANS_TYPE_OUTGOING) {
+        nodeId = await getNodeId(transaction.destination.id);
+      }
 
       const isExisting = await findTransactionByServerId(transaction.id);
 
@@ -598,6 +599,36 @@ const saveAllTransactions = async (headers, response) => {
       const productId = await getProductId(transaction.source_batches[0]);
       const total = await getTotalPrice(transaction.price, allPremiums);
 
+      let cardId = '';
+
+      if (transaction.card_details) {
+        // if transaction type incoming then saving farmer card
+        // buyer card currently not saving in db, so just saving card server_id instead
+        // skipping for loss transaction
+        if (transaction.category === consts.APP_TRANS_TYPE_INCOMING) {
+          const existingCard = await findCardByServerId(
+            transaction.card_details.id,
+          );
+          if (existingCard.length > 0) {
+            cardId = existingCard[0].id;
+          } else {
+            const cardDetails = {
+              node_id: '',
+              server_id: transaction.card_details.id,
+              card_id: transaction.card_details.card_id,
+              fair_id: transaction?.card_details?.fairid ?? '',
+              created_at: Math.floor(Date.now() / 1000),
+              updated_at: Math.floor(Date.now() / 1000),
+            };
+
+            const savedCard = await saveCard(cardDetails);
+            cardId = savedCard?._raw?.id ?? '';
+          }
+        } else if (transaction.category === consts.APP_TRANS_TYPE_OUTGOING) {
+          cardId = transaction.card_details.id;
+        }
+      }
+
       const transactionItem = {
         node_id: nodeId,
         server_id: transaction.id,
@@ -616,7 +647,7 @@ const saveAllTransactions = async (headers, response) => {
         created_on: transaction.created_on,
         is_verified: false,
         is_deleted: false,
-        card_id: transaction.card_id,
+        card_id: cardId,
         total,
         quality_correction: transaction.quality_correction,
         verification_method: transaction.verification_method,
@@ -647,38 +678,42 @@ const saveAllTransactions = async (headers, response) => {
       if (transaction.category !== consts.APP_TRANS_TYPE_LOSS) {
         const { premiums } = transaction;
         premiums.map(async (p) => {
-          const { premium, id } = p;
+          const { premium, id, amount } = p;
           const isTransactionPremiumExist =
             await findAllTransactionPremiumByServerId(id);
 
           if (isTransactionPremiumExist.length === 0) {
             const existingPremium = await findPremiumByServerId(premium.id);
-            const premiumId = existingPremium?.[0]?.id ?? null;
+            let premiumId = existingPremium?.[0]?.id ?? '';
 
-            if (premiumId) {
-              const transactionPremium = {
-                premium_id: existingPremium[0].id,
-                transaction_id: transactionId,
-                amount: premium.amount,
-                server_id: id,
-                category: premium.category,
-                type:
-                  transaction.category === consts.APP_TRANS_TYPE_INCOMING
-                    ? consts.PAYMENT_OUTGOING
-                    : consts.PAYMENT_INCOMING,
-                verification_method: transaction.verification_method,
-                receipt: transaction?.invoice ?? '',
-                card_id: transaction?.card_id ?? '',
-                node_id: nodeId,
-                date: parseInt(transaction.created_on),
-                currency: transaction.currency,
-                source: transaction.destination.id,
-                destination: transaction.source.id,
-                verification_longitude: transaction.verification_longitude,
-                verification_latitude: transaction.verification_latitude,
-              };
-              await saveTransactionPremium(transactionPremium);
+            if (premiumId === '') {
+              premium.is_active = false;
+              premiumId = await savePremium(premium);
             }
+
+            const transactionPremium = {
+              premium_id: premiumId,
+              transaction_id: transactionId,
+              amount,
+              server_id: id,
+              category: premium.category,
+              type:
+                transaction.category === consts.APP_TRANS_TYPE_INCOMING
+                  ? consts.PAYMENT_OUTGOING
+                  : consts.PAYMENT_INCOMING,
+              verification_method: transaction.verification_method,
+              receipt: transaction?.invoice ?? '',
+              card_id: cardId,
+              node_id: nodeId,
+              date: parseInt(transaction.created_on),
+              currency: transaction.currency,
+              source: transaction.destination.id,
+              destination: transaction.source.id,
+              verification_longitude: transaction.verification_longitude,
+              verification_latitude: transaction.verification_latitude,
+            };
+
+            await saveTransactionPremium(transactionPremium);
           }
         });
       }
@@ -700,7 +735,7 @@ const saveAllTransactions = async (headers, response) => {
                 : consts.PAYMENT_INCOMING,
             verification_method: transaction.verification_method,
             receipt: transaction?.invoice ?? '',
-            card_id: transaction?.card_id ?? '',
+            card_id: cardId,
             node_id: nodeId,
             date: parseInt(transaction.created_on),
             currency: transaction.currency,
@@ -709,6 +744,7 @@ const saveAllTransactions = async (headers, response) => {
             verification_longitude: transaction.verification_longitude,
             verification_latitude: transaction.verification_latitude,
           };
+
           await saveTransactionPremium(basePricePremium);
         }
       }
@@ -954,7 +990,7 @@ const saveAllPayments = async (headers, response, type) => {
             : consts.VERIFICATION_METHOD_MANUAL,
           receipt: payment?.invoice ?? '',
           card_id: payment?.card ?? '',
-          node_id: node.source,
+          node_id: payment.source,
           date: parseInt(payment.created_on),
           currency: payment.currency,
           source: payment.source,
@@ -995,4 +1031,9 @@ const completeSyncing = async () => {
     store.dispatch(updateSyncStage(3));
   }
   store.dispatch(SyncProcessComplete());
+
+  const { migration } = store.getState().common;
+  if (!migration) {
+    startDbMigration();
+  }
 };

@@ -13,12 +13,11 @@ import { RNCamera } from 'react-native-camera';
 import { useDispatch, useSelector } from 'react-redux';
 import moment from 'moment';
 import Geolocation from 'react-native-geolocation-service';
-import { saveTransaction } from '../../../services/transactionsHelper';
-import { saveBatch } from '../../../services/batchesHelper';
-import { saveTransactionPremium } from '../../../services/transactionPremiumHelper';
-import { syncTransactions } from '../../../services/syncTransactions';
 import { InfoIcon, CloseIcon } from '../../../assets/svg';
-import { requestPermission } from '../../../services/commonFunctions';
+import {
+  jsonToString,
+  requestPermission,
+} from '../../../services/commonFunctions';
 import { initSyncProcess } from '../../../redux/LoginStore';
 import {
   MINIMUM_TRANSACTION_QUANTITY,
@@ -33,6 +32,11 @@ import {
 import CustomLeftHeader from '../../../components/CustomLeftHeader';
 import CustomButton from '../../../components/CustomButton';
 import I18n from '../../../i18n/i18n';
+import { logAnalytics } from '../../../services/googleAnalyticsHelper';
+import { createTransaction } from '../../../db/services/TransactionsHelper';
+import { createBatch } from '../../../db/services/BatchHelper';
+import { createTransactionPremium } from '../../../db/services/TransactionPremiumHelper';
+import { syncTransactions } from '../../../sync/SyncTransactions';
 
 const { height, width } = Dimensions.get('window');
 const defaultPosition = { coords: { longitude: 0, latitude: 0 } };
@@ -99,14 +103,13 @@ const TakePicture = ({ navigation, route }) => {
 
   /**
    * get total amount of individual product excluding card dependent premium
-   *
    * @param   {number} productTotal   total premium
    * @param   {Array}  premiums       all premiums array
    * @returns {number}                total premium amount
    */
   const getTotal = async (productTotal, premiums) => {
     const total = premiums.reduce((a, b) => {
-      if (b?._raw?.is_card_dependent) {
+      if (b?.is_card_dependent) {
         return a - b.total;
       }
       return a;
@@ -116,20 +119,18 @@ const TakePicture = ({ navigation, route }) => {
 
   /**
    * get all premiums exclude card dependent
-   *
    * @param   {Array} premiums  all premiums
    * @returns {Array}           updated premiums
    */
   const getUpdatedPremiums = async (premiums) => {
     const newPremiums = premiums.filter((premium) => {
-      return !premium._raw.is_card_dependent;
+      return !premium.is_card_dependent;
     });
     return newPremiums;
   };
 
   /**
    * validation before transaction submit
-   *
    * @param {object} position device's geo location coordinates
    */
   const transactionValidate = async (position) => {
@@ -167,7 +168,7 @@ const TakePicture = ({ navigation, route }) => {
           await Promise.all(
             updatedPremiums.map(async (premium) => {
               const amount =
-                parseFloat(premium._raw.amount) * parseFloat(product.quantity);
+                parseFloat(premium.amount) * parseFloat(product.quantity);
               if (amount <= 0) {
                 valid = false;
                 setError(
@@ -189,7 +190,6 @@ const TakePicture = ({ navigation, route }) => {
 
   /**
    * submit function. saving transaction premium and batches in local db.
-   *
    * @param {object} position device's geo location coordinates
    */
   const onVerification = async (position) => {
@@ -199,13 +199,17 @@ const TakePicture = ({ navigation, route }) => {
       products.map(async (product) => {
         const date = new Date();
         const quantity = parseFloat(product.quantity);
-        const price = product.total_amount;
+        const price = parseFloat(product.total_amount);
         const total = await getTotal(
           product.total_amount + product.premium_total,
           product.applied_premiums,
         );
-        const productPrice = product.base_price;
-        const extraFields = product.extra_fields ?? null;
+        const productPrice = parseFloat(product.base_price);
+
+        let extraFields = product.extra_fields || '';
+        if (extraFields && typeof extraFields === 'object') {
+          extraFields = jsonToString(extraFields);
+        }
 
         const transactionObj = {
           server_id: null,
@@ -228,10 +232,11 @@ const TakePicture = ({ navigation, route }) => {
           verification_method: VERIFICATION_METHOD_MANUAL,
           verification_longitude: position.coords.longitude,
           verification_latitude: position.coords.latitude,
-          extra_fields: extraFields ?? '',
+          extra_fields: extraFields,
         };
 
-        const transactionId = await saveTransaction(transactionObj);
+        const transactionId = await createTransaction(transactionObj);
+
         transactionObj.id = transactionId;
         transactionObj.total_amount = product.total_amount;
         transactionObj.premium_total =
@@ -248,7 +253,8 @@ const TakePicture = ({ navigation, route }) => {
           ref_number: null,
           unit: 1,
         };
-        await saveBatch(batch);
+
+        await createBatch(batch);
 
         const updatedPremiums = await getUpdatedPremiums(
           product.applied_premiums,
@@ -260,10 +266,17 @@ const TakePicture = ({ navigation, route }) => {
           transactionId,
           transactionObj,
         );
+
         await saveBasePricePayment(transactionId, transactionObj);
       }),
     )
       .then(async () => {
+        logAnalytics('transactions', {
+          verification_type: 'manual_verification',
+          transaction_type: 'buy_transaction',
+          network_status: isConnected && !syncInProgress ? 'online' : 'offline',
+        });
+
         let checkTransactionStatus = false;
 
         if (isConnected && !syncInProgress) {
@@ -288,7 +301,6 @@ const TakePicture = ({ navigation, route }) => {
 
   /**
    * saving all transaction premiums
-   *
    * @param {Array}   appliedPremiums all premiums applied for the transaction
    * @param {number}  productQuality  product quantity
    * @param {string}  transactionId   corresponding transaction id
@@ -302,11 +314,11 @@ const TakePicture = ({ navigation, route }) => {
   ) => {
     await Promise.all(
       appliedPremiums.map(async (premium) => {
-        const amount =
-          parseFloat(premium._raw.amount) * parseFloat(productQuality);
+        const amount = parseFloat(premium.amount) * parseFloat(productQuality);
+        const options = jsonToString(premium.selected_option);
 
         const transactionPremium = {
-          premium_id: premium._raw.id,
+          premium_id: premium.id,
           transaction_id: transactionId,
           amount: parseFloat(amount),
           server_id: '',
@@ -322,15 +334,16 @@ const TakePicture = ({ navigation, route }) => {
           destination: farmer.server_id || farmer.id,
           verification_longitude: transactionObj.verification_longitude,
           verification_latitude: transactionObj.verification_latitude,
+          options,
         };
-        await saveTransactionPremium(transactionPremium);
+
+        await createTransactionPremium(transactionPremium);
       }),
     );
   };
 
   /**
    * saving all base price payment
-   *
    * @param {string}  transactionId   corresponding transaction id
    * @param {object}  transactionObj  transaction object
    */
@@ -353,7 +366,8 @@ const TakePicture = ({ navigation, route }) => {
       verification_longitude: transactionObj.verification_longitude,
       verification_latitude: transactionObj.verification_latitude,
     };
-    await saveTransactionPremium(basePricePayment);
+
+    await createTransactionPremium(basePricePayment);
   };
 
   const styles = StyleSheetFactory(theme);
@@ -362,9 +376,9 @@ const TakePicture = ({ navigation, route }) => {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={{ height: height * 0.1 }}>
         <CustomLeftHeader
-          backgroundColor='#4F4F4F'
+          backgroundColor="#4F4F4F"
           title={I18n.t('verify_with_photo')}
-          leftIcon='arrow-left'
+          leftIcon="arrow-left"
           titleColor={theme.background_1}
           onPress={() => navigation.goBack(null)}
         />
@@ -441,7 +455,7 @@ const TakePicture = ({ navigation, route }) => {
                         <CloseIcon
                           width={width * 0.035}
                           height={width * 0.035}
-                          fill='#ffffff'
+                          fill="#ffffff"
                         />
                       </TouchableOpacity>
                     </View>
@@ -455,7 +469,7 @@ const TakePicture = ({ navigation, route }) => {
                     <InfoIcon
                       width={width * 0.05}
                       height={width * 0.05}
-                      fill='#ffb74d'
+                      fill="#ffb74d"
                     />
                   </TouchableOpacity>
                 )}
@@ -463,7 +477,7 @@ const TakePicture = ({ navigation, route }) => {
             )}
 
             {isVerifying ? (
-              <ActivityIndicator size='large' color={theme.button_bg_1} />
+              <ActivityIndicator size="large" color={theme.button_bg_1} />
             ) : (
               <CustomButton
                 buttonText={I18n.t('verify')}
@@ -497,7 +511,7 @@ const TakePicture = ({ navigation, route }) => {
                 ]}
               >
                 {isLoading && (
-                  <ActivityIndicator size='large' color='#4F4F4F' />
+                  <ActivityIndicator size="large" color="#4F4F4F" />
                 )}
               </View>
             </TouchableOpacity>

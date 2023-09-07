@@ -46,7 +46,7 @@ const HelpTutorial = ({ ...props }) => {
   const styles = StyleSheetFactory(theme);
 
   return (
-    <Modal animationType='slide' transparent visible={props.visible}>
+    <Modal animationType="slide" transparent visible={props.visible}>
       <View
         style={{
           flex: 1,
@@ -58,7 +58,7 @@ const HelpTutorial = ({ ...props }) => {
             <WhiteBoxView
               boxBottom={height * 0.09}
               boxLeft={width * 0.05}
-              arrowPosition='bottom'
+              arrowPosition="bottom"
               arrowLeft={width * 0.41}
               text1={I18n.t('farmers')}
               text2={I18n.t('tutorial_farmer_sub')}
@@ -68,7 +68,7 @@ const HelpTutorial = ({ ...props }) => {
             />
             <RoundView
               roundStyle={styles.round1}
-              roundIcon={<Icon name='farmer' size={20} color='#5691AE' />}
+              roundIcon={<Icon name="farmer" size={20} color="#5691AE" />}
               roundText={I18n.t('farmers')}
               theme={theme}
             />
@@ -80,7 +80,7 @@ const HelpTutorial = ({ ...props }) => {
             <WhiteBoxView
               boxBottom={height * 0.09}
               boxLeft={width * 0.15}
-              arrowPosition='bottom'
+              arrowPosition="bottom"
               arrowLeft={width * 0.65}
               text1={I18n.t('transaction_list')}
               text2={I18n.t('tutorial_transaction_sub')}
@@ -90,7 +90,7 @@ const HelpTutorial = ({ ...props }) => {
             />
             <RoundView
               roundStyle={styles.round2}
-              roundIcon={<Icon name='transaction' size={20} color='#5691AE' />}
+              roundIcon={<Icon name="transaction" size={20} color="#5691AE" />}
               roundText={I18n.t('transactions')}
               theme={theme}
             />
@@ -102,7 +102,7 @@ const HelpTutorial = ({ ...props }) => {
             <WhiteBoxView
               boxTop={height * 0.1}
               boxLeft={width * 0.15}
-              arrowPosition='top'
+              arrowPosition="top"
               arrowRight={5}
               text1={I18n.t('profile_and_settings')}
               text2={I18n.t('tutorial_profile_sub')}
@@ -131,7 +131,7 @@ const HelpTutorial = ({ ...props }) => {
             <WhiteBoxView
               boxTop={height * 0.1}
               boxLeft={width * 0.15}
-              arrowPosition='top'
+              arrowPosition="top"
               arrowRight={45}
               text1={I18n.t('sync_status')}
               text2={I18n.t('tutorial_sync_sub')}
@@ -182,7 +182,7 @@ const WhiteBoxView = ({ ...props }) => {
       {arrowPosition === 'top' && (
         <View style={{ height: 10 }}>
           <View style={[styles.arrowTopWrap, { right: arrowRight }]}>
-            <TriangleIcon width={25} height={25} fill='#ffffff' />
+            <TriangleIcon width={25} height={25} fill="#ffffff" />
           </View>
         </View>
       )}
@@ -210,7 +210,7 @@ const WhiteBoxView = ({ ...props }) => {
       {arrowPosition === 'bottom' && (
         <View style={{ height: 10 }}>
           <View style={[styles.arrowBottomWrap, { left: arrowLeft }]}>
-            <TriangleIcon width={25} height={25} fill='#ffffff' />
+            <TriangleIcon width={25} height={25} fill="#ffffff" />
           </View>
         </View>
       )}
@@ -302,6 +302,7 @@ const StyleSheetFactory = (theme) => {
       padding: width * 0.05,
       backgroundColor: 'white',
       zIndex: 99,
+      borderRadius: theme.border_radius,
     },
     text1Style: {
       color: theme.text_1,

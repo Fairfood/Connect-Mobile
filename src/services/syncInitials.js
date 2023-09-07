@@ -15,10 +15,11 @@ import {
 import { store } from '../redux/store';
 import I18n from '../i18n/i18n';
 import api from '../api/config';
+import { realm } from '../db/Configuration';
+import { migrationCompleted } from '../redux/CommonStore';
 
 /**
  * login api
- *
  * @param   {string}  email       user email
  * @param   {string}  password    user password
  * @param   {boolean} forceLogout need a new access token or not
@@ -67,7 +68,13 @@ export const loginUser = async (email, password, forceLogout = false) => {
         await database.unsafeResetDatabase();
       });
 
+      realm.write(() => {
+        realm.deleteAll();
+      });
+
+      store.dispatch(migrationCompleted());
       store.dispatch(tnxSyncCompleted());
+      store.dispatch(updateSyncStage(0));
     }
 
     AsyncStorage.setItem('previousUser', user.id);
@@ -82,7 +89,6 @@ export const loginUser = async (email, password, forceLogout = false) => {
 
 /**
  * fetches user details
- *
  * @param   {object} user user object
  * @returns {void}
  */
@@ -110,7 +116,10 @@ export const getUserDetails = async (user) => {
 
       await AsyncStorage.setItem('loggedInUser', JSON.stringify(finalUserObj));
 
-      store.dispatch(updateSyncStage(1));
+      const { syncStage } = store.getState().sync;
+      if (syncStage === 0) {
+        store.dispatch(updateSyncStage(1));
+      }
 
       store.dispatch(signInSuccess(finalUserObj));
     } else {
@@ -123,7 +132,6 @@ export const getUserDetails = async (user) => {
 
 /**
  * fetches company details
- *
  * @returns {boolean} true if success, false otherwise
  */
 export const getCompanyDetails = async () => {
@@ -160,7 +168,7 @@ export const getCompanyDetails = async () => {
     };
 
     await AsyncStorage.setItem('loggedInUser', JSON.stringify(finalUserObj));
-    store.dispatch(updateCompanyDetails(response.data));
+    store.dispatch(updateCompanyDetails(data));
     return true;
   }
   return false;
@@ -168,7 +176,6 @@ export const getCompanyDetails = async () => {
 
 /**
  * fetches project details
- *
  * @returns {boolean} true if success, false otherwise
  */
 export const getProjectDetails = async () => {
@@ -213,7 +220,6 @@ export const getProjectDetails = async () => {
 
 /**
  * logout api
- *
  * @param   {object} user user object
  * @returns {void}
  */

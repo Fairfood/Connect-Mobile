@@ -59,7 +59,7 @@ const FarmerListItem = ({
               ]}
               hitSlop={HIT_SLOP_TWENTY}
             >
-              <Icon name='Sync-warning2' size={25} color='#F2994A' />
+              <Icon name="Sync-warning2" size={25} color="#F2994A" />
             </TouchableOpacity>
           )}
 
@@ -72,7 +72,7 @@ const FarmerListItem = ({
             ]}
             hitSlop={HIT_SLOP_TWENTY}
           >
-            <Icon name='Close' size={25} color={theme.icon_1} />
+            <Icon name="Close" size={25} color={theme.icon_1} />
           </TouchableOpacity>
         )}
       </TouchableOpacity>

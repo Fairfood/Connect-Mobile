@@ -19,7 +19,7 @@ import SearchComponent from './SearchComponent';
 const { width } = Dimensions.get('window');
 
 const CustomInputFields = ({ ...props }) => {
-  const { key, item, index, productId = null, updatedItem } = props;
+  const { key, item, index, itemId = null, updatedItem } = props;
   const { theme } = useSelector((state) => state.common);
 
   const defaultBooleanValue =
@@ -53,7 +53,6 @@ const CustomInputFields = ({ ...props }) => {
 
   /**
    * For changing boolean input field
-   *
    * @param {string} value 'true' or 'false'
    */
   const changeBooleanValue = (value) => {
@@ -63,7 +62,6 @@ const CustomInputFields = ({ ...props }) => {
 
   /**
    * For changing radio input field
-   *
    * @param {string} value radio item value
    */
   const changeRadio = (value) => {
@@ -73,7 +71,6 @@ const CustomInputFields = ({ ...props }) => {
 
   /**
    * For text-input field
-   *
    * @param {string} value input value type: 'string','int' or 'float'
    */
   const changeInput = (value) => {
@@ -98,7 +95,6 @@ const CustomInputFields = ({ ...props }) => {
 
   /**
    * For dropdown input field
-   *
    * @param {string} value value of the selected dropdown item
    */
   const onSelectingDropdownItem = (value) => {
@@ -110,7 +106,6 @@ const CustomInputFields = ({ ...props }) => {
 
   /**
    * For date input field
-   *
    * @param {Date} value value of the selected date
    */
   const onSelectingDate = (value) => {
@@ -121,17 +116,15 @@ const CustomInputFields = ({ ...props }) => {
 
   /**
    * For updating current input field values to parent component
-   *
    * @param {any} value value of the selected date
    */
   const updateItem = (value) => {
     item.value = value;
-    updatedItem(item, index, productId);
+    updatedItem(item, index, itemId);
   };
 
   /**
    * filtering dropdownlist based on the search text
-   *
    * @param {string} text dropdown search text
    */
   const onSearchDropdownItem = (text) => {
@@ -148,17 +141,6 @@ const CustomInputFields = ({ ...props }) => {
     }
   };
 
-  const renderItem = ({ i }) => {
-    return (
-      <TouchableOpacity
-        onPress={() => onSelectingDropdownItem(i.value)}
-        style={styles.countryItems}
-      >
-        <Text style={styles.countryItemText}>{i.value}</Text>
-      </TouchableOpacity>
-    );
-  };
-
   const styles = StyleSheetFactory(theme);
 
   return (
@@ -172,7 +154,7 @@ const CustomInputFields = ({ ...props }) => {
           value={input.toString()}
           onChangeText={(text) => changeInput(text)}
           keyboardType={item.type === 'int' ? 'numeric' : null}
-          autoCapitalize='sentences'
+          autoCapitalize="sentences"
           color={theme.text_1}
           extraStyle={{ width: '100%' }}
         />
@@ -250,7 +232,7 @@ const CustomInputFields = ({ ...props }) => {
       {item.type === 'dropdown' && (
         <View style={styles.customBoolWrap}>
           <TouchableOpacity onPress={() => setDropdownModal(true)}>
-            <View pointerEvents='none'>
+            <View pointerEvents="none">
               <FormTextInput
                 mandatory={item.required}
                 placeholder={item.label.en ?? item.key}
@@ -267,7 +249,7 @@ const CustomInputFields = ({ ...props }) => {
       {item.type === 'date' && (
         <View style={styles.customBoolWrap}>
           <TouchableOpacity onPress={() => setDateModal(true)}>
-            <View pointerEvents='none'>
+            <View pointerEvents="none">
               <FormTextInput
                 mandatory={item.required}
                 placeholder={item.label.en ?? item.key}
@@ -283,7 +265,7 @@ const CustomInputFields = ({ ...props }) => {
 
       {dropdownModal && item.type === 'dropdown' && (
         <Modal
-          animationType='slide'
+          animationType="slide"
           transparent
           visible={dropdownModal}
           onRequestClose={() => setDropdownModal(false)}
@@ -301,8 +283,17 @@ const CustomInputFields = ({ ...props }) => {
 
               <FlatList
                 data={dropdownList}
-                renderItem={renderItem}
-                keyboardShouldPersistTaps='always'
+                renderItem={(i) => {
+                  return (
+                    <TouchableOpacity
+                      onPress={() => onSelectingDropdownItem(i.item.value)}
+                      style={styles.countryItems}
+                    >
+                      <Text style={styles.countryItemText}>{i.item.value}</Text>
+                    </TouchableOpacity>
+                  );
+                }}
+                keyboardShouldPersistTaps="always"
                 style={styles.countryFlatList}
                 ListEmptyComponent={() => (
                   <Text style={styles.emptyText}>
@@ -318,11 +309,11 @@ const CustomInputFields = ({ ...props }) => {
 
       {dateModal && item.type === 'date' && (
         <DatePicker
-          theme='light'
+          theme="light"
           modal
           open={dateModal}
           date={dateValue ? new Date(dateValue) : new Date()}
-          mode='date'
+          mode="date"
           maximumDate={new Date()}
           onConfirm={(date) => onSelectingDate(date)}
           onCancel={() => setDateModal(false)}

@@ -7,8 +7,10 @@ import {
   StyleSheet,
   BackHandler,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSelector } from 'react-redux';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   SuccessScreenTickIcon,
   SyncCloseIcon,
@@ -16,13 +18,14 @@ import {
 } from '../../../assets/svg';
 import CustomButton from '../../../components/CustomButton';
 import I18n from '../../../i18n/i18n';
+import { convertQuantity } from '../../../services/commonFunctions';
 
 const { height, width } = Dimensions.get('window');
 
 const SendTransactionCompleteScreen = ({ navigation, route }) => {
   const { buyerName, quantity, transactionArray, checkTransactionStatus } =
     route.params;
-  const { theme } = useSelector((state) => state.common);
+  const { theme, sendTnxStatus } = useSelector((state) => state.common);
   const [loading, setLoading] = useState(true);
   const [tnxStatusArray, setTnxStatusArray] = useState([]);
 
@@ -45,12 +48,8 @@ const SendTransactionCompleteScreen = ({ navigation, route }) => {
    * setting initial transaction status from async storage
    */
   const setupInitialValues = async () => {
-    let transactionStatus =
-      (await AsyncStorage.getItem('transactionStatus')) || '{}';
-    transactionStatus = JSON.parse(transactionStatus);
-
-    if (transactionStatus.send) {
-      setTnxStatusArray(transactionStatus.send);
+    if (checkTransactionStatus) {
+      setTnxStatusArray(sendTnxStatus);
     }
 
     setLoading(false);
@@ -58,7 +57,6 @@ const SendTransactionCompleteScreen = ({ navigation, route }) => {
 
   /**
    * checking particular product transaction status is success
-   *
    * @param   {string} productId  product id
    * @returns {boolean}           true if transaction success, otherwise false
    */
@@ -79,7 +77,6 @@ const SendTransactionCompleteScreen = ({ navigation, route }) => {
    * resetting transactionStatus and redirecting to home page
    */
   const onConfirm = async () => {
-    await AsyncStorage.setItem('transactionStatus', JSON.stringify({}));
     navigation.navigate('Home');
   };
 
@@ -114,6 +111,12 @@ const SendTransactionCompleteScreen = ({ navigation, route }) => {
           <Text style={styles.buyerName}>{buyerName}</Text>
         </View>
       </View>
+
+      {loading && (
+        <View style={{ marginTop: 15 }}>
+          <ActivityIndicator size="small" color={theme.text_1} />
+        </View>
+      )}
 
       {!loading && (
         <ScrollView contentContainerStyle={styles.bottomSection}>
@@ -178,9 +181,7 @@ const SendTransactionCompleteScreen = ({ navigation, route }) => {
                       style={[
                         styles.tnxStatusText,
                         {
-                          color: tnxStatus
-                            ? theme.text_2
-                            : theme.icon_error,
+                          color: tnxStatus ? theme.text_2 : theme.icon_error,
                         },
                       ]}
                     >
@@ -191,15 +192,17 @@ const SendTransactionCompleteScreen = ({ navigation, route }) => {
 
                 <FieldView
                   title={`${I18n.t('sent')}`}
-                  value={`${Math.round(parseFloat(item.total_quantity))} Kg`}
+                  value={`${convertQuantity(item.total_quantity)} Kg`}
                 />
 
                 <FieldView
                   title={I18n.t('loss')}
-                  value={`${Math.round(
-                    parseFloat(item.total_quantity) -
-                      parseFloat(item.edited_quantity),
-                  )} Kg`}
+                  value={`${
+                    convertQuantity(
+                      parseFloat(item.total_quantity) -
+                        parseFloat(item.edited_quantity),
+                    ) || 0
+                  } Kg`}
                 />
               </View>
             );
@@ -213,7 +216,7 @@ const SendTransactionCompleteScreen = ({ navigation, route }) => {
             </View>
             <View style={{ width: '40%', alignItems: 'flex-end' }}>
               <Text style={styles.totalText}>
-                {`${Math.round(parseFloat(quantity))} Kg`}
+                {`${convertQuantity(quantity)} Kg`}
               </Text>
             </View>
           </View>
@@ -247,7 +250,7 @@ const StyleSheetFactory = (theme) => {
       backgroundColor: theme.header_bg,
     },
     successTitle: {
-      color: theme.primary,
+      color: theme.text_1,
       fontWeight: '500',
       fontFamily: theme.font_regular,
       fontStyle: 'normal',
@@ -261,13 +264,13 @@ const StyleSheetFactory = (theme) => {
       marginTop: 10,
     },
     toText: {
-      color: theme.primary,
+      color: theme.text_1,
       fontFamily: theme.font_regular,
       fontSize: 14,
       textAlign: 'center',
     },
     buyerName: {
-      color: theme.primary,
+      color: theme.text_1,
       fontFamily: theme.font_medium,
       fontSize: 16,
       textAlign: 'center',
@@ -300,7 +303,7 @@ const StyleSheetFactory = (theme) => {
       alignItems: 'center',
     },
     titleText: {
-      color: theme.primary,
+      color: theme.text_1,
       fontSize: 16,
       fontFamily: theme.font_medium,
     },
@@ -310,13 +313,13 @@ const StyleSheetFactory = (theme) => {
       fontFamily: theme.font_regular,
     },
     totalText: {
-      color: theme.primary,
+      color: theme.text_1,
       fontSize: 16,
       fontFamily: theme.font_bold,
       marginTop: height * 0.005,
     },
     fieldValue: {
-      color: theme.primary,
+      color: theme.text_1,
       fontSize: 14,
       fontFamily: theme.font_medium,
     },
@@ -326,7 +329,7 @@ const StyleSheetFactory = (theme) => {
       fontFamily: theme.font_regular,
     },
     transactionText: {
-      color: theme.primary,
+      color: theme.text_1,
       fontSize: 14,
       fontFamily: theme.font_regular,
       fontWeight: 'normal',
@@ -342,7 +345,7 @@ const StyleSheetFactory = (theme) => {
       marginBottom: 10,
     },
     formTitle: {
-      color: theme.primary,
+      color: theme.text_1,
       fontWeight: '600',
       fontFamily: theme.font_regular,
       fontStyle: 'normal',
@@ -360,7 +363,7 @@ const StyleSheetFactory = (theme) => {
       marginVertical: 20,
     },
     dot: {
-      backgroundColor: theme.primary,
+      backgroundColor: theme.text_1,
       width: 5,
       height: 5,
       borderRadius: 5 / 2,

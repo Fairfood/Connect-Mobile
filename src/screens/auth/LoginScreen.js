@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import DeviceInfo from 'react-native-device-info';
-
 import {
   loginSelector,
   signInFailure,
@@ -29,6 +28,8 @@ import {
   logoutUser,
 } from '../../services/syncInitials';
 import { checkEmojis } from '../../services/commonFunctions';
+import { fetchUserDetails, userLogin } from '../../sync/SyncAuth';
+import { store } from '../../redux/store';
 import FormTextInput from '../../components/FormTextInput';
 import I18n from '../../i18n/i18n';
 import TransparentButton from '../../components/TransparentButton';
@@ -62,7 +63,7 @@ const LoginScreen = () => {
   /**
    * submit function
    */
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     Keyboard.dismiss();
     dispatch(clearError(''));
     validateSignIn();
@@ -104,7 +105,13 @@ const LoginScreen = () => {
       return;
     }
 
-    const user = await loginUser(userEmail, userPassword, false);
+    let user = null;
+    const { migration } = store.getState().common;
+    if (migration) {
+      user = await userLogin(userEmail, userPassword, false);
+    } else {
+      user = await loginUser(userEmail, userPassword, false);
+    }
 
     if (!user) {
       return;
@@ -119,13 +126,19 @@ const LoginScreen = () => {
 
   const onNext = async (user) => {
     let currentUser = null;
+    const { migration } = store.getState().common;
+
     if (user) {
       currentUser = user;
     } else {
       const userEmail = email.toLowerCase().trim();
       const userPassword = password.trim();
 
-      currentUser = await loginUser(userEmail, userPassword, true);
+      if (migration) {
+        currentUser = await userLogin(userEmail, userPassword, true);
+      } else {
+        currentUser = await loginUser(userEmail, userPassword, true);
+      }
 
       if (!currentUser) {
         return;
@@ -137,6 +150,8 @@ const LoginScreen = () => {
     currentUser = { ...currentUser, device_id: deviceId };
     if (!currentUser?.is_granted) {
       logoutUser(currentUser);
+    } else if (migration) {
+      fetchUserDetails(currentUser);
     } else {
       getUserDetails(currentUser);
     }
@@ -156,13 +171,13 @@ const LoginScreen = () => {
           <View style={styles.linesWrap}>
             <Image
               source={require('../../assets/images/lines.png')}
-              resizeMode='stretch'
+              resizeMode="stretch"
               style={{ width }}
             />
           </View>
         </View>
         <ScrollView
-          keyboardShouldPersistTaps='handled'
+          keyboardShouldPersistTaps="handled"
           ref={scrollRef}
           showsVerticalScrollIndicator={false}
         >
@@ -188,7 +203,7 @@ const LoginScreen = () => {
               value={email}
               onChangeText={(text) => setEmail(text)}
               color={theme.text_1}
-              returnKeyType='next'
+              returnKeyType="next"
               onSubmitEditing={() => passwordRef.current.focus()}
               blurOnSubmit={false}
               extraStyle={{ width: '100%' }}
@@ -244,7 +259,7 @@ const LoginScreen = () => {
 const ForceLoginModal = ({ OpenModal, onNext, onCancel, styles }) => {
   return (
     <Modal
-      animationType='slide'
+      animationType="slide"
       transparent
       visible={OpenModal}
       onRequestClose={() => {}}
@@ -261,7 +276,7 @@ const ForceLoginModal = ({ OpenModal, onNext, onCancel, styles }) => {
             <TransparentButton
               buttonText={I18n.t('cancel')}
               onPress={() => onCancel()}
-              color='#EA2553'
+              color="#EA2553"
               paddingHorizontal={45}
             />
 

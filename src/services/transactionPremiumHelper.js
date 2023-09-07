@@ -1,6 +1,7 @@
 import { Q } from '@nozbe/watermelondb';
 import { database } from '../../App';
 import { TYPE_BASE_PRICE, TYPE_GENERIC_PREMIUM, TYPE_TRANSACTION_PREMIUM } from './constants';
+import { jsonToString } from './commonFunctions';
 
 const transactionPremiums = database.collections.get('transaction_premiums');
 
@@ -9,6 +10,11 @@ export const observeTransactionPremiums = () => {
 };
 
 export const saveTransactionPremium = async (data) => {
+  let extraFields = data.extra_fields;
+  if (extraFields && typeof extraFields === 'object') {
+    extraFields = jsonToString(extraFields);
+  }
+
   await database.action(async () => {
     await transactionPremiums.create((entry) => {
       entry.premium_id = data.premium_id;
@@ -27,11 +33,19 @@ export const saveTransactionPremium = async (data) => {
       entry._raw.destination = data.destination;
       entry._raw.verification_longitude = data.verification_longitude;
       entry._raw.verification_latitude = data.verification_latitude;
+      entry._raw.reported = data.reported;
+      entry._raw.is_reported = data.is_reported;
+      entry._raw.extra_fields = extraFields;
     });
   });
 };
 
 export const updateTransactionPremium = async (id, updates) => {
+  let extraFields = updates.extra_fields;
+  if (extraFields && typeof extraFields === 'object') {
+    extraFields = jsonToString(extraFields);
+  }
+
   await database.action(async () => {
     const transactionPremium = await transactionPremiums.find(id);
 
@@ -47,11 +61,14 @@ export const updateTransactionPremium = async (id, updates) => {
       entry._raw.card_id = updates.card_id;
       entry._raw.node_id = updates.node_id;
       entry._raw.date = updates.date;
-      entry._raw.currency = data.currency;
+      entry._raw.currency = updates.currency;
       entry._raw.source = updates.source;
       entry._raw.destination = updates.destination;
       entry._raw.verification_longitude = updates.verification_longitude;
       entry._raw.verification_latitude = updates.verification_latitude;
+      entry._raw.reported = updates.reported;
+      entry._raw.is_reported = updates.is_reported;
+      entry._raw.extra_fields = extraFields;
     });
   });
 };
@@ -110,12 +127,26 @@ export const findAllTransactionPremiumByDestination = async (destination) => {
   return transactionPremiums.query(Q.where('destination', destination));
 };
 
+export const findAllTransactionPremiumByCardID = async (cardId) => {
+  return transactionPremiums.query(Q.where('card_id', cardId));
+};
+
 export const updateTransactionPremiumDestination = async (id, destination) => {
   await database.action(async () => {
     const transactionPremium = await transactionPremiums.find(id);
 
     await transactionPremium.update((entry) => {
       entry._raw.destination = destination;
+    });
+  });
+};
+
+export const updateTransactionPremiumCard = async (id, card) => {
+  await database.action(async () => {
+    const transactionPremium = await transactionPremiums.find(id);
+
+    await transactionPremium.update((entry) => {
+      entry._raw.card_id = card;
     });
   });
 };
@@ -155,4 +186,24 @@ export const findUnSyncedBasePricePremium = async (transactionId) => {
     Q.where('server_id', ''),
     Q.where('category', TYPE_BASE_PRICE),
   );
+};
+
+export const updatePaymentReport = async (
+  id,
+  reportedStatus,
+  reportedData,
+) => {
+  let data = reportedData;
+  if (data && typeof data === 'object') {
+    data = jsonToString(data);
+  }
+
+  await database.action(async () => {
+    const transactionPremium = await transactionPremiums.find(id);
+
+    await transactionPremium.update((entry) => {
+      entry._raw.reported = data;
+      entry._raw.is_reported = reportedStatus;
+    });
+  });
 };

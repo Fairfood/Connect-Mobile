@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useSelector } from 'react-redux';
-import { getCustomFieldValue } from '../services/commonFunctions';
+import { convertCurrency, convertQuantity, getCustomFieldValue } from '../services/commonFunctions';
 import I18n from '../i18n/i18n';
 
 const CardNew = ({
@@ -49,9 +49,7 @@ const CardNew = ({
                     },
                   ]}
                 >
-                  {`${I18n.t('base_price_for')} ${parseFloat(
-                    item.quantity,
-                  ).toLocaleString('id')} Kg ${item.name}:`}
+                  {`${I18n.t('base_price_for')} ${convertQuantity(item.quantity)} Kg ${item.name}:`}
                 </Text>
                 <Text
                   style={[
@@ -62,9 +60,7 @@ const CardNew = ({
                     },
                   ]}
                 >
-                  {`${Math.round(parseFloat(item.total_amount)).toLocaleString(
-                    'id',
-                  )} ${currency}`}
+                  {`${convertCurrency(item.total_amount)} ${currency}`}
                 </Text>
               </View>
 
@@ -123,7 +119,7 @@ const CardNew = ({
               },
             ]}
           >
-            {`${Math.round(premium.total).toLocaleString('id')} ${currency}`}
+            {`${convertCurrency(premium.total)} ${currency}`}
           </Text>
         </View>
       ))}
@@ -154,9 +150,7 @@ const CardNew = ({
             },
           ]}
         >
-          {`${Math.round(parseFloat(totalPrice)).toLocaleString(
-            'id',
-          )} ${currency}`}
+          {`${convertCurrency(totalPrice)} ${currency}`}
         </Text>
       </View>
     </View>

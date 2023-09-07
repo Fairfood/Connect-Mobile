@@ -10,7 +10,6 @@ import { useSelector } from 'react-redux';
 import moment from 'moment';
 
 import {
-  TYPE_TRANSACTION_PREMIUM,
   APP_TRANS_TYPE_LOSS,
   APP_TRANS_TYPE_INCOMING,
   PAYMENT_INCOMING,
@@ -19,6 +18,7 @@ import { ErrorTnxWarningIcon } from '../assets/svg';
 import Icon from '../icons';
 import I18n from '../i18n/i18n';
 import Avatar from './Avatar';
+import { convertCurrency, convertQuantity } from '../services/commonFunctions';
 
 const { width } = Dimensions.get('window');
 
@@ -33,6 +33,20 @@ const TransactionItem = ({
 }) => {
   const { theme } = useSelector((state) => state.common);
 
+  // useEffect(() => {
+  //   if (historyView) {
+  //     if (!item.product_name) {
+  //       addProductName();
+  //     }
+  //   }
+  // }, [item]);
+
+  // const addProductName = async () => {
+  //   const product = await findProduct(item.product_id, true);
+  //   const name = product?.name ?? '';
+  //   item.product_name = name;
+  // };
+
   const getQuantity = (quantity) => {
     productQuantity = quantity;
     if (
@@ -41,7 +55,18 @@ const TransactionItem = ({
     ) {
       productQuantity = Math.round(productQuantity);
     }
-    return parseFloat(productQuantity).toLocaleString('pt-BR');
+    return productQuantity;
+  };
+
+  const getBackGroundColor = (itemObj) => {
+    if (listView) {
+      if (itemObj.error !== '' || itemObj.is_reported) {
+        return 'rgba(255, 117, 129, 0.17)';
+      }
+    } else if (paymentView && itemObj.is_reported) {
+      return 'rgba(255, 117, 129, 0.17)';
+    }
+    return null;
   };
 
   const styles = StyleSheetFactory(theme);
@@ -52,13 +77,9 @@ const TransactionItem = ({
       style={[
         styles.container,
         {
-          backgroundColor:
-            item.error !== '' && item.type === TYPE_TRANSACTION_PREMIUM
-              ? 'rgba(255, 117, 129, 0.17)'
-              : null,
+          backgroundColor: getBackGroundColor(item),
         },
       ]}
-      disabled={paymentView}
     >
       {listView && (
         <>
@@ -124,20 +145,26 @@ const TransactionItem = ({
             >
               {`${
                 item.type === APP_TRANS_TYPE_INCOMING ? '+' : '-'
-              } ${getQuantity(item.quantity)} kg`}
+              } ${convertQuantity(getQuantity(item.quantity))} kg`}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              {displayUnSync && item.server_id === '' ? (
+              {displayUnSync ? (
                 <>
-                  {item.error !== '' && (
-                    <View style={styles.syncPendingIconWrap}>
-                      <ErrorTnxWarningIcon width={18} height={18} />
+                  {/* {item.is_reported && (
+                    <View style={styles.syncErrorIconWrap}>
+                      <ReportedIcon width={15} height={15} />
+                    </View>
+                  )} */}
+
+                  {item.error !== '' && item.server_id === '' && (
+                    <View style={styles.syncErrorIconWrap}>
+                      <ErrorTnxWarningIcon width={15} height={15} />
                     </View>
                   )}
 
-                  {item.error === '' && (
+                  {item.server_id === '' && (
                     <View style={styles.syncPendingIconWrap}>
-                      <Icon name='Sync-warning2' size={20} color='#F2994A' />
+                      <Icon name="Sync-warning2" size={20} color="#F2994A" />
                     </View>
                   )}
                 </>
@@ -164,14 +191,12 @@ const TransactionItem = ({
         <View style={styles.historyViewWrap}>
           <View style={{ width: '75%' }}>
             <Text style={[styles.title, { width: '95%' }]} numberOfLines={1}>
-              {`${parseFloat(item.quantity).toLocaleString('pt-BR')} kg ${
-                item.product_name
-              } ${I18n.t('bought')}`}
+              {`${convertQuantity(item.quantity)} kg ${item?.product_name ?? ''} ${I18n.t('bought')}`}
             </Text>
             <Text style={[styles.subtitle, { color: theme.text_2 }]}>
-              {`${I18n.t('paid_a_total_amount_of')} ${Math.round(
-                parseInt(item.total),
-              ).toLocaleString('pt-BR')} ${currency}`}
+              {`${I18n.t('paid_a_total_amount_of')} ${convertCurrency(
+                item.total,
+              )} ${currency}`}
             </Text>
           </View>
           <View style={{ width: '25%' }}>
@@ -237,15 +262,23 @@ const TransactionItem = ({
               ]}
               numberOfLines={1}
             >
-              {`${
-                item._raw.type === PAYMENT_INCOMING ? '+' : '-'
-              } ${getQuantity(item.amount)} ${currency}`}
+              {`${item.type === PAYMENT_INCOMING ? '+' : '-'} ${convertCurrency(item.amount)} ${currency}`}
             </Text>
             <View style={{ flexDirection: 'row', alignSelf: 'flex-end' }}>
-              {displayUnSync && item._raw.server_id === '' ? (
-                <View style={styles.syncPendingIconWrap}>
-                  <Icon name='Sync-warning2' size={20} color='#F2994A' />
-                </View>
+              {displayUnSync ? (
+                <>
+                  {/* {item.is_reported && (
+                    <View style={[styles.syncErrorIconWrap, { marginTop: 5 }]}>
+                      <ReportedIcon width={15} height={15} />
+                    </View>
+                  )} */}
+
+                  {item.server_id === '' && (
+                    <View style={styles.syncPendingIconWrap}>
+                      <Icon name="Sync-warning2" size={20} color="#F2994A" />
+                    </View>
+                  )}
+                </>
               ) : null}
 
               <Text
@@ -258,7 +291,7 @@ const TransactionItem = ({
                   },
                 ]}
               >
-                {moment(item._raw.date * 1000).format('hh:mm A')}
+                {moment(item.date * 1000).format('hh:mm A')}
               </Text>
             </View>
           </View>
@@ -336,6 +369,11 @@ const StyleSheetFactory = (theme) => {
       marginRight: 2,
       marginTop: 3,
     },
+    syncErrorIconWrap: {
+      justifyContent: 'flex-start',
+      alignItems: 'flex-start',
+      marginRight: 3,
+    },
     rightSideWrap: {
       justifyContent: 'center',
       alignItems: 'center',
@@ -364,6 +402,25 @@ const StyleSheetFactory = (theme) => {
       width: '40%',
       justifyContent: 'center',
       alignItems: 'center',
+    },
+    reportSectionWrap: {
+      width: '90%',
+      alignSelf: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 15,
+      paddingHorizontal: 5,
+    },
+    reportTitleText: {
+      color: theme.text_2,
+      fontFamily: theme.font_regular,
+      fontSize: width * 0.035,
+    },
+    reportButtonText: {
+      color: theme.primary,
+      fontFamily: theme.font_medium,
+      fontSize: width * 0.035,
     },
   });
 };

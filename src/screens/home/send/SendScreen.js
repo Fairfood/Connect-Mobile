@@ -1,3 +1,5 @@
+/* eslint-disable camelcase */
+/* eslint-disable react/jsx-curly-newline */
 /* eslint-disable no-shadow */
 import React, { useState, useEffect } from 'react';
 import {
@@ -10,27 +12,12 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import RadioForm from 'react-native-simple-radio-button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Geolocation from 'react-native-geolocation-service';
 import Toast from 'react-native-toast-message';
 
-import { getAllProducts } from '../../../services/productsHelper';
-import { findBatchByProductId } from '../../../services/batchesHelper';
-import {
-  findTransactionById,
-  getAllTransactions,
-} from '../../../services/transactionsHelper';
-import {
-  getAllTransactionPremiums,
-  findAllPremiumsByTransactionAndCategory,
-} from '../../../services/transactionPremiumHelper';
-import {
-  getAllPremiums,
-  findPremiumByServerId,
-} from '../../../services/premiumsHelper';
-import { findAllPremiumsByProduct } from '../../../services/productPremiumHelper';
 import {
   TYPE_TRANSACTION_PREMIUM,
   PREMIUM_APPLICABLE_ACTIVITY_SELL,
@@ -38,6 +25,8 @@ import {
   MAXIMUM_TRANSACTION_QUANTITY,
   PREMIUM_APPLICABLE_ACTIVITY_BUY,
   HIT_SLOP_TEN,
+  PREMIUM_MANUAL,
+  PREMIUM_OPTIONS,
 } from '../../../services/constants';
 import CustomLeftHeader from '../../../components/CustomLeftHeader';
 import CustomButton from '../../../components/CustomButton';
@@ -45,6 +34,29 @@ import Icon from '../../../icons';
 import TransparentButton from '../../../components/TransparentButton';
 import FormTextInput from '../../../components/FormTextInput';
 import I18n from '../../../i18n/i18n';
+import { logAnalytics } from '../../../services/googleAnalyticsHelper';
+import {
+  fetchAllPremiums,
+  searchPremiumByServerId,
+} from '../../../db/services/PremiumsHelper';
+import {
+  fetchAllTransactions,
+  findTransaction,
+  getAllTotalZeroTransactions,
+  updateTransactionTotal,
+} from '../../../db/services/TransactionsHelper';
+import {
+  fetchAllTransactionPremiums,
+  fetchPremiumsByTransactionAndCategory,
+} from '../../../db/services/TransactionPremiumHelper';
+import { fetchAllProducts } from '../../../db/services/ProductsHelper';
+import { fetchBatchByProductId } from '../../../db/services/BatchHelper';
+import { fetchAllPremiumsByProduct } from '../../../db/services/ProductPremiumHelper';
+import {
+  convertCurrency,
+  convertQuantity,
+} from '../../../services/commonFunctions';
+import { clearTransactionStatus } from '../../../redux/CommonStore';
 
 const { width } = Dimensions.get('window');
 
@@ -62,6 +74,7 @@ const SendScreen = ({ navigation, route }) => {
   const [buyers, setBuyers] = useState([]);
   const [onModalOpen, setModalOpen] = useState(false);
   const [location, setLocation] = useState(null);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     setupInitialValues();
@@ -76,14 +89,25 @@ const SendScreen = ({ navigation, route }) => {
       fetchLocation();
     }
 
-    await AsyncStorage.setItem('transactionStatus', JSON.stringify({}));
+    // await AsyncStorage.setItem('transactionStatus', JSON.stringify({}));
+    dispatch(clearTransactionStatus());
 
-    const allProducts = await getAllProducts();
+    const allProducts = await fetchAllProducts();
+    const convertedProjects = Array.from(allProducts);
 
-    const firstProduct = allProducts?.[0] ?? null;
+    const patchv120070723 = await AsyncStorage.getItem('patch_v120_070723');
+    if (!patchv120070723 || patchv120070723 !== 'true') {
+      const allTnx = await getAllTotalZeroTransactions();
+      allTnx.map(async (tnx) => {
+        await updateTransactionTotal(tnx.id, tnx.price);
+      });
+      await AsyncStorage.setItem('patch_v120_070723', 'true');
+    }
+
+    const firstProduct = convertedProjects?.[0] ?? null;
     setSelectedProduct(firstProduct);
 
-    initiateValues(allProducts);
+    initiateValues(convertedProjects);
   };
 
   /**
@@ -103,7 +127,6 @@ const SendScreen = ({ navigation, route }) => {
 
   /**
    * used for grouping transaction premiums
-   *
    * @param   {Array}   arr       transaction premium array
    * @param   {*}       property  premium id
    * @returns {object}            grouped premiums
@@ -120,7 +143,6 @@ const SendScreen = ({ navigation, route }) => {
 
   /**
    * setting initial values based on products
-   *
    * @param {Array} products all products
    */
   const initiateValues = async (products) => {
@@ -128,19 +150,20 @@ const SendScreen = ({ navigation, route }) => {
     savedBuyers = JSON.parse(savedBuyers);
     setBuyers(savedBuyers);
 
-    const transactions = await getAllTransactions();
-    const transactionPremiums = await getAllTransactionPremiums();
-    const premiums = await getAllPremiums();
+    const transactions = await fetchAllTransactions();
+    const transactionPremiums = await fetchAllTransactionPremiums();
+    const premiums = await fetchAllPremiums();
 
     Promise.all(
       products.map(async (product, index) => {
-        const allBatches = await findBatchByProductId(product.id);
+        const allBatches = await fetchBatchByProductId(product.id);
 
         const batches = [];
         let errorBuyTnxFound = false;
+
         await Promise.all(
           allBatches.map(async (batch) => {
-            const tnx = await findTransactionById(batch.transaction_id);
+            const tnx = await findTransaction(batch.transaction_id);
             if (tnx.error === '') {
               batches.push(batch);
             } else {
@@ -176,10 +199,11 @@ const SendScreen = ({ navigation, route }) => {
         // finding total quantity that are applied with premium
         let premiumedQuantity = 0;
         transactionIds.map(async (trans) => {
-          const appliedPremiums = await findAllPremiumsByTransactionAndCategory(
+          const appliedPremiums = await fetchPremiumsByTransactionAndCategory(
             trans,
             TYPE_TRANSACTION_PREMIUM,
           );
+
           if (appliedPremiums.length > 0) {
             const tranDetails = transactions.filter((tx) => {
               return tx.id === trans;
@@ -189,7 +213,10 @@ const SendScreen = ({ navigation, route }) => {
         });
 
         const filteredTransactionPremiums = transactionPremiums.filter((tx) => {
-          return transactionIds.includes(tx.transaction_id);
+          return (
+            transactionIds.includes(tx.transaction_id) &&
+            tx.category === TYPE_TRANSACTION_PREMIUM
+          );
         });
 
         const res = groupBy(filteredTransactionPremiums, 'premium_id');
@@ -218,9 +245,10 @@ const SendScreen = ({ navigation, route }) => {
                   name: p.name,
                   amount: p.amount,
                   total: totalPremium,
-                  total_premiumed_quantity: totalPremiumedQuantity,
+                  total_premium_quantity: totalPremiumedQuantity,
                   is_card_dependent: p.is_card_dependent,
                   applicable_activity: p.applicable_activity,
+                  calculation_type: p.calculation_type,
                 });
                 total += totalPremium;
               }
@@ -229,9 +257,10 @@ const SendScreen = ({ navigation, route }) => {
         }
 
         let otherPremiumAmount = 0;
-        const productPremiums = await findAllPremiumsByProduct(
+        const productPremiums = await fetchAllPremiumsByProduct(
           product.server_id,
         );
+
         const otherPremiums = await getOtherPremiums(productPremiums);
 
         otherPremiums.map((p) => {
@@ -243,9 +272,10 @@ const SendScreen = ({ navigation, route }) => {
             name: p.name,
             amount: p.amount,
             total: otherTotalPremium,
-            total_premiumed_quantity: totalQuantity,
+            total_premium_quantity: totalQuantity,
             is_card_dependent: p.is_card_dependent,
             applicable_activity: p.applicable_activity,
+            calculation_type: p.calculation_type,
           });
           otherPremiumAmount += otherTotalPremium;
         });
@@ -253,6 +283,7 @@ const SendScreen = ({ navigation, route }) => {
         const nodes = [
           ...new Set(filteredTransactions.map((item) => item.node_id)),
         ];
+
         setAllNodes((allNodes) => [...allNodes, ...nodes]);
 
         product.batches = batches;
@@ -282,7 +313,6 @@ const SendScreen = ({ navigation, route }) => {
 
   /**
    * getting sent premiums
-   *
    * @param   {Array} productPremiums all product premiums
    * @returns {Array}                 premiums related on send
    */
@@ -291,15 +321,18 @@ const SendScreen = ({ navigation, route }) => {
     if (productPremiums.length > 0) {
       await Promise.all(
         productPremiums.map(async (premium) => {
-          const pp = await findPremiumByServerId(premium.premium_id);
-          let p = pp.slice(0);
-
+          const existingPremiums = await searchPremiumByServerId(
+            premium.premium_id,
+          );
           // checking premium exist
-          if (p.length > 0) {
-            [p] = p;
+          if (existingPremiums.length > 0) {
+            const existingPremium = existingPremiums[0];
 
-            if (p.applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_SELL) {
-              otherPremiums.push(p);
+            if (
+              existingPremium.applicable_activity ===
+              PREMIUM_APPLICABLE_ACTIVITY_SELL
+            ) {
+              otherPremiums.push(existingPremium);
             }
           }
         }),
@@ -326,7 +359,6 @@ const SendScreen = ({ navigation, route }) => {
 
   /**
    * updating quantity based on input
-   *
    * @param {string} quantity       updated quantity
    * @param {number} index          index of updated product in product array
    * @param {string} totalQuantity  actual quantity
@@ -364,7 +396,6 @@ const SendScreen = ({ navigation, route }) => {
 
   /**
    * checking any product quantity edited
-   *
    * @returns {boolean} true if quantity edited, otherwise false
    */
   const ratioCompare = () => {
@@ -379,7 +410,6 @@ const SendScreen = ({ navigation, route }) => {
 
   /**
    * validating data based on input fields
-   *
    * @returns {boolean} true if valid, otherwise false
    */
   const validateData = async () => {
@@ -447,7 +477,6 @@ const SendScreen = ({ navigation, route }) => {
 
   /**
    * navigation to next page
-   *
    * @param {number} type transaction type. 1 if loss, 3 if send.
    */
   const onNext = async (type) => {
@@ -462,6 +491,14 @@ const SendScreen = ({ navigation, route }) => {
     let transactionType = 3;
     if (type) {
       transactionType = type;
+
+      logAnalytics('send_quantity_edited', {
+        quantity_edited: 'Edited',
+      });
+    } else {
+      logAnalytics('send_quantity_edited', {
+        quantity_edited: 'Not-edited',
+      });
     }
 
     navigation.navigate('SendVerificationScreen', {
@@ -475,7 +512,6 @@ const SendScreen = ({ navigation, route }) => {
 
   /**
    * alter product name
-   *
    * @param   {string} name product name
    * @returns {string}      altered product name
    */
@@ -488,7 +524,6 @@ const SendScreen = ({ navigation, route }) => {
 
   /**
    * to get total amount of all product
-   *
    * @returns {number} total amount
    */
   const getTotalAmount = () => {
@@ -497,12 +532,11 @@ const SendScreen = ({ navigation, route }) => {
       total += product.total_amount * product.ratio;
     });
 
-    return Math.round(parseFloat(total));
+    return total;
   };
 
   /**
    * to get total premiums paid for products
-   *
    * @returns {Array} premium array
    */
   const getTotalPremiums = () => {
@@ -517,31 +551,48 @@ const SendScreen = ({ navigation, route }) => {
         product.total_premiums.map((premium) => {
           const { id } = premium;
           let { name } = premium;
-          let total = 0;
+          let totalAmount = 0;
 
           if (mainObj[id]) {
             const existedObj = mainObj[id];
             name = existedObj.name;
-            total = existedObj.total;
+            totalAmount = existedObj.total;
           }
 
-          if (premium.applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_BUY) {
-            if (productEditedQuantity < premium.total_premiumed_quantity) {
-              total +=
-                parseFloat(premium.amount) * parseFloat(productEditedQuantity);
+          const {
+            amount,
+            applicable_activity,
+            calculation_type,
+            total,
+            total_premium_quantity,
+          } = premium;
+
+          if (applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_BUY) {
+            if (productEditedQuantity < total_premium_quantity) {
+              if (
+                calculation_type === PREMIUM_MANUAL ||
+                calculation_type === PREMIUM_OPTIONS
+              ) {
+                totalAmount +=
+                  (total / total_premium_quantity) * productEditedQuantity;
+              } else {
+                totalAmount += amount * productEditedQuantity;
+              }
+            } else if (
+              calculation_type === PREMIUM_MANUAL ||
+              calculation_type === PREMIUM_OPTIONS
+            ) {
+              totalAmount += total;
             } else {
-              total +=
-                parseFloat(premium.amount) *
-                parseFloat(premium.total_premiumed_quantity);
+              totalAmount += amount * total_premium_quantity;
             }
           } else {
-            total +=
-              parseFloat(premium.amount) * parseFloat(productEditedQuantity);
+            totalAmount += amount * productEditedQuantity;
           }
 
           const obj = {
             name,
-            total,
+            total: totalAmount,
           };
           mainObj[id] = obj;
         });
@@ -553,42 +604,58 @@ const SendScreen = ({ navigation, route }) => {
 
   /**
    * get all amount including premiums
-   *
    * @returns {number} total amount
    */
   const getAllTotalAmount = () => {
-    let total = 0;
+    let totalAmount = 0;
 
-    products.map((product) => {
-      const productEditedQuantity =
-        product.edited_quantity !== '' ? product.edited_quantity : 0;
-      const productRatio = product.ratio !== '' ? product.ratio : 0;
+    products.forEach((product) => {
+      const editedQuantity =
+        product.edited_quantity !== ''
+          ? parseFloat(product.edited_quantity)
+          : 0;
+      const ratio = product.ratio !== '' ? parseFloat(product.ratio) : 0;
 
-      total += parseFloat(product.total_amount) * parseFloat(productRatio);
+      totalAmount += parseFloat(product.total_amount) * ratio;
 
-      product.total_premiums.map((premium) => {
-        if (premium.applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_BUY) {
-          if (productEditedQuantity < premium.total_premiumed_quantity) {
-            total +=
-              parseFloat(premium.amount) * parseFloat(productEditedQuantity);
+      product.total_premiums.forEach((premium) => {
+        const {
+          amount,
+          applicable_activity,
+          calculation_type,
+          total_premium_quantity,
+          total,
+        } = premium;
+
+        if (applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_BUY) {
+          if (editedQuantity < total_premium_quantity) {
+            if (
+              calculation_type === PREMIUM_MANUAL ||
+              calculation_type === PREMIUM_OPTIONS
+            ) {
+              totalAmount += total * ratio;
+            } else {
+              totalAmount += amount * editedQuantity;
+            }
+          } else if (
+            calculation_type === PREMIUM_MANUAL ||
+            calculation_type === PREMIUM_OPTIONS
+          ) {
+            totalAmount += total;
           } else {
-            total +=
-              parseFloat(premium.amount) *
-              parseFloat(premium.total_premiumed_quantity);
+            totalAmount += amount * total_premium_quantity;
           }
         } else {
-          total +=
-            parseFloat(premium.amount) * parseFloat(productEditedQuantity);
+          totalAmount += amount * editedQuantity;
         }
       });
     });
 
-    return Math.round(parseFloat(total));
+    return totalAmount;
   };
 
   /**
    * to get total farmer count
-   *
    * @returns {number} farmer count
    */
   const getTotalFarmerCount = () => {
@@ -599,7 +666,6 @@ const SendScreen = ({ navigation, route }) => {
 
   /**
    * calculate total edited quantity
-   *
    * @returns {number} total edited quantity
    */
   const getTotalEditedQuantity = () => {
@@ -616,7 +682,7 @@ const SendScreen = ({ navigation, route }) => {
       <CustomLeftHeader
         backgroundColor={theme.background_1}
         title={I18n.t('sell')}
-        leftIcon='arrow-left'
+        leftIcon="arrow-left"
         onPress={() => backNavigation()}
       />
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
@@ -645,7 +711,7 @@ const SendScreen = ({ navigation, route }) => {
           <Text style={styles.formValue}>{getTotalFarmerCount()}</Text>
         </View>
 
-        {loading && <ActivityIndicator size='small' color={theme.text_1} />}
+        {loading && <ActivityIndicator size="small" color={theme.text_1} />}
 
         {products.length > 0 && !loading && (
           <View style={styles.productDetailsWrap}>
@@ -654,7 +720,7 @@ const SendScreen = ({ navigation, route }) => {
               buttonText={I18n.t('edit')}
               onPress={() => setEditQuantity(true)}
               padding={0}
-              icon={<Icon name='edit' color='#EA2553' />}
+              icon={<Icon name="edit" color="#EA2553" />}
               extraStyle={{ marginRight: 0 }}
             />
           </View>
@@ -670,9 +736,7 @@ const SendScreen = ({ navigation, route }) => {
                   </Text>
                   <View style={styles.productQuantity}>
                     <Text style={styles.formValue}>
-                      {parseFloat(item.total_quantity * item.ratio)
-                        .toLocaleString('id')
-                        .replace(/\./g, '')}
+                      {convertQuantity(item.total_quantity * item.ratio)}
                     </Text>
                   </View>
                 </View>
@@ -697,9 +761,10 @@ const SendScreen = ({ navigation, route }) => {
                       .toLocaleString('id')
                       .replace(/\./g, '')}
                     onChangeText={(text) =>
-                      updateQuantity(text, index, item.total_quantity)}
+                      updateQuantity(text, index, item.total_quantity)
+                    }
                     color={theme.text_1}
-                    keyboardType='number-pad'
+                    keyboardType="number-pad"
                     extraStyle={{ width: '100%' }}
                   />
                   <TouchableOpacity
@@ -708,11 +773,12 @@ const SendScreen = ({ navigation, route }) => {
                         item.total_quantity,
                         index,
                         item.total_quantity,
-                      )}
+                      )
+                    }
                     style={styles.resetWrap}
                     hitSlop={HIT_SLOP_TEN}
                   >
-                    <Icon name='Reset' color='#EA2553' size={16} />
+                    <Icon name="Reset" color="#EA2553" size={16} />
                     <Text style={styles.resetText}>{I18n.t('reset')}</Text>
                   </TouchableOpacity>
                 </View>
@@ -744,7 +810,7 @@ const SendScreen = ({ navigation, route }) => {
                     },
                   ]}
                 >
-                  {`${getTotalAmount().toLocaleString('pt-BR')} ${currency}`}
+                  {`${convertCurrency(getTotalAmount())} ${currency}`}
                 </Text>
               </View>
             </View>
@@ -763,9 +829,7 @@ const SendScreen = ({ navigation, route }) => {
                     },
                   ]}
                 >
-                  {`${Math.round(parseFloat(premium.total)).toLocaleString(
-                    'pt-BR',
-                  )} ${currency}`}
+                  {`${convertCurrency(premium.total)} ${currency}`}
                 </Text>
               </View>
             ))}
@@ -795,7 +859,7 @@ const SendScreen = ({ navigation, route }) => {
                   },
                 ]}
               >
-                {`${getAllTotalAmount().toLocaleString('pt-BR')} ${currency}`}
+                {`${convertCurrency(getAllTotalAmount())} ${currency}`}
               </Text>
             </View>
           </View>
@@ -840,11 +904,16 @@ const EditModal = ({
     // { label: I18n.t('partial_delivery'), value: 2 },
   ];
 
+  const handleSubmit = () => {
+    onCloseModal();
+    onNext(type);
+  };
+
   const styles = StyleSheetFactory(theme);
 
   return (
     <Modal
-      animationType='slide'
+      animationType="slide"
       transparent
       visible={OpenModal}
       onRequestClose={() => {
@@ -866,7 +935,7 @@ const EditModal = ({
                   style={{ alignItems: 'flex-end', paddingHorizontal: 20 }}
                   onPress={onCloseModal}
                 >
-                  <Icon name='Close' size={25} color={theme.text_1} />
+                  <Icon name="Close" size={25} color={theme.text_1} />
                 </TouchableOpacity>
               </View>
               <View style={{ marginHorizontal: 30, marginVertical: 20 }}>
@@ -897,7 +966,7 @@ const EditModal = ({
                         ]}
                       >
                         <View style={{ marginHorizontal: 10 }}>
-                          <Icon name='info' color={theme.text_1} size={15} />
+                          <Icon name="info" color={theme.text_1} size={15} />
                         </View>
                         <Text style={styles.lossText}>
                           {`${item.name} - ${(
@@ -905,7 +974,7 @@ const EditModal = ({
                             parseFloat(
                               item.edited_quantity.toString().replace(',', '.'),
                             )
-                          ).toLocaleString('pt-BR')} Kg ${I18n.t(
+                          ).toLocaleString('id')} Kg ${I18n.t(
                             'will_be_considered_as_loss',
                           )}`}
                         </Text>
@@ -932,7 +1001,7 @@ const EditModal = ({
                         },
                       ]}
                     >
-                      {totalEditedQuantity.toLocaleString('pt-BR')}
+                      {convertQuantity(totalEditedQuantity)}
                     </Text>
                   </View>
                 </View>
@@ -959,14 +1028,11 @@ const EditModal = ({
               <TransparentButton
                 buttonText={I18n.t('back')}
                 onPress={() => onCloseModal()}
-                color='#EA2553'
+                color="#EA2553"
                 paddingHorizontal={45}
               />
               <TouchableOpacity
-                onPress={() => {
-                  onCloseModal();
-                  onNext(type);
-                }}
+                onPress={() => handleSubmit()}
                 style={[
                   styles.buttonContainer,
                   { backgroundColor: theme.primary },

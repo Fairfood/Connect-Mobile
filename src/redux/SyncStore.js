@@ -37,6 +37,7 @@ const SyncStore = createSlice({
       state.tnxSyncPrevTotal = 0;
       state.tnxSyncNextUrl = null;
       state.tnxUpdatedBefore = null;
+      state.tnxSyncStage = 2;
     },
     tnxSyncFailed: (state) => {
       state.tnxSyncing = false;

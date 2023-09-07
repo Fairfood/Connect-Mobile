@@ -13,8 +13,8 @@ export const observeCards = () => {
 };
 
 export const saveCard = async (card) => {
-  await database.action(async () => {
-    await cards.create((entry) => {
+  const res = await database.action(async () => {
+    const response = await cards.create((entry) => {
       entry.card_id = card.card_id;
       entry.node_id = card.node_id;
       entry.fair_id = card.fair_id;
@@ -22,7 +22,9 @@ export const saveCard = async (card) => {
       entry.created_at = card.created_at;
       entry.updated_at = card.updated_at;
     });
+    return response;
   });
+  return res;
 };
 
 export const updateCardServerID = async (id, serverId) => {
@@ -31,17 +33,6 @@ export const updateCardServerID = async (id, serverId) => {
     await card.update((tx) => {
       tx.server_id = serverId;
     });
-  });
-};
-
-export const clearAllCards = async () => {
-  const allCards = await database.collections.get('cards').query().fetch();
-  await database.action(async () => {
-    const deleted = allCards.map((card) => {
-      return card.prepareDestroyPermanently();
-    });
-
-    database.batch(...deleted);
   });
 };
 
@@ -57,16 +48,6 @@ export const findCardByCardId = async (cardId) => {
   return cards.query(Q.where('card_id', cardId));
 };
 
-export const updateCardId = async (id, cardId) => {
-  await database.action(async () => {
-    const card = await cards.find(id);
-    await card.update((tx) => {
-      tx.card_id = cardId;
-      tx.server_id = '';
-    });
-  });
-};
-
 export const updateCardNodeIDById = async (id, update) => {
   await database.action(async () => {
     const card = await cards.find(id);
@@ -77,4 +58,16 @@ export const updateCardNodeIDById = async (id, update) => {
       tx.updated_at = Math.floor(Date.now() / 1000);
     });
   });
+};
+
+export const findCardByServerId = async (serverId) => {
+  return cards.query(Q.where('server_id', serverId));
+};
+
+export const findCardById = async (id) => {
+  return cards.find(id);
+};
+
+export const searchCardById = async (id) => {
+  return cards.query(Q.where('id', id));
 };

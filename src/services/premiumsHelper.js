@@ -13,8 +13,8 @@ export const observePremiums = () => {
 };
 
 export const savePremium = async (premium) => {
-  await database.action(async () => {
-    await premiums.create((entry) => {
+  const res = await database.action(async () => {
+    const response = await premiums.create((entry) => {
       entry.server_id = premium.id;
       entry.name = premium.name;
       entry.type = premium.type;
@@ -23,11 +23,25 @@ export const savePremium = async (premium) => {
       entry.is_card_dependent = premium.dependant_on_card;
       entry.applicable_activity = premium.applicable_activity;
       entry._raw.category = premium.category;
+      entry._raw.is_active = premium.is_active;
+      entry._raw.calculation_type = premium.calculation_type;
     });
+    return response;
   });
+  return res;
 };
 
 export const updatePremium = async (id, updates) => {
+  if (!id) {
+    return;
+  }
+
+  const premiumExist = premiums.query(Q.where('id', id));
+
+  if (premiumExist.length === 0) {
+    return;
+  }
+
   const premium = await premiums.find(id);
 
   await database.action(async () => {
@@ -40,27 +54,18 @@ export const updatePremium = async (id, updates) => {
       entry.is_card_dependent = updates.dependant_on_card;
       entry.applicable_activity = updates.applicable_activity;
       entry._raw.category = updates.category;
+      entry._raw.is_active = updates.is_active;
+      entry._raw.calculation_type = updates.calculation_type;
     });
-  });
-};
-
-export const clearAllPremiums = async () => {
-  const allPremiums = await database.collections
-    .get('premiums')
-    .query()
-    .fetch();
-
-  await database.action(async () => {
-    const deleted = allPremiums.map((premium) => {
-      return premium.prepareDestroyPermanently();
-    });
-
-    database.batch(...deleted);
   });
 };
 
 export const findPremiumById = async (id) => {
   return premiums.find(id);
+};
+
+export const searchPremiumById = async (id) => {
+  return premiums.query(Q.where('id', id));
 };
 
 export const findPremiumByServerId = async (id) => {
@@ -69,4 +74,32 @@ export const findPremiumByServerId = async (id) => {
 
 export const getPremiumByCategory = async (category) => {
   return premiums.query(Q.where('category', category));
+};
+
+export const getAllActivePremiums = async () => {
+  return premiums.query(Q.where('is_active', true));
+};
+
+export const updatePremiumActiveStatus = async (id, status) => {
+  if (!id) {
+    return;
+  }
+
+  const premiumExist = premiums.query(Q.where('id', id));
+
+  if (premiumExist.length === 0) {
+    return;
+  }
+
+  const premium = await premiums.find(id);
+
+  await database.action(async () => {
+    await premium.update((entry) => {
+      entry._raw.is_active = status;
+    });
+  });
+};
+
+export const fetchPremiumsByCalculationType = async (calculationType) => {
+  return premiums.query(Q.where('calculation_type', calculationType));
 };

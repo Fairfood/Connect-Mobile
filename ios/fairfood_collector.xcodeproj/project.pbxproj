@@ -8,60 +8,25 @@
 
 /* Begin PBXBuildFile section */
 		00E356F31AD99517003FC87E /* fairfood_collectorTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 00E356F21AD99517003FC87E /* fairfood_collectorTests.m */; };
-		07B71321C3ED45739A45A354 /* Moderat-Medium-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8A00F1EF82624F188CAFABEA /* Moderat-Medium-Italic.ttf */; };
-		0B56592466DE42E1AD50E1AE /* Moderat-Condensed-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 66116F98B9664435BFCDE9B4 /* Moderat-Condensed-Thin.ttf */; };
-		10A67EC26D19418992A3EF60 /* Moderat-Extended-Thin-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 348AEB4373674529A15A3B94 /* Moderat-Extended-Thin-Italic.ttf */; };
-		13B07FBC1A68108700A75B9A /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.m */; };
+		0C80B921A6F3F58F76C31292 /* libPods-fairfood_collector.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-fairfood_collector.a */; };
+		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
-		162760871D49436B9F867E75 /* Moderat-Extended-Light-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 440D99F24B164D82BDE70784 /* Moderat-Extended-Light-Italic.ttf */; };
-		1EFC3536D611456FBC515383 /* Moderat-Extended-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 25A473877D8840BD95849C12 /* Moderat-Extended-Regular.ttf */; };
-		1FB0B1F5C4254D12AAF79A25 /* Moderat-Extended-Black-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FDDA9BB6D239477CBC993395 /* Moderat-Extended-Black-Italic.ttf */; };
-		3376E31F37C34964871B7BA7 /* Moderat-Mono-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 28F751A7859C4D3AA1B5EE1B /* Moderat-Mono-Thin.ttf */; };
-		3902538002934846B81442E7 /* Moderat-Extended-Bold-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 905F5ED10F5840369D302C5A /* Moderat-Extended-Bold-Italic.ttf */; };
-		40A36AC6CB9D443E8EDA36AA /* Moderat-Mono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E83990C92DB54634A60C4F41 /* Moderat-Mono-Bold.ttf */; };
-		427C1ECA53FAC193B4F29B82 /* libPods-fairfood_collector-fairfood_collectorTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 57512894681A7E63814D679A /* libPods-fairfood_collector-fairfood_collectorTests.a */; };
-		467928A74586478984FA1EB7 /* Moderat-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6E8AE3C8010747B8B5A98810 /* Moderat-Thin.ttf */; };
-		46C64EF6BE0D41FC873F4108 /* Moderat-Condensed-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FF44937813B34D44A01A2424 /* Moderat-Condensed-Light.ttf */; };
-		493A422576AF4B199C3DDF50 /* Moderat-Condensed-Medium-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C106E00328D840A1AF539E7B /* Moderat-Condensed-Medium-Italic.ttf */; };
-		4B7393884CFE406AB6D015E0 /* Moderat-Mono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 84227743EB484EB593820DE6 /* Moderat-Mono-Regular.ttf */; };
-		61BE9D5917B94D78B4F1D80F /* Moderat-Extended-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 46AC5C32594345C0BDCA07AF /* Moderat-Extended-Medium.ttf */; };
-		6807F14BE5B44E2BB3E21D0A /* Roboto-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 657C1DD9F5D44E6D9907229F /* Roboto-Regular.ttf */; };
-		6FC18A1E588E43B48906A648 /* Roboto-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8F479798D9414F3C83C4F12C /* Roboto-Medium.ttf */; };
-		70A723FEB4B14288A1000DCB /* Moderat-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F96CF69E6E224A94B2C5D34C /* Moderat-Medium.ttf */; };
-		70B71288818D4D749C478D7A /* Moderat-Condensed-Regular-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ADBB5DD965624A80BE8483A3 /* Moderat-Condensed-Regular-Italic.ttf */; };
-		72F980D53C9C4759939992DF /* Moderat-Extended-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E78D2D18140A4C9B8681212C /* Moderat-Extended-Light.ttf */; };
-		74E6683C4EF84B42AB031A7F /* FairFood.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 026B27AF6E6A4C4685EC4B91 /* FairFood.ttf */; };
-		7500E3F4CAD24FA2824E81FE /* Moderat-Condensed-Light-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1FD8C32B4CEB4C248D4E48CC /* Moderat-Condensed-Light-Italic.ttf */; };
-		758CD997411B484098F18A8C /* Moderat-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8FF588AE621B417B841A3CBB /* Moderat-Light.ttf */; };
-		75C1F34A5372420FACEE3BEB /* Moderat-Regular-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5F9CB945EBC74D44B7AC8B20 /* Moderat-Regular-Italic.ttf */; };
-		7B893B22AF5742CEB447618E /* Moderat-Condensed-Bold-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E79A6E079BCD40EDAB919C20 /* Moderat-Condensed-Bold-Italic.ttf */; };
-		7D122731798B4D128D041F57 /* Moderat-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 131AFCA5028B4E2D9B817908 /* Moderat-Bold.ttf */; };
-		7D6B827363E240B1A9AB4765 /* Moderat-Condensed-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3C2316D897464352ABB285E3 /* Moderat-Condensed-Regular.ttf */; };
-		813E2E0D220A4361B33F85B1 /* Moderat-Bold-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ADCEFCAED1314C1E822444AE /* Moderat-Bold-Italic.ttf */; };
+		7699B88040F8A987B510C191 /* libPods-fairfood_collector-fairfood_collectorTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 19F6CBCC0A4E27FBF8BF4A61 /* libPods-fairfood_collector-fairfood_collectorTests.a */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
-		8C43AF1FD45D4926A6829B91 /* Moderat-Extended-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 52081319C7D6439CB0B481BF /* Moderat-Extended-Black.ttf */; };
-		9953D3E2BDE54275B347733C /* Moderat-Condensed-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4722AC21D0BC4D49868C0FAB /* Moderat-Condensed-Black.ttf */; };
-		9967560BF15A8EFFFC8BEA5F /* libPods-fairfood_collector.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9348E0DA6680DDE3B510D28B /* libPods-fairfood_collector.a */; };
-		A08568C866AF480CA68E3C93 /* Moderat-Extended-Medium-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BEB771B335DF4CFF8DD6D43C /* Moderat-Extended-Medium-Italic.ttf */; };
-		A0C1ECB0DDA841D6A55D7EB0 /* Moderat-Condensed-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5BC2D463E3004295B4E0C11D /* Moderat-Condensed-Medium.ttf */; };
-		A9496D8D939C4C0190DD026E /* Moderat-Extended-Regular-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EC7ED528427B406987DBD7A1 /* Moderat-Extended-Regular-Italic.ttf */; };
-		A9E83D70AF7246BAA33E8D81 /* Moderat-Light-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF94E897703A44659F274FEA /* Moderat-Light-Italic.ttf */; };
-		AAA3770152C34096B287F35E /* Roboto-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A20D51D4F17F444AB93A2D52 /* Roboto-Light.ttf */; };
-		AC749C4BBCA342AD98FCFE78 /* Moderat-Mono-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3170A875377248C1AD7E12D3 /* Moderat-Mono-Black.ttf */; };
-		ADD3E42B87A24F75BD8FB701 /* Moderat-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2A1C565EB7C6461D9AB554BC /* Moderat-Black.ttf */; };
-		AE1FC8FA158145D9AA42CB07 /* Moderat-Thin-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F8CE68AB4FEB418DB20D2441 /* Moderat-Thin-Italic.ttf */; };
-		BB8651666F8D47668D3D2943 /* Moderat-Extended-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 42A897A2C5BC4E398A3D4C88 /* Moderat-Extended-Thin.ttf */; };
-		C2B597F4320744E4860CCDE0 /* Moderat-Condensed-Thin-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 06A8897C9B65474DA7A92DC4 /* Moderat-Condensed-Thin-Italic.ttf */; };
-		DEABB471C33444999AC2FDA2 /* Moderat-Mono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 067E9EC3392746978AA2448E /* Moderat-Mono-Medium.ttf */; };
-		E123B07AE0A747FA880898EF /* Moderat-Mono-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7EC72AE3A9C84566A69A1F2E /* Moderat-Mono-Light.ttf */; };
-		E63803EDBD6648479D575BC4 /* Moderat-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = DE03FDC6AE704ED299A3F2A7 /* Moderat-Regular.ttf */; };
-		E8C4FBA134AB438BA15FF104 /* Roboto-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3F4520D570D648FEBE881045 /* Roboto-Black.ttf */; };
-		E988051044544DD290BC8BE6 /* Moderat-Condensed-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D0F23EF6CB6F4140B2F87425 /* Moderat-Condensed-Bold.ttf */; };
-		EE686AFDD0104697872EF4A4 /* Moderat-Black-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8B89207B80CD4D17A09D6CDA /* Moderat-Black-Italic.ttf */; };
-		F0032C18DB3D4016B03D0520 /* Moderat-Extended-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 57CFC27952F84F9C88147516 /* Moderat-Extended-Bold.ttf */; };
-		F0BF6861F16C4FE8BAF45CA1 /* Roboto-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4D306CEDEA7B4009AF20ADA3 /* Roboto-Bold.ttf */; };
-		FDEE76613EA54C3A912BBF9B /* Moderat-Condensed-Black-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C95A86DD15E84CC0874FA3DE /* Moderat-Condensed-Black-Italic.ttf */; };
+		0827172B2B7440A9846F08CF /* FairFood.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2F488D00279D4E32836D56EB /* FairFood.ttf */; };
+		435A417FAF754C03BA2D588D /* Moderat-Black-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = DE63AA5BE13E44EDB8B6DF0D /* Moderat-Black-Italic.ttf */; };
+		B77DBB6B74DC41BDBBAAB64B /* Moderat-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 57387C4DE08C4BE1AE5270CB /* Moderat-Black.ttf */; };
+		EF62C27128604A2C95779B9F /* Moderat-Bold-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FF5D0A9EF25E4271AAE6B9B8 /* Moderat-Bold-Italic.ttf */; };
+		B7357F831C3E4E09B2A83BC7 /* Moderat-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 28379B8CEB594204B34FDDDA /* Moderat-Bold.ttf */; };
+		A5AC6E752F584F41951EABB2 /* Moderat-Light-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 473598B80C2A4E95A133BA4E /* Moderat-Light-Italic.ttf */; };
+		E180E6E3A2394907B0D0B51E /* Moderat-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 93C8B5C8F05146A5BD5AAD08 /* Moderat-Light.ttf */; };
+		F23AF9AABAAA4207A7B315EB /* Moderat-Medium-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CA109273B5564C669F4EEEC6 /* Moderat-Medium-Italic.ttf */; };
+		F2BB9797A3F04E70B21B1E27 /* Moderat-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6A507099D0464544AF523016 /* Moderat-Medium.ttf */; };
+		29056D67D5A14833A5F44B95 /* Moderat-Regular-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3A89991663304EA1B65B2A88 /* Moderat-Regular-Italic.ttf */; };
+		89730D1B4C35418BBA5F6203 /* Moderat-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F42009539B424E0FA79BF66A /* Moderat-Regular.ttf */; };
+		30524B812B384B38B7880839 /* Moderat-Thin-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F8A3BEC243A04F95B18249AE /* Moderat-Thin-Italic.ttf */; };
+		32E77F7A19504858995EE435 /* Moderat-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 92613683391446D28EB0229E /* Moderat-Thin.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -78,84 +43,33 @@
 		00E356EE1AD99517003FC87E /* fairfood_collectorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = fairfood_collectorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		00E356F11AD99517003FC87E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00E356F21AD99517003FC87E /* fairfood_collectorTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = fairfood_collectorTests.m; sourceTree = "<group>"; };
-		026B27AF6E6A4C4685EC4B91 /* FairFood.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = FairFood.ttf; path = ../src/assets/fonts/FairFood.ttf; sourceTree = "<group>"; };
-		03C971A4A8F98FEDDEA99FB5 /* Pods-fairfood_collector-fairfood_collectorTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-fairfood_collector-fairfood_collectorTests.release.xcconfig"; path = "Target Support Files/Pods-fairfood_collector-fairfood_collectorTests/Pods-fairfood_collector-fairfood_collectorTests.release.xcconfig"; sourceTree = "<group>"; };
-		0611C7E9BBF84CEDB0342A36 /* FontAwesome5_Solid.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome5_Solid.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome5_Solid.ttf"; sourceTree = "<group>"; };
-		067E9EC3392746978AA2448E /* Moderat-Mono-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Mono-Medium.ttf"; path = "../src/assets/fonts/Moderat-Mono-Medium.ttf"; sourceTree = "<group>"; };
-		06A8897C9B65474DA7A92DC4 /* Moderat-Condensed-Thin-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Condensed-Thin-Italic.ttf"; path = "../src/assets/fonts/Moderat-Condensed-Thin-Italic.ttf"; sourceTree = "<group>"; };
-		131AFCA5028B4E2D9B817908 /* Moderat-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Bold.ttf"; path = "../src/assets/fonts/Moderat-Bold.ttf"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* fairfood_collector.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = fairfood_collector.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = fairfood_collector/AppDelegate.h; sourceTree = "<group>"; };
-		13B07FB01A68108700A75B9A /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = fairfood_collector/AppDelegate.m; sourceTree = "<group>"; };
+		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = fairfood_collector/AppDelegate.mm; sourceTree = "<group>"; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = fairfood_collector/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = fairfood_collector/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = fairfood_collector/main.m; sourceTree = "<group>"; };
-		1FD8C32B4CEB4C248D4E48CC /* Moderat-Condensed-Light-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Condensed-Light-Italic.ttf"; path = "../src/assets/fonts/Moderat-Condensed-Light-Italic.ttf"; sourceTree = "<group>"; };
-		25A473877D8840BD95849C12 /* Moderat-Extended-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Extended-Regular.ttf"; path = "../src/assets/fonts/Moderat-Extended-Regular.ttf"; sourceTree = "<group>"; };
-		28F751A7859C4D3AA1B5EE1B /* Moderat-Mono-Thin.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Mono-Thin.ttf"; path = "../src/assets/fonts/Moderat-Mono-Thin.ttf"; sourceTree = "<group>"; };
-		2A1C565EB7C6461D9AB554BC /* Moderat-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Black.ttf"; path = "../src/assets/fonts/Moderat-Black.ttf"; sourceTree = "<group>"; };
-		2E3816A1DFB7BB230F7E11DE /* Pods-fairfood_collector.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-fairfood_collector.release.xcconfig"; path = "Target Support Files/Pods-fairfood_collector/Pods-fairfood_collector.release.xcconfig"; sourceTree = "<group>"; };
-		3170A875377248C1AD7E12D3 /* Moderat-Mono-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Mono-Black.ttf"; path = "../src/assets/fonts/Moderat-Mono-Black.ttf"; sourceTree = "<group>"; };
-		348AEB4373674529A15A3B94 /* Moderat-Extended-Thin-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Extended-Thin-Italic.ttf"; path = "../src/assets/fonts/Moderat-Extended-Thin-Italic.ttf"; sourceTree = "<group>"; };
-		3C2316D897464352ABB285E3 /* Moderat-Condensed-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Condensed-Regular.ttf"; path = "../src/assets/fonts/Moderat-Condensed-Regular.ttf"; sourceTree = "<group>"; };
-		3F4520D570D648FEBE881045 /* Roboto-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Roboto-Black.ttf"; path = "../src/assets/fonts/Roboto-Black.ttf"; sourceTree = "<group>"; };
-		3FFB48588C5A4F7FBF5E3D5D /* MaterialIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = MaterialIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/MaterialIcons.ttf"; sourceTree = "<group>"; };
-		4048C459996C4F22A371ADB9 /* FontAwesome5_Brands.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome5_Brands.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome5_Brands.ttf"; sourceTree = "<group>"; };
-		42A897A2C5BC4E398A3D4C88 /* Moderat-Extended-Thin.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Extended-Thin.ttf"; path = "../src/assets/fonts/Moderat-Extended-Thin.ttf"; sourceTree = "<group>"; };
-		4372AAA32E2B4B568759E1C4 /* SimpleLineIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = SimpleLineIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/SimpleLineIcons.ttf"; sourceTree = "<group>"; };
-		440D99F24B164D82BDE70784 /* Moderat-Extended-Light-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Extended-Light-Italic.ttf"; path = "../src/assets/fonts/Moderat-Extended-Light-Italic.ttf"; sourceTree = "<group>"; };
-		46AC5C32594345C0BDCA07AF /* Moderat-Extended-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Extended-Medium.ttf"; path = "../src/assets/fonts/Moderat-Extended-Medium.ttf"; sourceTree = "<group>"; };
-		4722AC21D0BC4D49868C0FAB /* Moderat-Condensed-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Condensed-Black.ttf"; path = "../src/assets/fonts/Moderat-Condensed-Black.ttf"; sourceTree = "<group>"; };
-		49721860278449FF9833AE43 /* FontAwesome.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome.ttf"; sourceTree = "<group>"; };
-		4D306CEDEA7B4009AF20ADA3 /* Roboto-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Roboto-Bold.ttf"; path = "../src/assets/fonts/Roboto-Bold.ttf"; sourceTree = "<group>"; };
-		52081319C7D6439CB0B481BF /* Moderat-Extended-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Extended-Black.ttf"; path = "../src/assets/fonts/Moderat-Extended-Black.ttf"; sourceTree = "<group>"; };
-		55CCCC6AB153B9D7466AC6E8 /* Pods-fairfood_collector-fairfood_collectorTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-fairfood_collector-fairfood_collectorTests.debug.xcconfig"; path = "Target Support Files/Pods-fairfood_collector-fairfood_collectorTests/Pods-fairfood_collector-fairfood_collectorTests.debug.xcconfig"; sourceTree = "<group>"; };
-		57512894681A7E63814D679A /* libPods-fairfood_collector-fairfood_collectorTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-fairfood_collector-fairfood_collectorTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		57CFC27952F84F9C88147516 /* Moderat-Extended-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Extended-Bold.ttf"; path = "../src/assets/fonts/Moderat-Extended-Bold.ttf"; sourceTree = "<group>"; };
-		5BC2D463E3004295B4E0C11D /* Moderat-Condensed-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Condensed-Medium.ttf"; path = "../src/assets/fonts/Moderat-Condensed-Medium.ttf"; sourceTree = "<group>"; };
-		5F9CB945EBC74D44B7AC8B20 /* Moderat-Regular-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Regular-Italic.ttf"; path = "../src/assets/fonts/Moderat-Regular-Italic.ttf"; sourceTree = "<group>"; };
-		657C1DD9F5D44E6D9907229F /* Roboto-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Roboto-Regular.ttf"; path = "../src/assets/fonts/Roboto-Regular.ttf"; sourceTree = "<group>"; };
-		66116F98B9664435BFCDE9B4 /* Moderat-Condensed-Thin.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Condensed-Thin.ttf"; path = "../src/assets/fonts/Moderat-Condensed-Thin.ttf"; sourceTree = "<group>"; };
-		6E8AE3C8010747B8B5A98810 /* Moderat-Thin.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Thin.ttf"; path = "../src/assets/fonts/Moderat-Thin.ttf"; sourceTree = "<group>"; };
-		7EC72AE3A9C84566A69A1F2E /* Moderat-Mono-Light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Mono-Light.ttf"; path = "../src/assets/fonts/Moderat-Mono-Light.ttf"; sourceTree = "<group>"; };
+		19F6CBCC0A4E27FBF8BF4A61 /* libPods-fairfood_collector-fairfood_collectorTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-fairfood_collector-fairfood_collectorTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3B4392A12AC88292D35C810B /* Pods-fairfood_collector.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-fairfood_collector.debug.xcconfig"; path = "Target Support Files/Pods-fairfood_collector/Pods-fairfood_collector.debug.xcconfig"; sourceTree = "<group>"; };
+		5709B34CF0A7D63546082F79 /* Pods-fairfood_collector.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-fairfood_collector.release.xcconfig"; path = "Target Support Files/Pods-fairfood_collector/Pods-fairfood_collector.release.xcconfig"; sourceTree = "<group>"; };
+		5B7EB9410499542E8C5724F5 /* Pods-fairfood_collector-fairfood_collectorTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-fairfood_collector-fairfood_collectorTests.debug.xcconfig"; path = "Target Support Files/Pods-fairfood_collector-fairfood_collectorTests/Pods-fairfood_collector-fairfood_collectorTests.debug.xcconfig"; sourceTree = "<group>"; };
+		5DCACB8F33CDC322A6C60F78 /* libPods-fairfood_collector.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-fairfood_collector.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = fairfood_collector/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		84227743EB484EB593820DE6 /* Moderat-Mono-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Mono-Regular.ttf"; path = "../src/assets/fonts/Moderat-Mono-Regular.ttf"; sourceTree = "<group>"; };
-		8A00F1EF82624F188CAFABEA /* Moderat-Medium-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Medium-Italic.ttf"; path = "../src/assets/fonts/Moderat-Medium-Italic.ttf"; sourceTree = "<group>"; };
-		8B89207B80CD4D17A09D6CDA /* Moderat-Black-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Black-Italic.ttf"; path = "../src/assets/fonts/Moderat-Black-Italic.ttf"; sourceTree = "<group>"; };
-		8F479798D9414F3C83C4F12C /* Roboto-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Roboto-Medium.ttf"; path = "../src/assets/fonts/Roboto-Medium.ttf"; sourceTree = "<group>"; };
-		8FF588AE621B417B841A3CBB /* Moderat-Light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Light.ttf"; path = "../src/assets/fonts/Moderat-Light.ttf"; sourceTree = "<group>"; };
-		905F5ED10F5840369D302C5A /* Moderat-Extended-Bold-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Extended-Bold-Italic.ttf"; path = "../src/assets/fonts/Moderat-Extended-Bold-Italic.ttf"; sourceTree = "<group>"; };
-		9348E0DA6680DDE3B510D28B /* libPods-fairfood_collector.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-fairfood_collector.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		950E16C35E274DEFB29D3F71 /* Fontisto.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Fontisto.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Fontisto.ttf"; sourceTree = "<group>"; };
-		A20D51D4F17F444AB93A2D52 /* Roboto-Light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Roboto-Light.ttf"; path = "../src/assets/fonts/Roboto-Light.ttf"; sourceTree = "<group>"; };
-		ADBB5DD965624A80BE8483A3 /* Moderat-Condensed-Regular-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Condensed-Regular-Italic.ttf"; path = "../src/assets/fonts/Moderat-Condensed-Regular-Italic.ttf"; sourceTree = "<group>"; };
-		ADCEFCAED1314C1E822444AE /* Moderat-Bold-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Bold-Italic.ttf"; path = "../src/assets/fonts/Moderat-Bold-Italic.ttf"; sourceTree = "<group>"; };
-		AE01C478BE9F4F2B99570162 /* Feather.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Feather.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Feather.ttf"; sourceTree = "<group>"; };
-		B1A957D506DD40428C2784A7 /* Zocial.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Zocial.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Zocial.ttf"; sourceTree = "<group>"; };
-		B7FF8EBAB35F4645BEF18BBE /* Octicons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Octicons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Octicons.ttf"; sourceTree = "<group>"; };
-		BEB771B335DF4CFF8DD6D43C /* Moderat-Extended-Medium-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Extended-Medium-Italic.ttf"; path = "../src/assets/fonts/Moderat-Extended-Medium-Italic.ttf"; sourceTree = "<group>"; };
-		C106E00328D840A1AF539E7B /* Moderat-Condensed-Medium-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Condensed-Medium-Italic.ttf"; path = "../src/assets/fonts/Moderat-Condensed-Medium-Italic.ttf"; sourceTree = "<group>"; };
-		C95A86DD15E84CC0874FA3DE /* Moderat-Condensed-Black-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Condensed-Black-Italic.ttf"; path = "../src/assets/fonts/Moderat-Condensed-Black-Italic.ttf"; sourceTree = "<group>"; };
-		CAF9188AB5964DF8BDAB9BA6 /* EvilIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = EvilIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/EvilIcons.ttf"; sourceTree = "<group>"; };
-		CF94E897703A44659F274FEA /* Moderat-Light-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Light-Italic.ttf"; path = "../src/assets/fonts/Moderat-Light-Italic.ttf"; sourceTree = "<group>"; };
-		D0F23EF6CB6F4140B2F87425 /* Moderat-Condensed-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Condensed-Bold.ttf"; path = "../src/assets/fonts/Moderat-Condensed-Bold.ttf"; sourceTree = "<group>"; };
-		D869F44416D347169DADF1CB /* FontAwesome5_Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome5_Regular.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome5_Regular.ttf"; sourceTree = "<group>"; };
-		DADB959A32914719B7BBE5AC /* MaterialCommunityIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = MaterialCommunityIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf"; sourceTree = "<group>"; };
-		DCA4251176A64CAA8721191D /* Entypo.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Entypo.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Entypo.ttf"; sourceTree = "<group>"; };
-		DE03FDC6AE704ED299A3F2A7 /* Moderat-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Regular.ttf"; path = "../src/assets/fonts/Moderat-Regular.ttf"; sourceTree = "<group>"; };
-		E78D2D18140A4C9B8681212C /* Moderat-Extended-Light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Extended-Light.ttf"; path = "../src/assets/fonts/Moderat-Extended-Light.ttf"; sourceTree = "<group>"; };
-		E79A6E079BCD40EDAB919C20 /* Moderat-Condensed-Bold-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Condensed-Bold-Italic.ttf"; path = "../src/assets/fonts/Moderat-Condensed-Bold-Italic.ttf"; sourceTree = "<group>"; };
-		E83990C92DB54634A60C4F41 /* Moderat-Mono-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Mono-Bold.ttf"; path = "../src/assets/fonts/Moderat-Mono-Bold.ttf"; sourceTree = "<group>"; };
-		EC7ED528427B406987DBD7A1 /* Moderat-Extended-Regular-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Extended-Regular-Italic.ttf"; path = "../src/assets/fonts/Moderat-Extended-Regular-Italic.ttf"; sourceTree = "<group>"; };
+		89C6BE57DB24E9ADA2F236DE /* Pods-fairfood_collector-fairfood_collectorTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-fairfood_collector-fairfood_collectorTests.release.xcconfig"; path = "Target Support Files/Pods-fairfood_collector-fairfood_collectorTests/Pods-fairfood_collector-fairfood_collectorTests.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		ED56199C12D04DE2A6FD6E91 /* Foundation.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Foundation.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Foundation.ttf"; sourceTree = "<group>"; };
-		F1CB626A8BEFDD810B382265 /* Pods-fairfood_collector.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-fairfood_collector.debug.xcconfig"; path = "Target Support Files/Pods-fairfood_collector/Pods-fairfood_collector.debug.xcconfig"; sourceTree = "<group>"; };
-		F3B7703ADFAD4698A768ABB3 /* AntDesign.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = AntDesign.ttf; path = "../node_modules/react-native-vector-icons/Fonts/AntDesign.ttf"; sourceTree = "<group>"; };
-		F74AE1A020EC456284202723 /* Ionicons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Ionicons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Ionicons.ttf"; sourceTree = "<group>"; };
-		F8CE68AB4FEB418DB20D2441 /* Moderat-Thin-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Thin-Italic.ttf"; path = "../src/assets/fonts/Moderat-Thin-Italic.ttf"; sourceTree = "<group>"; };
-		F96CF69E6E224A94B2C5D34C /* Moderat-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Medium.ttf"; path = "../src/assets/fonts/Moderat-Medium.ttf"; sourceTree = "<group>"; };
-		FDDA9BB6D239477CBC993395 /* Moderat-Extended-Black-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Extended-Black-Italic.ttf"; path = "../src/assets/fonts/Moderat-Extended-Black-Italic.ttf"; sourceTree = "<group>"; };
-		FF44937813B34D44A01A2424 /* Moderat-Condensed-Light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Moderat-Condensed-Light.ttf"; path = "../src/assets/fonts/Moderat-Condensed-Light.ttf"; sourceTree = "<group>"; };
+		2F488D00279D4E32836D56EB /* FairFood.ttf */ = {isa = PBXFileReference; name = "FairFood.ttf"; path = "../src/assets/fonts/FairFood.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		DE63AA5BE13E44EDB8B6DF0D /* Moderat-Black-Italic.ttf */ = {isa = PBXFileReference; name = "Moderat-Black-Italic.ttf"; path = "../src/assets/fonts/Moderat-Black-Italic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		57387C4DE08C4BE1AE5270CB /* Moderat-Black.ttf */ = {isa = PBXFileReference; name = "Moderat-Black.ttf"; path = "../src/assets/fonts/Moderat-Black.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		FF5D0A9EF25E4271AAE6B9B8 /* Moderat-Bold-Italic.ttf */ = {isa = PBXFileReference; name = "Moderat-Bold-Italic.ttf"; path = "../src/assets/fonts/Moderat-Bold-Italic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		28379B8CEB594204B34FDDDA /* Moderat-Bold.ttf */ = {isa = PBXFileReference; name = "Moderat-Bold.ttf"; path = "../src/assets/fonts/Moderat-Bold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		473598B80C2A4E95A133BA4E /* Moderat-Light-Italic.ttf */ = {isa = PBXFileReference; name = "Moderat-Light-Italic.ttf"; path = "../src/assets/fonts/Moderat-Light-Italic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		93C8B5C8F05146A5BD5AAD08 /* Moderat-Light.ttf */ = {isa = PBXFileReference; name = "Moderat-Light.ttf"; path = "../src/assets/fonts/Moderat-Light.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		CA109273B5564C669F4EEEC6 /* Moderat-Medium-Italic.ttf */ = {isa = PBXFileReference; name = "Moderat-Medium-Italic.ttf"; path = "../src/assets/fonts/Moderat-Medium-Italic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		6A507099D0464544AF523016 /* Moderat-Medium.ttf */ = {isa = PBXFileReference; name = "Moderat-Medium.ttf"; path = "../src/assets/fonts/Moderat-Medium.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		3A89991663304EA1B65B2A88 /* Moderat-Regular-Italic.ttf */ = {isa = PBXFileReference; name = "Moderat-Regular-Italic.ttf"; path = "../src/assets/fonts/Moderat-Regular-Italic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		F42009539B424E0FA79BF66A /* Moderat-Regular.ttf */ = {isa = PBXFileReference; name = "Moderat-Regular.ttf"; path = "../src/assets/fonts/Moderat-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		F8A3BEC243A04F95B18249AE /* Moderat-Thin-Italic.ttf */ = {isa = PBXFileReference; name = "Moderat-Thin-Italic.ttf"; path = "../src/assets/fonts/Moderat-Thin-Italic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		92613683391446D28EB0229E /* Moderat-Thin.ttf */ = {isa = PBXFileReference; name = "Moderat-Thin.ttf"; path = "../src/assets/fonts/Moderat-Thin.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -163,7 +77,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				427C1ECA53FAC193B4F29B82 /* libPods-fairfood_collector-fairfood_collectorTests.a in Frameworks */,
+				7699B88040F8A987B510C191 /* libPods-fairfood_collector-fairfood_collectorTests.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -171,7 +85,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9967560BF15A8EFFFC8BEA5F /* libPods-fairfood_collector.a in Frameworks */,
+				0C80B921A6F3F58F76C31292 /* libPods-fairfood_collector.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -199,7 +113,7 @@
 			isa = PBXGroup;
 			children = (
 				13B07FAF1A68108700A75B9A /* AppDelegate.h */,
-				13B07FB01A68108700A75B9A /* AppDelegate.m */,
+				13B07FB01A68108700A75B9A /* AppDelegate.mm */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
@@ -212,8 +126,8 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				9348E0DA6680DDE3B510D28B /* libPods-fairfood_collector.a */,
-				57512894681A7E63814D679A /* libPods-fairfood_collector-fairfood_collectorTests.a */,
+				5DCACB8F33CDC322A6C60F78 /* libPods-fairfood_collector.a */,
+				19F6CBCC0A4E27FBF8BF4A61 /* libPods-fairfood_collector-fairfood_collectorTests.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -233,8 +147,8 @@
 				00E356EF1AD99517003FC87E /* fairfood_collectorTests */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				E16DAE78DB14F878A607D270 /* Pods */,
-				AF5C161CAB3240388BED60E6 /* Resources */,
+				BBD78D7AC51CEA395F1C20DB /* Pods */,
+				BB02ED6548194527BBF2DA45 /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -250,87 +164,37 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		AF5C161CAB3240388BED60E6 /* Resources */ = {
+		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				8B89207B80CD4D17A09D6CDA /* Moderat-Black-Italic.ttf */,
-				2A1C565EB7C6461D9AB554BC /* Moderat-Black.ttf */,
-				ADCEFCAED1314C1E822444AE /* Moderat-Bold-Italic.ttf */,
-				131AFCA5028B4E2D9B817908 /* Moderat-Bold.ttf */,
-				C95A86DD15E84CC0874FA3DE /* Moderat-Condensed-Black-Italic.ttf */,
-				4722AC21D0BC4D49868C0FAB /* Moderat-Condensed-Black.ttf */,
-				E79A6E079BCD40EDAB919C20 /* Moderat-Condensed-Bold-Italic.ttf */,
-				D0F23EF6CB6F4140B2F87425 /* Moderat-Condensed-Bold.ttf */,
-				1FD8C32B4CEB4C248D4E48CC /* Moderat-Condensed-Light-Italic.ttf */,
-				FF44937813B34D44A01A2424 /* Moderat-Condensed-Light.ttf */,
-				C106E00328D840A1AF539E7B /* Moderat-Condensed-Medium-Italic.ttf */,
-				5BC2D463E3004295B4E0C11D /* Moderat-Condensed-Medium.ttf */,
-				ADBB5DD965624A80BE8483A3 /* Moderat-Condensed-Regular-Italic.ttf */,
-				3C2316D897464352ABB285E3 /* Moderat-Condensed-Regular.ttf */,
-				06A8897C9B65474DA7A92DC4 /* Moderat-Condensed-Thin-Italic.ttf */,
-				66116F98B9664435BFCDE9B4 /* Moderat-Condensed-Thin.ttf */,
-				FDDA9BB6D239477CBC993395 /* Moderat-Extended-Black-Italic.ttf */,
-				52081319C7D6439CB0B481BF /* Moderat-Extended-Black.ttf */,
-				905F5ED10F5840369D302C5A /* Moderat-Extended-Bold-Italic.ttf */,
-				57CFC27952F84F9C88147516 /* Moderat-Extended-Bold.ttf */,
-				440D99F24B164D82BDE70784 /* Moderat-Extended-Light-Italic.ttf */,
-				E78D2D18140A4C9B8681212C /* Moderat-Extended-Light.ttf */,
-				BEB771B335DF4CFF8DD6D43C /* Moderat-Extended-Medium-Italic.ttf */,
-				46AC5C32594345C0BDCA07AF /* Moderat-Extended-Medium.ttf */,
-				EC7ED528427B406987DBD7A1 /* Moderat-Extended-Regular-Italic.ttf */,
-				25A473877D8840BD95849C12 /* Moderat-Extended-Regular.ttf */,
-				348AEB4373674529A15A3B94 /* Moderat-Extended-Thin-Italic.ttf */,
-				42A897A2C5BC4E398A3D4C88 /* Moderat-Extended-Thin.ttf */,
-				CF94E897703A44659F274FEA /* Moderat-Light-Italic.ttf */,
-				8FF588AE621B417B841A3CBB /* Moderat-Light.ttf */,
-				8A00F1EF82624F188CAFABEA /* Moderat-Medium-Italic.ttf */,
-				F96CF69E6E224A94B2C5D34C /* Moderat-Medium.ttf */,
-				3170A875377248C1AD7E12D3 /* Moderat-Mono-Black.ttf */,
-				E83990C92DB54634A60C4F41 /* Moderat-Mono-Bold.ttf */,
-				7EC72AE3A9C84566A69A1F2E /* Moderat-Mono-Light.ttf */,
-				067E9EC3392746978AA2448E /* Moderat-Mono-Medium.ttf */,
-				84227743EB484EB593820DE6 /* Moderat-Mono-Regular.ttf */,
-				28F751A7859C4D3AA1B5EE1B /* Moderat-Mono-Thin.ttf */,
-				5F9CB945EBC74D44B7AC8B20 /* Moderat-Regular-Italic.ttf */,
-				DE03FDC6AE704ED299A3F2A7 /* Moderat-Regular.ttf */,
-				F8CE68AB4FEB418DB20D2441 /* Moderat-Thin-Italic.ttf */,
-				6E8AE3C8010747B8B5A98810 /* Moderat-Thin.ttf */,
-				F3B7703ADFAD4698A768ABB3 /* AntDesign.ttf */,
-				DCA4251176A64CAA8721191D /* Entypo.ttf */,
-				CAF9188AB5964DF8BDAB9BA6 /* EvilIcons.ttf */,
-				AE01C478BE9F4F2B99570162 /* Feather.ttf */,
-				49721860278449FF9833AE43 /* FontAwesome.ttf */,
-				4048C459996C4F22A371ADB9 /* FontAwesome5_Brands.ttf */,
-				D869F44416D347169DADF1CB /* FontAwesome5_Regular.ttf */,
-				0611C7E9BBF84CEDB0342A36 /* FontAwesome5_Solid.ttf */,
-				950E16C35E274DEFB29D3F71 /* Fontisto.ttf */,
-				ED56199C12D04DE2A6FD6E91 /* Foundation.ttf */,
-				F74AE1A020EC456284202723 /* Ionicons.ttf */,
-				DADB959A32914719B7BBE5AC /* MaterialCommunityIcons.ttf */,
-				3FFB48588C5A4F7FBF5E3D5D /* MaterialIcons.ttf */,
-				B7FF8EBAB35F4645BEF18BBE /* Octicons.ttf */,
-				4372AAA32E2B4B568759E1C4 /* SimpleLineIcons.ttf */,
-				B1A957D506DD40428C2784A7 /* Zocial.ttf */,
-				026B27AF6E6A4C4685EC4B91 /* FairFood.ttf */,
-				3F4520D570D648FEBE881045 /* Roboto-Black.ttf */,
-				4D306CEDEA7B4009AF20ADA3 /* Roboto-Bold.ttf */,
-				A20D51D4F17F444AB93A2D52 /* Roboto-Light.ttf */,
-				8F479798D9414F3C83C4F12C /* Roboto-Medium.ttf */,
-				657C1DD9F5D44E6D9907229F /* Roboto-Regular.ttf */,
-			);
-			name = Resources;
-			sourceTree = "<group>";
-		};
-		E16DAE78DB14F878A607D270 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				F1CB626A8BEFDD810B382265 /* Pods-fairfood_collector.debug.xcconfig */,
-				2E3816A1DFB7BB230F7E11DE /* Pods-fairfood_collector.release.xcconfig */,
-				55CCCC6AB153B9D7466AC6E8 /* Pods-fairfood_collector-fairfood_collectorTests.debug.xcconfig */,
-				03C971A4A8F98FEDDEA99FB5 /* Pods-fairfood_collector-fairfood_collectorTests.release.xcconfig */,
+				3B4392A12AC88292D35C810B /* Pods-fairfood_collector.debug.xcconfig */,
+				5709B34CF0A7D63546082F79 /* Pods-fairfood_collector.release.xcconfig */,
+				5B7EB9410499542E8C5724F5 /* Pods-fairfood_collector-fairfood_collectorTests.debug.xcconfig */,
+				89C6BE57DB24E9ADA2F236DE /* Pods-fairfood_collector-fairfood_collectorTests.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
+		};
+		BB02ED6548194527BBF2DA45 /* Resources */ = {
+			isa = "PBXGroup";
+			children = (
+				2F488D00279D4E32836D56EB /* FairFood.ttf */,
+				DE63AA5BE13E44EDB8B6DF0D /* Moderat-Black-Italic.ttf */,
+				57387C4DE08C4BE1AE5270CB /* Moderat-Black.ttf */,
+				FF5D0A9EF25E4271AAE6B9B8 /* Moderat-Bold-Italic.ttf */,
+				28379B8CEB594204B34FDDDA /* Moderat-Bold.ttf */,
+				473598B80C2A4E95A133BA4E /* Moderat-Light-Italic.ttf */,
+				93C8B5C8F05146A5BD5AAD08 /* Moderat-Light.ttf */,
+				CA109273B5564C669F4EEEC6 /* Moderat-Medium-Italic.ttf */,
+				6A507099D0464544AF523016 /* Moderat-Medium.ttf */,
+				3A89991663304EA1B65B2A88 /* Moderat-Regular-Italic.ttf */,
+				F42009539B424E0FA79BF66A /* Moderat-Regular.ttf */,
+				F8A3BEC243A04F95B18249AE /* Moderat-Thin-Italic.ttf */,
+				92613683391446D28EB0229E /* Moderat-Thin.ttf */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+			path = "";
 		};
 /* End PBXGroup section */
 
@@ -339,12 +203,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 00E357021AD99517003FC87E /* Build configuration list for PBXNativeTarget "fairfood_collectorTests" */;
 			buildPhases = (
-				603520F9F0A87B456C7AF0DF /* [CP] Check Pods Manifest.lock */,
+				A55EABD7B0C7F3A422A6CC61 /* [CP] Check Pods Manifest.lock */,
 				00E356EA1AD99517003FC87E /* Sources */,
 				00E356EB1AD99517003FC87E /* Frameworks */,
 				00E356EC1AD99517003FC87E /* Resources */,
-				BD977400796D2C87F3D347A0 /* [CP] Embed Pods Frameworks */,
-				ABDCFDE04089A33F4B9100D0 /* [CP] Copy Pods Resources */,
+				C59DA0FBD6956966B86A3779 /* [CP] Embed Pods Frameworks */,
+				F6A41C54EA430FDDC6A6ED99 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -360,14 +224,14 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "fairfood_collector" */;
 			buildPhases = (
-				72D57974BA48FF85176D290D /* [CP] Check Pods Manifest.lock */,
+				C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */,
 				FD10A7F022414F080027D42C /* Start Packager */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				C7705371B5DF2174F5516450 /* [CP] Embed Pods Frameworks */,
-				C750C9296A1980E6E4B4FAEA /* [CP] Copy Pods Resources */,
+				00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */,
+				E235C05ADACE081382539298 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -428,54 +292,19 @@
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
-				EE686AFDD0104697872EF4A4 /* Moderat-Black-Italic.ttf in Resources */,
-				ADD3E42B87A24F75BD8FB701 /* Moderat-Black.ttf in Resources */,
-				813E2E0D220A4361B33F85B1 /* Moderat-Bold-Italic.ttf in Resources */,
-				7D122731798B4D128D041F57 /* Moderat-Bold.ttf in Resources */,
-				FDEE76613EA54C3A912BBF9B /* Moderat-Condensed-Black-Italic.ttf in Resources */,
-				9953D3E2BDE54275B347733C /* Moderat-Condensed-Black.ttf in Resources */,
-				7B893B22AF5742CEB447618E /* Moderat-Condensed-Bold-Italic.ttf in Resources */,
-				E988051044544DD290BC8BE6 /* Moderat-Condensed-Bold.ttf in Resources */,
-				7500E3F4CAD24FA2824E81FE /* Moderat-Condensed-Light-Italic.ttf in Resources */,
-				46C64EF6BE0D41FC873F4108 /* Moderat-Condensed-Light.ttf in Resources */,
-				493A422576AF4B199C3DDF50 /* Moderat-Condensed-Medium-Italic.ttf in Resources */,
-				A0C1ECB0DDA841D6A55D7EB0 /* Moderat-Condensed-Medium.ttf in Resources */,
-				70B71288818D4D749C478D7A /* Moderat-Condensed-Regular-Italic.ttf in Resources */,
-				7D6B827363E240B1A9AB4765 /* Moderat-Condensed-Regular.ttf in Resources */,
-				C2B597F4320744E4860CCDE0 /* Moderat-Condensed-Thin-Italic.ttf in Resources */,
-				0B56592466DE42E1AD50E1AE /* Moderat-Condensed-Thin.ttf in Resources */,
-				1FB0B1F5C4254D12AAF79A25 /* Moderat-Extended-Black-Italic.ttf in Resources */,
-				8C43AF1FD45D4926A6829B91 /* Moderat-Extended-Black.ttf in Resources */,
-				3902538002934846B81442E7 /* Moderat-Extended-Bold-Italic.ttf in Resources */,
-				F0032C18DB3D4016B03D0520 /* Moderat-Extended-Bold.ttf in Resources */,
-				162760871D49436B9F867E75 /* Moderat-Extended-Light-Italic.ttf in Resources */,
-				72F980D53C9C4759939992DF /* Moderat-Extended-Light.ttf in Resources */,
-				A08568C866AF480CA68E3C93 /* Moderat-Extended-Medium-Italic.ttf in Resources */,
-				61BE9D5917B94D78B4F1D80F /* Moderat-Extended-Medium.ttf in Resources */,
-				A9496D8D939C4C0190DD026E /* Moderat-Extended-Regular-Italic.ttf in Resources */,
-				1EFC3536D611456FBC515383 /* Moderat-Extended-Regular.ttf in Resources */,
-				10A67EC26D19418992A3EF60 /* Moderat-Extended-Thin-Italic.ttf in Resources */,
-				BB8651666F8D47668D3D2943 /* Moderat-Extended-Thin.ttf in Resources */,
-				A9E83D70AF7246BAA33E8D81 /* Moderat-Light-Italic.ttf in Resources */,
-				758CD997411B484098F18A8C /* Moderat-Light.ttf in Resources */,
-				07B71321C3ED45739A45A354 /* Moderat-Medium-Italic.ttf in Resources */,
-				70A723FEB4B14288A1000DCB /* Moderat-Medium.ttf in Resources */,
-				AC749C4BBCA342AD98FCFE78 /* Moderat-Mono-Black.ttf in Resources */,
-				40A36AC6CB9D443E8EDA36AA /* Moderat-Mono-Bold.ttf in Resources */,
-				E123B07AE0A747FA880898EF /* Moderat-Mono-Light.ttf in Resources */,
-				DEABB471C33444999AC2FDA2 /* Moderat-Mono-Medium.ttf in Resources */,
-				4B7393884CFE406AB6D015E0 /* Moderat-Mono-Regular.ttf in Resources */,
-				3376E31F37C34964871B7BA7 /* Moderat-Mono-Thin.ttf in Resources */,
-				75C1F34A5372420FACEE3BEB /* Moderat-Regular-Italic.ttf in Resources */,
-				E63803EDBD6648479D575BC4 /* Moderat-Regular.ttf in Resources */,
-				AE1FC8FA158145D9AA42CB07 /* Moderat-Thin-Italic.ttf in Resources */,
-				467928A74586478984FA1EB7 /* Moderat-Thin.ttf in Resources */,
-				74E6683C4EF84B42AB031A7F /* FairFood.ttf in Resources */,
-				E8C4FBA134AB438BA15FF104 /* Roboto-Black.ttf in Resources */,
-				F0BF6861F16C4FE8BAF45CA1 /* Roboto-Bold.ttf in Resources */,
-				AAA3770152C34096B287F35E /* Roboto-Light.ttf in Resources */,
-				6FC18A1E588E43B48906A648 /* Roboto-Medium.ttf in Resources */,
-				6807F14BE5B44E2BB3E21D0A /* Roboto-Regular.ttf in Resources */,
+				0827172B2B7440A9846F08CF /* FairFood.ttf in Resources */,
+				435A417FAF754C03BA2D588D /* Moderat-Black-Italic.ttf in Resources */,
+				B77DBB6B74DC41BDBBAAB64B /* Moderat-Black.ttf in Resources */,
+				EF62C27128604A2C95779B9F /* Moderat-Bold-Italic.ttf in Resources */,
+				B7357F831C3E4E09B2A83BC7 /* Moderat-Bold.ttf in Resources */,
+				A5AC6E752F584F41951EABB2 /* Moderat-Light-Italic.ttf in Resources */,
+				E180E6E3A2394907B0D0B51E /* Moderat-Light.ttf in Resources */,
+				F23AF9AABAAA4207A7B315EB /* Moderat-Medium-Italic.ttf in Resources */,
+				F2BB9797A3F04E70B21B1E27 /* Moderat-Medium.ttf in Resources */,
+				29056D67D5A14833A5F44B95 /* Moderat-Regular-Italic.ttf in Resources */,
+				89730D1B4C35418BBA5F6203 /* Moderat-Regular.ttf in Resources */,
+				30524B812B384B38B7880839 /* Moderat-Thin-Italic.ttf in Resources */,
+				32E77F7A19504858995EE435 /* Moderat-Thin.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -488,15 +317,34 @@
 			files = (
 			);
 			inputPaths = (
+				"$(SRCROOT)/.xcode.env.local",
+				"$(SRCROOT)/.xcode.env",
 			);
 			name = "Bundle React Native code and images";
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\n\nexport NODE_BINARY=node\n../node_modules/react-native/scripts/react-native-xcode.sh\n";
+			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"../node_modules/react-native/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"../node_modules/react-native/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n";
 		};
-		603520F9F0A87B456C7AF0DF /* [CP] Check Pods Manifest.lock */ = {
+		00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-fairfood_collector/Pods-fairfood_collector-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-fairfood_collector/Pods-fairfood_collector-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-fairfood_collector/Pods-fairfood_collector-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		A55EABD7B0C7F3A422A6CC61 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -518,7 +366,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		72D57974BA48FF85176D290D /* [CP] Check Pods Manifest.lock */ = {
+		C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -540,24 +388,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		ABDCFDE04089A33F4B9100D0 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-fairfood_collector-fairfood_collectorTests/Pods-fairfood_collector-fairfood_collectorTests-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-fairfood_collector-fairfood_collectorTests/Pods-fairfood_collector-fairfood_collectorTests-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-fairfood_collector-fairfood_collectorTests/Pods-fairfood_collector-fairfood_collectorTests-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		BD977400796D2C87F3D347A0 /* [CP] Embed Pods Frameworks */ = {
+		C59DA0FBD6956966B86A3779 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -574,7 +405,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-fairfood_collector-fairfood_collectorTests/Pods-fairfood_collector-fairfood_collectorTests-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		C750C9296A1980E6E4B4FAEA /* [CP] Copy Pods Resources */ = {
+		E235C05ADACE081382539298 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -591,21 +422,21 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-fairfood_collector/Pods-fairfood_collector-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		C7705371B5DF2174F5516450 /* [CP] Embed Pods Frameworks */ = {
+		F6A41C54EA430FDDC6A6ED99 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-fairfood_collector/Pods-fairfood_collector-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-fairfood_collector-fairfood_collectorTests/Pods-fairfood_collector-fairfood_collectorTests-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			name = "[CP] Embed Pods Frameworks";
+			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-fairfood_collector/Pods-fairfood_collector-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-fairfood_collector-fairfood_collectorTests/Pods-fairfood_collector-fairfood_collectorTests-resources-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-fairfood_collector/Pods-fairfood_collector-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-fairfood_collector-fairfood_collectorTests/Pods-fairfood_collector-fairfood_collectorTests-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		FD10A7F022414F080027D42C /* Start Packager */ = {
@@ -642,7 +473,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				13B07FBC1A68108700A75B9A /* AppDelegate.m in Sources */,
+				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -660,7 +491,7 @@
 /* Begin XCBuildConfiguration section */
 		00E356F61AD99517003FC87E /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 55CCCC6AB153B9D7466AC6E8 /* Pods-fairfood_collector-fairfood_collectorTests.debug.xcconfig */;
+			baseConfigurationReference = 5B7EB9410499542E8C5724F5 /* Pods-fairfood_collector-fairfood_collectorTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -668,7 +499,7 @@
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = fairfood_collectorTests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -687,12 +518,12 @@
 		};
 		00E356F71AD99517003FC87E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 03C971A4A8F98FEDDEA99FB5 /* Pods-fairfood_collector-fairfood_collectorTests.release.xcconfig */;
+			baseConfigurationReference = 89C6BE57DB24E9ADA2F236DE /* Pods-fairfood_collector-fairfood_collectorTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COPY_PHASE_STRIP = NO;
 				INFOPLIST_FILE = fairfood_collectorTests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -711,7 +542,7 @@
 		};
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F1CB626A8BEFDD810B382265 /* Pods-fairfood_collector.debug.xcconfig */;
+			baseConfigurationReference = 3B4392A12AC88292D35C810B /* Pods-fairfood_collector.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -722,6 +553,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -737,7 +569,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 2E3816A1DFB7BB230F7E11DE /* Pods-fairfood_collector.release.xcconfig */;
+			baseConfigurationReference = 5709B34CF0A7D63546082F79 /* Pods-fairfood_collector.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -747,6 +579,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -764,7 +597,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -792,7 +625,7 @@
 				COPY_PHASE_STRIP = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = "arm64 ";
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = i386;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -808,18 +641,25 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					/usr/lib/swift,
 					"$(inherited)",
 				);
 				LIBRARY_SEARCH_PATHS = (
+					"\"$(SDKROOT)/usr/lib/swift\"",
 					"\"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)\"",
-					"\"$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)\"",
 					"\"$(inherited)\"",
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-DFOLLY_NO_CONFIG",
+					"-DFOLLY_MOBILE=1",
+					"-DFOLLY_USE_LIBCPP=1",
+				);
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 			};
 			name = Debug;
@@ -829,7 +669,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -857,7 +697,7 @@
 				COPY_PHASE_STRIP = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = "arm64 ";
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = i386;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -866,17 +706,24 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					/usr/lib/swift,
 					"$(inherited)",
 				);
 				LIBRARY_SEARCH_PATHS = (
+					"\"$(SDKROOT)/usr/lib/swift\"",
 					"\"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)\"",
-					"\"$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)\"",
 					"\"$(inherited)\"",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-DFOLLY_NO_CONFIG",
+					"-DFOLLY_MOBILE=1",
+					"-DFOLLY_USE_LIBCPP=1",
+				);
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
 			};

@@ -5,7 +5,7 @@ const batches = database.collections.get('batches');
 
 export const getAllBatches = async () => {
   const allBatches = await batches.query().fetch();
-  return allBatches[0];
+  return allBatches;
 };
 
 export const observeBatches = () => {
@@ -85,10 +85,6 @@ export const deleteBatchByID = async (batchId) => {
 
 export const getAllBatchesByTransaction = async (transactionId) => {
   return batches.query(Q.where('transaction_id', transactionId));
-};
-
-export const getBatchById = async (batchId) => {
-  return batches.find(batchId);
 };
 
 export const findBatchById = async (batchId) => {

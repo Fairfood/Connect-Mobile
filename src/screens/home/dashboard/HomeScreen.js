@@ -32,34 +32,40 @@ import {
   AVATAR_BG_COLORS,
   TYPE_GENERIC_PREMIUM,
 } from '../../../services/constants';
-import { getAllProducts } from '../../../services/productsHelper';
-import { getPremiumByCategory } from '../../../services/premiumsHelper';
+import { MigrationModal } from '../../../db/DatabaseMigration';
 import Icon from '../../../icons';
 import CustomButton from '../../../components/CustomButton';
 import I18n from '../../../i18n/i18n';
 import Avatar from '../../../components/Avatar';
 import SyncComponent from '../../../components/SyncComponent';
 import HelpTutorial from '../../../components/HelpTutorial';
+import { initiateSync } from '../../../sync/SyncInitials';
+import { fetchAllProducts } from '../../../db/services/ProductsHelper';
+import { fetchPremiumByCategory } from '../../../db/services/PremiumsHelper';
+import {
+  countNewFarmers,
+  countUpdatedFarmers,
+} from '../../../db/services/FarmerHelper';
+import {
+  countErroredTransactions,
+  countNewTransactions,
+} from '../../../db/services/TransactionsHelper';
 
 const { width } = Dimensions.get('window');
 
 const HomeScreen = ({ navigation }) => {
   const { isConnected } = useSelector((state) => state.connection);
-  const { theme } = useSelector((state) => state.common);
-  const {
-    syncInProgress,
-    syncSuccessfull,
-    userProjectDetails,
-    userCompanyDetails,
-    loggedInUser,
-  } = useSelector((state) => state.login);
-  const { syncStage } = useSelector((state) => state.sync);
+  const { theme, migration } = useSelector((state) => state.common);
+  const { syncInProgress, syncSuccessfull, userProjectDetails, loggedInUser } =
+    useSelector((state) => state.login);
+  const { syncStage, migrationInProgress } = useSelector((state) => state.sync);
   const [load, setLoad] = useState(false);
   const [syncModal, setSyncModal] = useState(false);
   const [helpModal, setHelpModal] = useState(false);
   const [products, setProducts] = useState(null);
   const [premiums, setPremiums] = useState(null);
   const [payEnabled, setPayEnabled] = useState(false);
+  const [migrationModal, setMigrationModal] = useState(false);
   const [SyncIcon, setSyncIcon] = useState(
     require('../../../assets/images/sync_pending.png'),
   );
@@ -71,15 +77,24 @@ const HomeScreen = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      setUpProducts();
-      setUpPremiums();
+      if (!migration) {
+        setMigrationModal(true);
+        populateDatabase();
+      } else {
+        setUpProducts();
+        setUpGenericPremiums();
+      }
       return () => {};
-    }, [syncInProgress]),
+    }, [syncInProgress, migrationInProgress]),
   );
 
   useEffect(() => {
     startSyncing();
   }, [isConnected]);
+
+  useEffect(() => {
+    initMigration();
+  }, [migrationInProgress]);
 
   useFocusEffect(
     useCallback(() => {
@@ -88,8 +103,14 @@ const HomeScreen = ({ navigation }) => {
     }, [isConnected, syncInProgress, syncSuccessfull]),
   );
 
-  const setInitials = async () => {
-    dispatch(setSyncInProgressSuccess());
+  const initMigration = async () => {
+    if (!migration) {
+      setMigrationModal(true);
+    }
+  };
+
+  const closeMigrationModal = async () => {
+    setMigrationModal(false);
 
     const helpTutorial = await AsyncStorage.getItem('help_tutorial');
     if (!helpTutorial) {
@@ -97,39 +118,42 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  const setInitials = async () => {
+    dispatch(setSyncInProgressSuccess());
+
+    // const helpTutorial = await AsyncStorage.getItem('help_tutorial');
+    // if (!helpTutorial) {
+    //   setHelpModal(true);
+    // }
+  };
+
   /**
    * setting up available products for buy transaction
    */
   const setUpProducts = async () => {
-    const allProducts = await getAllProducts();
-
-    // filtering products only eligible for that company
-    const companyProducts = userCompanyDetails?.products ?? [];
-    const filteredProducts = allProducts.filter((prod) => {
-      return companyProducts.includes(prod.server_id);
+    const allProducts = await fetchAllProducts();
+    const activeProducts = allProducts.filter((prod) => {
+      return prod.is_active === true;
     });
 
-    // filtering products by active status
-    const productActiveList = filteredProducts.filter((prod) => {
-      return prod.is_active;
-    });
-
-    setProducts(productActiveList);
+    setProducts(activeProducts);
     setLoad(!load);
   };
 
   /**
    * setting up available premiums for buy transaction
    */
-  const setUpPremiums = async () => {
-    const genericPremiums = await getPremiumByCategory(TYPE_GENERIC_PREMIUM);
+  const setUpGenericPremiums = async () => {
+    const genericPremiums = await fetchPremiumByCategory(TYPE_GENERIC_PREMIUM);
     setPremiums(genericPremiums);
+
     if (genericPremiums.length > 0) {
       setPayEnabled(true);
+      setLoad(!load);
     } else {
       setPayEnabled(false);
+      setLoad(!load);
     }
-    setLoad(!load);
   };
 
   /**
@@ -138,7 +162,11 @@ const HomeScreen = ({ navigation }) => {
   const startSyncing = async () => {
     if (isConnected && !syncInProgress) {
       await setInitialValues();
-      populateDatabase();
+      if (migration) {
+        initiateSync();
+      } else {
+        populateDatabase();
+      }
     }
   };
 
@@ -148,10 +176,21 @@ const HomeScreen = ({ navigation }) => {
   const setInitialValues = async () => {
     try {
       if (!syncInProgress) {
-        const newFarmers = await newFarmersCount();
-        const modifiedFarmers = await updatedFarmersCount();
-        const newTransactions = await newTransactionsCount();
-        const erroredTransactions = await erroredTransactionsCount();
+        let newFarmers = 0;
+        let modifiedFarmers = 0;
+        let newTransactions = 0;
+        let erroredTransactions = 0;
+        if (migration) {
+          newFarmers = await countNewFarmers();
+          modifiedFarmers = await countUpdatedFarmers();
+          newTransactions = await countNewTransactions();
+          erroredTransactions = await countErroredTransactions();
+        } else {
+          newFarmers = await newFarmersCount();
+          modifiedFarmers = await updatedFarmersCount();
+          newTransactions = await newTransactionsCount();
+          erroredTransactions = await erroredTransactionsCount();
+        }
 
         let obj = await AsyncStorage.getItem('syncData');
         obj = JSON.parse(obj);
@@ -184,9 +223,20 @@ const HomeScreen = ({ navigation }) => {
    * setting sync icons based on sync counts
    */
   const setupSyncingIcon = async () => {
-    const newFarmers = await newFarmersCount();
-    const modifiedFarmers = await updatedFarmersCount();
-    const newTransactions = await newTransactionsCount();
+    let newFarmers = 0;
+    let modifiedFarmers = 0;
+    let newTransactions = 0;
+
+    if (migration) {
+      newFarmers = await countNewFarmers();
+      modifiedFarmers = await countUpdatedFarmers();
+      newTransactions = await countNewTransactions();
+    } else {
+      newFarmers = await newFarmersCount();
+      modifiedFarmers = await updatedFarmersCount();
+      newTransactions = await newTransactionsCount();
+    }
+
     const totalCount = newFarmers + modifiedFarmers + newTransactions;
 
     if (syncInProgress) {
@@ -209,7 +259,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   /**
-   * naviagtion rp profile page
+   * navigation to profile page
    */
   const openProfile = () => {
     navigation.navigate('Profile');
@@ -217,7 +267,6 @@ const HomeScreen = ({ navigation }) => {
 
   /**
    * requesting geo location access permission
-   *
    * @param {string} type option that user chose,'Buy' or 'Send'
    */
   const requestLocationPermission = async (type) => {
@@ -275,7 +324,7 @@ const HomeScreen = ({ navigation }) => {
             <View style={styles.headerInnerWrap}>
               <View style={styles.onlineWrap}>
                 <Icon
-                  name='Online'
+                  name="Online"
                   size={20}
                   color={isConnected ? '#27AE60' : theme.button_bg_1}
                 />
@@ -380,6 +429,13 @@ const HomeScreen = ({ navigation }) => {
         <HelpTutorial
           visible={helpModal}
           hideModal={() => setHelpModal(false)}
+        />
+      )}
+
+      {migrationModal && (
+        <MigrationModal
+          visible={migrationModal}
+          onSubmit={() => closeMigrationModal()}
         />
       )}
     </SafeAreaView>

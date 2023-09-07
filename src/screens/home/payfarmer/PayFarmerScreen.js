@@ -16,7 +16,6 @@ import {
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import Collapsible from 'react-native-collapsible';
-import withObservables from '@nozbe/with-observables';
 import Geolocation from 'react-native-geolocation-service';
 
 import {
@@ -25,17 +24,18 @@ import {
   PlusRoundIcon,
   ThinArrowDownIcon,
 } from '../../../assets/svg';
-import { observeProducts } from '../../../services/productsHelper';
 import {
   MINIMUM_PAY_FARMER_AMOUNT,
   MAXIMUM_PAY_FARMER_AMOUNT,
   HIT_SLOP_TEN,
   HIT_SLOP_TWENTY,
 } from '../../../services/constants';
+import { convertCurrency, stringToJson } from '../../../services/commonFunctions';
 import I18n from '../../../i18n/i18n';
 import FormTextInput from '../../../components/FormTextInput';
 import CustomLeftHeader from '../../../components/CustomLeftHeader';
 import CustomButton from '../../../components/CustomButton';
+import CustomInputFields from '../../../components/CustomInputFields';
 
 const { width, height } = Dimensions.get('window');
 
@@ -44,9 +44,14 @@ const PayFarmer = ({ navigation, route }) => {
     route.params;
   const payedAmountRefs = useRef([]);
 
-  const { userProjectDetails } = useSelector((state) => state.login);
+  const { userProjectDetails, userCompanyDetails } = useSelector(
+    (state) => state.login,
+  );
   const { theme } = useSelector((state) => state.common);
   const { currency } = userProjectDetails;
+  const appCustomFields = userCompanyDetails?.app_custom_fields
+    ? stringToJson(userCompanyDetails.app_custom_fields)
+    : null;
 
   const [load, setLoad] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -80,11 +85,25 @@ const PayFarmer = ({ navigation, route }) => {
       premium.label = premium.name;
       premium.value = premium.id;
       premium.paid_amount = ''; // calculated
+      premium.extra_fields =
+        appCustomFields && Object.keys(appCustomFields).length > 0
+          ? appCustomFields
+          : null;
       return premium;
     });
 
-    setPremiums(selectedPremiums);
-    setActiveCollapse(selectedPremiums[0].id);
+    const firstPremium = allPrem.filter((x) => {
+      return x.id === selectedPremiums[0].id;
+    });
+
+    if (firstPremium.length > 0) {
+      setPremiums(firstPremium);
+      setActiveCollapse(firstPremium[0].id);
+    } else {
+      setPremiums(allPrem[0]);
+      setActiveCollapse(allPrem[0].id);
+    }
+
     setInitialPremiums(allPrem);
     setLoading(false);
   };
@@ -105,27 +124,18 @@ const PayFarmer = ({ navigation, route }) => {
   };
 
   /**
-   * calculating total values based on inputs
-   */
-  const calculateValues = async () => {
-    updateValues(premiums);
-  };
-
-  /**
    * creating an alert message that card is already assigned
-   *
    * @param {object} updatedPremiums updated premium array
    */
   const updateValues = (updatedPremiums) => {
     setPremiums((premiums) => updatedPremiums);
-    calculateTotalPrice(premiums);
-    validateData();
+    calculateTotalPrice(updatedPremiums);
+    validateData(updatedPremiums);
     setLoad(!load);
   };
 
   /**
    * setting quantity of each product based on the array index
-   *
    * @param {string}  paidAmount product paidAmount
    * @param {number}  orIndex  index of updated product in product array
    */
@@ -136,9 +146,7 @@ const PayFarmer = ({ navigation, route }) => {
     }
 
     premiums.find((i, index) => index === orIndex).paid_amount = premiumAmount;
-    setPremiums((premiums) => premiums);
-    setLoad(!load);
-    calculateValues();
+    updateValues(premiums);
   };
 
   /**
@@ -167,7 +175,32 @@ const PayFarmer = ({ navigation, route }) => {
   };
 
   /**
+   * updating custom field values based on premiumId and index
+   * @param {object}  item    updated custom fields object
+   * @param {number}  index   index of updated product in product array
+   * @param {Array}   itemId  updated product's itemId
+   */
+  const updateCustomData = (item, index, itemId) => {
+    premiums.map((premium) => {
+      if (premium.id === itemId) {
+        if (
+          premium?.extra_fields?.custom_fields?.pay_farmer_fields?.[index]
+            ?.key === item.key
+        ) {
+          premium.extra_fields.custom_fields.pay_farmer_fields[index].value =
+            item.value;
+
+          setPremiums((premiums) => premiums);
+          validateData(updatedPremiums);
+          setLoad(!load);
+        }
+      }
+    });
+  };
+
+  /**
    * submit validation
+   * @returns {boolean} valid or not
    */
   const validateSubmit = async () => {
     if (premiums.length === 0) {
@@ -242,7 +275,6 @@ const PayFarmer = ({ navigation, route }) => {
 
   /**
    * calculate and set total price based on updated product array
-   *
    * @param {Array} premiums updated product array
    */
   const calculateTotalPrice = (premiums) => {
@@ -271,7 +303,6 @@ const PayFarmer = ({ navigation, route }) => {
 
   /**
    * opening collapse based on product id
-   *
    * @param {string} key product id
    */
   const toggleExpanded = (key) => {
@@ -284,7 +315,6 @@ const PayFarmer = ({ navigation, route }) => {
 
   /**
    * adding premiums to current product array
-   *
    * @param {object} item new product object
    */
   const addPremium = (item) => {
@@ -292,14 +322,12 @@ const PayFarmer = ({ navigation, route }) => {
     premiums.push(item);
 
     setActiveCollapse(item.id);
-    setPremiums((premiums) => premiums);
     updateValues(premiums);
     setPremiumModal(false);
   };
 
   /**
    * removing product from product array
-   *
    * @param {string} id product id
    */
   const removePremium = (id) => {
@@ -309,7 +337,6 @@ const PayFarmer = ({ navigation, route }) => {
       const filteredProducts = premiums.filter((x) => {
         return x.id !== id;
       });
-      setPremiums((premiums) => filteredProducts);
       updateValues(filteredProducts);
     }
   };
@@ -321,15 +348,15 @@ const PayFarmer = ({ navigation, route }) => {
       <CustomLeftHeader
         backgroundColor={theme.background_1}
         title={I18n.t('pay')}
-        leftIcon='arrow-left'
+        leftIcon="arrow-left"
         onPress={() => backNavigation()}
       />
 
-      {loading && <ActivityIndicator size='small' color={theme.text_1} />}
+      {loading && <ActivityIndicator size="small" color={theme.text_1} />}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps='always'
+        keyboardShouldPersistTaps="always"
       >
         {premiums.map((item, index) => (
           <View key={index.toString()} style={styles.productWrap}>
@@ -366,7 +393,7 @@ const PayFarmer = ({ navigation, route }) => {
                   <ThinArrowDownIcon
                     width={width * 0.04}
                     height={width * 0.04}
-                    fill='#7091A6'
+                    fill="#7091A6"
                   />
                 )}
               </View>
@@ -386,13 +413,13 @@ const PayFarmer = ({ navigation, route }) => {
                     {`${I18n.t('price')}: `}
                   </Text>
                   <Text style={styles.detailsText}>
-                    {item.paid_amount.toLocaleString('pt-BR')}
+                    {convertCurrency(item.paid_amount)}
                     {item.paid_amount ? ` ${currency}` : ''}
                   </Text>
                 </View>
               )}
             </TouchableOpacity>
-            <Collapsible collapsed={activeCollapse !== item.id} align='center'>
+            <Collapsible collapsed={activeCollapse !== item.id} align="center">
               <View key={index.toString()} style={styles.bottomWrap}>
                 <FormTextInput
                   inputRef={(el) => (payedAmountRefs.current[index] = el)}
@@ -404,9 +431,9 @@ const PayFarmer = ({ navigation, route }) => {
                   onChangeText={(text) => {
                     onChangeAmount(text, index);
                   }}
-                  keyboardType='number-pad'
+                  keyboardType="number-pad"
                   color={theme.text_1}
-                  returnKeyType='next'
+                  returnKeyType="next"
                   onSubmitEditing={() => {
                     if (payedAmountRefs?.current?.[index + 1]) {
                       payedAmountRefs.current[index + 1].focus();
@@ -417,6 +444,25 @@ const PayFarmer = ({ navigation, route }) => {
                   blurOnSubmit={false}
                   extraStyle={{ width: '100%' }}
                 />
+
+                {/* custom fields */}
+                {item?.extra_fields?.custom_fields?.buy_txn_fields && (
+                  <>
+                    {item.extra_fields.custom_fields.buy_txn_fields.map(
+                      (i, n) => {
+                        return (
+                          <CustomInputFields
+                            key={n.toString()}
+                            productId={item.id}
+                            item={i}
+                            index={n}
+                            updatedItem={updateCustomData}
+                          />
+                        );
+                      },
+                    )}
+                  </>
+                )}
               </View>
             </Collapsible>
           </View>
@@ -439,7 +485,7 @@ const PayFarmer = ({ navigation, route }) => {
               <PlusRoundIcon
                 width={width * 0.05}
                 height={width * 0.05}
-                fill='#4DCAF4'
+                fill="#4DCAF4"
               />
             )}
           </TouchableOpacity>
@@ -455,9 +501,7 @@ const PayFarmer = ({ navigation, route }) => {
                   </View>
                   <View style={{ width: '30%' }}>
                     <Text style={styles.cardRightItem}>
-                      {`${parseFloat(item.paid_amount).toLocaleString(
-                        'pt-BR',
-                      )} ${currency}`}
+                      {`${convertCurrency(item.paid_amount)} ${currency}`}
                     </Text>
                   </View>
                 </View>
@@ -474,7 +518,7 @@ const PayFarmer = ({ navigation, route }) => {
               </View>
               <View style={{ width: '70%' }}>
                 <Text style={styles.totalValue}>
-                  {`${totalPrice.toLocaleString('pt-BR')} ${currency}`}
+                  {`${convertCurrency(totalPrice)} ${currency}`}
                 </Text>
               </View>
             </View>
@@ -525,7 +569,7 @@ const ProductsModal = ({
 
   return (
     <Modal
-      animationType='fade'
+      animationType="fade"
       transparent
       visible={visible}
       onRequestClose={() => hideModal()}
@@ -553,7 +597,7 @@ const ProductsModal = ({
               <PlusRoundIcon
                 width={width * 0.05}
                 height={width * 0.05}
-                fill='#4DCAF4'
+                fill="#4DCAF4"
               />
             )}
           </TouchableOpacity>
@@ -736,8 +780,4 @@ const StyleSheetFactory = (theme) => {
   });
 };
 
-const enhanceWithWeights = withObservables([], () => ({
-  PRODUCTS: observeProducts(),
-}));
-
-export default enhanceWithWeights(PayFarmer);
+export default PayFarmer;

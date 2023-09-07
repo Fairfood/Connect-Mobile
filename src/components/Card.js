@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useSelector } from 'react-redux';
 import Icon from '../icons';
 import I18n from '../i18n/i18n';
+import { convertCurrency, convertQuantity } from '../services/commonFunctions';
 
 const Card = ({
   cardColor,
@@ -56,11 +57,11 @@ const Card = ({
           >
             {`${productName} `}
             {qualityCorrectionEnabled &&
-              `- ${productQuantity.toLocaleString('id').replace(/\./g, '')}Kg`}
+              `- ${convertQuantity(productQuantity)}Kg`}
             {!qualityCorrectionEnabled &&
               localPrice !== '' &&
-              `- Local market price: ${parseInt(localPrice).toLocaleString(
-                'id',
+              `- Local market price: ${convertCurrency(
+                localPrice,
               )} ${currency}`}
           </Text>
         </View>
@@ -70,7 +71,7 @@ const Card = ({
             <View style={{ flexDirection: 'row' }}>
               {!displayTransaction && (
                 <View style={{ marginTop: 0, marginRight: 5 }}>
-                  <Icon name='info' color={theme.text_1} size={16} />
+                  <Icon name="info" color={theme.text_1} size={16} />
                 </View>
               )}
               <Text
@@ -83,7 +84,7 @@ const Card = ({
               >
                 {`${I18n.t('base_price_per_kg')} ${productName} ${I18n.t(
                   'is',
-                )} ${parseInt(productPrice).toLocaleString('id')} ${currency}`}
+                )} ${convertCurrency(productPrice)} ${currency}`}
               </Text>
             </View>
           </View>
@@ -94,7 +95,7 @@ const Card = ({
         <View style={{ flexDirection: 'row' }}>
           <View style={{ marginTop: 0, marginHorizontal: 5 }}>
             <Icon
-              name='info'
+              name="info"
               color={textColor ? '#FFFFFF' : theme.text_1}
               size={16}
             />
@@ -111,7 +112,7 @@ const Card = ({
           >
             {`${I18n.t('base_price_per_kg')} ${productName} ${I18n.t(
               'is',
-            )} ${parseFloat(productPrice).toLocaleString('id')} ${currency}`}
+            )} ${convertCurrency(productPrice)} ${currency}`}
           </Text>
         </View>
       )}
@@ -125,9 +126,9 @@ const Card = ({
             { color: textColor ?? theme.text_1, width: '70%' },
           ]}
         >
-          {`${I18n.t('base_price_for')} ${parseFloat(
+          {`${I18n.t('base_price_for')} ${convertQuantity(
             productQuantity,
-          ).toLocaleString('id')} Kg ${productName}:`}
+          )} Kg ${productName}:`}
         </Text>
         <Text
           style={[
@@ -138,9 +139,9 @@ const Card = ({
             },
           ]}
         >
-          {`${(
-            parseFloat(productQuantity) * parseFloat(productPrice)
-          ).toLocaleString('id')} ${currency}`}
+          {`${convertCurrency(
+            parseFloat(productQuantity) * parseFloat(productPrice),
+          )} ${currency}`}
         </Text>
       </View>
 
@@ -160,7 +161,7 @@ const Card = ({
               },
             ]}
           >
-            {`${Math.round(premium.total).toLocaleString('id')} ${currency}`}
+            {`${convertCurrency(premium.total)} ${currency}`}
           </Text>
         </View>
       ))}
@@ -195,9 +196,7 @@ const Card = ({
             },
           ]}
         >
-          {`${Math.round(parseFloat(totalPrice)).toLocaleString(
-            'id',
-          )} ${currency}`}
+          {`${convertCurrency(totalPrice)} ${currency}`}
         </Text>
       </View>
     </View>
@@ -212,6 +211,7 @@ const StyleSheetFactory = (theme) => {
       marginHorizontal: 15,
       marginTop: 10,
       paddingHorizontal: 10,
+      borderRadius: theme.border_radius,
     },
     cardItem: {
       flexDirection: 'row',

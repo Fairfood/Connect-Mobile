@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "170701615701",
+    "project_id": "fairfood-collector-app",
+    "storage_bucket": "fairfood-collector-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:170701615701:android:0bb4a74c5b5689f4375adc",
+        "android_client_info": {
+          "package_name": "com.fairfood_collector"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "170701615701-kjr8epfucf2pvsgpk1nl1rviku2s8lo9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkp0PscAp74tMXgAp4rZYKGQTk8jLDtAM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "170701615701-kjr8epfucf2pvsgpk1nl1rviku2s8lo9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
