@@ -13,18 +13,22 @@ const Farmer = createStackNavigator();
 
 const FarmerStack = () => {
   return (
-    <Farmer.Navigator headerMode='none'>
-      <Farmer.Screen name='Farmers' component={Farmers} />
-      <Farmer.Screen name='AddNewFarmer' component={AddNewFarmer} />
-      <Farmer.Screen name='IssueFarmerCard' component={IssueFarmerCard} />
-      <Farmer.Screen name='EditFarmer' component={EditFarmer} />
-      <Farmer.Screen name='FarmerDetails' component={FarmerDetailsScreen} />
+    <Farmer.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Farmer.Screen name="Farmers" component={Farmers} />
+      <Farmer.Screen name="AddNewFarmer" component={AddNewFarmer} />
+      <Farmer.Screen name="IssueFarmerCard" component={IssueFarmerCard} />
+      <Farmer.Screen name="EditFarmer" component={EditFarmer} />
+      <Farmer.Screen name="FarmerDetails" component={FarmerDetailsScreen} />
       <Farmer.Screen
-        name='FarmerTransactionDetails'
+        name="FarmerTransactionDetails"
         component={TransactionDetailsScreen}
       />
       <Farmer.Screen
-        name='FarmerSuccessScreen'
+        name="FarmerSuccessScreen"
         component={FarmerSuccessScreen}
       />
     </Farmer.Navigator>

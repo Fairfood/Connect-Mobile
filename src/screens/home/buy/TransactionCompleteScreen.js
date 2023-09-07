@@ -7,9 +7,10 @@ import {
   BackHandler,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { useSelector } from 'react-redux';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   SuccessScreenTickIcon,
   SyncCloseIcon,
@@ -17,13 +18,17 @@ import {
 } from '../../../assets/svg';
 import CustomButton from '../../../components/CustomButton';
 import I18n from '../../../i18n/i18n';
+import {
+  convertCurrency,
+  convertQuantity,
+} from '../../../services/commonFunctions';
 
 const { height, width } = Dimensions.get('window');
 
 const TransactionCompleteScreen = ({ navigation, route }) => {
   const { farmerName, total, transactionArray, checkTransactionStatus } =
     route.params;
-  const { theme } = useSelector((state) => state.common);
+  const { theme, buyTnxStatus } = useSelector((state) => state.common);
   const { userProjectDetails } = useSelector((state) => state.login);
   const { currency } = userProjectDetails;
   const [loading, setLoading] = useState(true);
@@ -48,11 +53,8 @@ const TransactionCompleteScreen = ({ navigation, route }) => {
    * setting initial value of transactionStatus from local storage
    */
   const setupInitialValues = async () => {
-    let transactionStatus =
-      (await AsyncStorage.getItem('transactionStatus')) || '{}';
-    transactionStatus = JSON.parse(transactionStatus);
-    if (transactionStatus.buy) {
-      setTnxStatusArray(transactionStatus.buy);
+    if (checkTransactionStatus) {
+      setTnxStatusArray(buyTnxStatus);
     }
 
     setLoading(false);
@@ -60,7 +62,6 @@ const TransactionCompleteScreen = ({ navigation, route }) => {
 
   /**
    * get products transaction status
-   *
    * @param   {string} productId  corresponding product id
    * @returns {boolean}           true if transaction success, otherwise false
    */
@@ -80,7 +81,6 @@ const TransactionCompleteScreen = ({ navigation, route }) => {
    * navigating to home screen after clearing current transaction status
    */
   const onConfirm = async () => {
-    await AsyncStorage.setItem('transactionStatus', JSON.stringify({}));
     navigation.navigate('Home');
   };
 
@@ -115,6 +115,12 @@ const TransactionCompleteScreen = ({ navigation, route }) => {
           <Text style={styles.farmerName}>{farmerName}</Text>
         </View>
       </View>
+
+      {loading && (
+        <View style={{ marginTop: 15 }}>
+          <ActivityIndicator size="small" color={theme.text_1} />
+        </View>
+      )}
 
       {!loading && (
         <ScrollView contentContainerStyle={styles.bottomSection}>
@@ -189,25 +195,19 @@ const TransactionCompleteScreen = ({ navigation, route }) => {
                 </View>
 
                 <FieldView
-                  title={`${I18n.t('base_price_for')} ${parseFloat(
-                    item.quantity,
-                  ).toLocaleString('id')} Kg`}
-                  value={`${Math.round(
-                    parseFloat(item.total_amount),
-                  )} ${currency}`}
+                  title={`${convertQuantity(item.quantity)} Kg`}
+                  value={`${convertCurrency(item.total_amount)} ${currency}`}
                 />
 
                 <FieldView
                   title={I18n.t('total_premium_paid')}
-                  value={`${Math.round(
-                    parseFloat(item.premium_total),
-                  )} ${currency}`}
+                  value={`${convertCurrency(item.premium_total)} ${currency}`}
                   hidden={userProjectDetails.premiums.length === 0}
                 />
 
                 <FieldView
                   title={I18n.t('total_amount')}
-                  value={`${Math.round(parseFloat(item.total))} ${currency}`}
+                  value={`${convertCurrency(item.total)} ${currency}`}
                 />
               </View>
             );
@@ -221,7 +221,7 @@ const TransactionCompleteScreen = ({ navigation, route }) => {
             </View>
             <View style={{ width: '40%', alignItems: 'flex-end' }}>
               <Text style={styles.totalText}>
-                {`${Math.round(parseFloat(total))} ${currency}`}
+                {`${convertCurrency(total)} ${currency}`}
               </Text>
             </View>
           </View>
@@ -229,13 +229,11 @@ const TransactionCompleteScreen = ({ navigation, route }) => {
       )}
 
       {!loading && (
-        <View style={styles.buttonWrap}>
-          <CustomButton
-            buttonText={I18n.t('ok')}
-            onPress={() => onConfirm()}
-            extraStyle={{ width: '45%' }}
-          />
-        </View>
+        <CustomButton
+          buttonText={I18n.t('ok')}
+          onPress={() => onConfirm()}
+          extraStyle={styles.buttonWrap}
+        />
       )}
     </SafeAreaView>
   );
@@ -333,6 +331,7 @@ const StyleSheetFactory = (theme) => {
       fontFamily: theme.font_regular,
     },
     buttonWrap: {
+      width: '45%',
       marginVertical: 20,
     },
     tnxStatusWrap: {

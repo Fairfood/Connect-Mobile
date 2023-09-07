@@ -34,6 +34,7 @@ const FormTextInput = (props) => {
     showPasswords,
     showEye,
     showDropdown,
+    error = '',
     ...otherProps
   } = props;
 
@@ -41,7 +42,15 @@ const FormTextInput = (props) => {
   const styles = StyleSheetFactory(theme);
 
   return (
-    <>
+    <View>
+      {placeholder && visibility && (
+        <View style={styles.titleWrap}>
+          <Text style={styles.placeholderText}>
+            {` ${placeholder}${mandatory ? '*' : ''} `}
+          </Text>
+        </View>
+      )}
+
       {!displayPicker && visibility && (
         <TextInput
           style={[
@@ -70,14 +79,10 @@ const FormTextInput = (props) => {
         />
       )}
 
+      {error !== '' && <Text style={styles.errorMessage}>{error}</Text>}
+
       {visibility && (
         <View style={styles.subWrap}>
-          {placeholder && (
-            <Text style={styles.placeholderText}>
-              {` ${placeholder}${mandatory ? '*' : ''} `}
-            </Text>
-          )}
-
           {showEye && (
             <TouchableOpacity
               onPress={() => showPasswords()}
@@ -85,13 +90,13 @@ const FormTextInput = (props) => {
             >
               {secureTextEntry && (
                 <View style={{ opacity: 0.5 }}>
-                  <Icon name='eye' size={24} color={theme.placeholder} />
+                  <Icon name="eye" size={24} color={theme.placeholder} />
                 </View>
               )}
 
               {!secureTextEntry && (
                 <View style={{ opacity: 0.5 }}>
-                  <Icon name='eye-closed' size={24} color={theme.placeholder} />
+                  <Icon name="eye-closed" size={24} color={theme.placeholder} />
                 </View>
               )}
             </TouchableOpacity>
@@ -106,7 +111,7 @@ const FormTextInput = (props) => {
           )}
         </View>
       )}
-    </>
+    </View>
   );
 };
 
@@ -126,8 +131,6 @@ const StyleSheetFactory = (theme) => {
       fontSize: 18,
       lineHeight: 24,
       fontFamily: theme.font_regular,
-      fontStyle: 'normal',
-      fontWeight: 'normal',
     },
     showEyeWrap: {
       position: 'relative',
@@ -148,18 +151,31 @@ const StyleSheetFactory = (theme) => {
     },
     subWrap: {
       left: 5,
-      bottom: 60,
+      bottom: 48,
       height: 25,
       paddingHorizontal: 8,
       justifyContent: 'space-between',
     },
+    titleWrap: {
+      zIndex: 99,
+      position: 'absolute',
+      top: 2,
+      left: 7,
+    },
     placeholderText: {
       color: theme.placeholder,
       backgroundColor: theme.background_1,
-      alignSelf: 'flex-start',
       fontSize: 12,
       fontFamily: theme.font_regular,
       letterSpacing: 0.4,
+    },
+    errorMessage: {
+      fontSize: 12,
+      fontFamily: theme.font_regular,
+      marginTop: 5,
+      marginBottom: 10,
+      marginLeft: 5,
+      color: theme.button_bg_1,
     },
   });
 };

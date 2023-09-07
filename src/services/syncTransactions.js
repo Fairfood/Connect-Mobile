@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import * as Sentry from '@sentry/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DeviceInfo from 'react-native-device-info';
@@ -26,9 +27,10 @@ import {
   findAndUpdatePaymentInvoice,
   findUnSyncedBasePricePremium,
   findUnSyncedTransactionPremium,
+  updateTransactionPremiumDestination,
   updateTransactionPremiumServerId,
 } from './transactionPremiumHelper';
-import { findPremiumById, findPremiumByServerId } from './premiumsHelper';
+import { searchPremiumById, findPremiumByServerId } from './premiumsHelper';
 import { store } from '../redux/store';
 import { SyncProcessFailed, manageSyncData } from '../redux/LoginStore';
 import { updateAllFarmerDetails } from './syncFarmers';
@@ -37,7 +39,7 @@ import {
   getAllSourceBatchesByTransaction,
 } from './sourceBatchesHelper';
 import { stringToJson } from './commonFunctions';
-import { findCardByCardId } from './cardsHelper';
+import { searchCardById, findCardByServerId } from './cardsHelper';
 import api from '../api/config';
 import * as consts from './constants';
 
@@ -76,6 +78,17 @@ export const syncTransactions = async () => {
         const product = await findProductById(transaction.product_id);
         const premiums = await getIncludedPremiums(transaction.id);
         const productId = product.server_id;
+        let cardId = null;
+
+        if (transaction.card_id !== '') {
+          let card = await searchCardById(transaction.card_id);
+          if (card.length > 0) {
+            cardId = card[0].server_id;
+          } else {
+            card = await findCardByServerId(transaction.card_id);
+            cardId = card.length > 0 ? card[0].server_id : '';
+          }
+        }
 
         // checking empty node server_id
         const nodeId = farmer.server_id || null;
@@ -117,6 +130,10 @@ export const syncTransactions = async () => {
           verification_latitude: transaction.verification_latitude,
           extra_fields: extraFields,
         };
+
+        if (cardId) {
+          data.card = cardId;
+        }
 
         const config = {
           method: 'POST',
@@ -208,6 +225,7 @@ export const syncTransactions = async () => {
 
         /// updating transaction_premiums
         const responsePremiums = response.data.premiums;
+
         responsePremiums.map(async (p) => {
           const existingPremium = await findPremiumByServerId(p.premium.id);
           const existingTransactionPremium =
@@ -215,11 +233,21 @@ export const syncTransactions = async () => {
               transaction.id,
               existingPremium[0].id,
             );
+
           if (existingTransactionPremium.length > 0) {
-            await updateTransactionPremiumServerId(
-              existingTransactionPremium[0].id,
-              p.id,
-            );
+            const { destination, node_id, id } =
+              existingTransactionPremium[0]._raw;
+
+            await updateTransactionPremiumServerId(id, p.id);
+
+            // updating destination if the transaction was direct_buy
+            if (destination === node_id) {
+              const destinationFarmer = await findFarmerById(destination);
+              if (destinationFarmer) {
+                const farmerServerId = destinationFarmer._raw.server_id;
+                await updateTransactionPremiumDestination(id, farmerServerId);
+              }
+            }
           }
         });
 
@@ -228,10 +256,21 @@ export const syncTransactions = async () => {
           transaction.id,
         );
         if (existingBasePricePremium.length > 0) {
+          const { destination, node_id, id } = existingBasePricePremium[0]._raw;
+
           await updateTransactionPremiumServerId(
-            existingBasePricePremium[0].id,
+            id,
             response.data.base_payment_id,
           );
+
+          // updating destination if the transaction was direct_buy
+          if (destination === node_id) {
+            const destinationFarmer = await findFarmerById(destination);
+            if (destinationFarmer) {
+              const farmerServerId = destinationFarmer._raw.server_id;
+              await updateTransactionPremiumDestination(id, farmerServerId);
+            }
+          }
         }
 
         store.dispatch(manageSyncData('transaction', 'success'));
@@ -360,6 +399,11 @@ const syncSendTransactions = async (headers) => {
         extra_fields: extraFields,
       };
 
+      const cardId = transaction?.card_id ?? null;
+      if (cardId) {
+        data.card = cardId;
+      }
+
       const config = {
         method: 'POST',
         url: `${api.API_URL}${api.API_VERSION}/projects/transaction-sent/`,
@@ -453,6 +497,7 @@ const syncSendTransactions = async (headers) => {
 
       // updating transaction_premiums
       const responsePremiums = transactionDetails.premiums;
+
       responsePremiums.map(async (p) => {
         const existingPremium = await findPremiumByServerId(p.premium.id);
         const existingTransactionPremium = await findUnSyncedTransactionPremium(
@@ -460,10 +505,9 @@ const syncSendTransactions = async (headers) => {
           existingPremium[0].id,
         );
         if (existingTransactionPremium.length > 0) {
-          await updateTransactionPremiumServerId(
-            existingTransactionPremium[0].id,
-            p.id,
-          );
+          const { id } = existingTransactionPremium[0]._raw;
+
+          await updateTransactionPremiumServerId(id, p.id);
         }
       });
 
@@ -472,8 +516,10 @@ const syncSendTransactions = async (headers) => {
         transaction.id,
       );
       if (existingBasePricePremium.length > 0) {
+        const { id } = existingBasePricePremium[0]._raw;
+
         await updateTransactionPremiumServerId(
-          existingBasePricePremium[0].id,
+          id,
           transactionDetails.base_payment_id,
         );
       }
@@ -514,11 +560,20 @@ const getIncludedPremiums = async (id) => {
     id,
     consts.TYPE_TRANSACTION_PREMIUM,
   );
+
   return Promise.all(
     premiums.map(async (premium) => {
-      const premiumObj = await findPremiumById(premium.premium_id);
+      const premiumObj = await searchPremiumById(premium.premium_id);
+      if (premiumObj.length > 0) {
+        return {
+          premium: premiumObj[0].server_id,
+          amount: premium.amount,
+        };
+      }
+
+      const premiumObj2 = await findPremiumByServerId(premium.premium_id);
       return {
-        premium: premiumObj.server_id,
+        premium: premiumObj2.length > 0 ? premiumObj2[0].server_id : '',
         amount: premium.amount,
       };
     }),
@@ -585,15 +640,23 @@ export const syncPayments = async () => {
   await Promise.all(
     payments.map(async (payment) => {
       let cardId = null;
-      const premium = await findPremiumById(payment.premium_id);
+      let premiumID = null;
+
+      const premium = await searchPremiumById(payment.premium_id);
+      if (premium.length > 0) {
+        premiumID = premium[0]._raw.server_id;
+      } else {
+        const premium2 = await findPremiumByServerId(payment.premium_id);
+        premiumID = premium2.length > 0 ? premium2[0]._raw.server_id : '';
+      }
 
       if (payment?._raw?.card_id) {
-        const card = await findCardByCardId(payment._raw.card_id);
-        cardId = card[0].server_id;
+        const card = await findCardByServerId(payment._raw.card_id);
+        cardId = card?.[0]?.server_id ?? '';
       }
 
       const data = {
-        premium: premium._raw.server_id,
+        premium: premiumID,
         amount: payment._raw.amount,
         currency: payment._raw.currency,
         verification_latitude: payment._raw.verification_latitude,
@@ -601,6 +664,7 @@ export const syncPayments = async () => {
         source: payment._raw.source,
         destination: payment._raw.destination,
         direction: payment._raw.type,
+        extra_fields: payment._raw.extra_fields,
       };
 
       if (cardId) {

@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import React, { useRef, useState } from 'react';
 import {
   View,
@@ -13,18 +14,34 @@ import { RNCamera } from 'react-native-camera';
 import { useDispatch, useSelector } from 'react-redux';
 import Geolocation from 'react-native-geolocation-service';
 import moment from 'moment';
-import { saveTransaction } from '../../../services/transactionsHelper';
-import { findAndUpdateBatchQuantity } from '../../../services/batchesHelper';
-import { saveTransactionPremium } from '../../../services/transactionPremiumHelper';
-import { syncTransactions } from '../../../services/syncTransactions';
-import { saveSourceBatch } from '../../../services/sourceBatchesHelper';
 import { InfoIcon, CloseIcon } from '../../../assets/svg';
-import { requestPermission } from '../../../services/commonFunctions';
+import {
+  jsonToString,
+  requestPermission,
+} from '../../../services/commonFunctions';
 import { initSyncProcess } from '../../../redux/LoginStore';
+import { logAnalytics } from '../../../services/googleAnalyticsHelper';
+import { createTransaction } from '../../../db/services/TransactionsHelper';
+import { createTransactionPremium } from '../../../db/services/TransactionPremiumHelper';
+import { findAndUpdateBatchQuantity } from '../../../db/services/BatchHelper';
+import { syncTransactions } from '../../../sync/SyncTransactions';
+import { createSourceBatch } from '../../../db/services/SourceBatchHelper';
+import {
+  PREMIUM_APPLICABLE_ACTIVITY_BUY,
+  MINIMUM_TRANSACTION_QUANTITY,
+  MAXIMUM_TRANSACTION_QUANTITY,
+  APP_TRANS_TYPE_OUTGOING,
+  TYPE_TRANSACTION_PREMIUM,
+  PAYMENT_INCOMING,
+  TYPE_BASE_PRICE,
+  PREMIUM_MANUAL,
+  VERIFICATION_METHOD_MANUAL,
+  HIT_SLOP_FIFTEEN,
+  PREMIUM_OPTIONS,
+} from '../../../services/constants';
 import CustomLeftHeader from '../../../components/CustomLeftHeader';
 import CustomButton from '../../../components/CustomButton';
 import I18n from '../../../i18n/i18n';
-import * as consts from '../../../services/constants';
 
 const { height, width } = Dimensions.get('window');
 const defaultPosition = { coords: { longitude: 0, latitude: 0 } };
@@ -91,38 +108,49 @@ const SendTakePicture = ({ navigation, route }) => {
 
   /**
    * get total amount including premiums by product
-   *
    * @param   {object} product  product object
    * @returns {number}          total amount including premiums
    */
   const getTotalAmount = async (product) => {
-    let total = 0;
-    total += parseFloat(product.total_amount) * parseFloat(product.ratio);
+    const { edited_quantity, ratio, total_amount, total_premiums } = product;
+    const editedQuantity =
+      edited_quantity !== '' ? parseFloat(edited_quantity) : 0;
+    const productRatio = ratio !== '' ? parseFloat(ratio) : 1;
+    let totalAmount = total_amount * productRatio;
 
-    product.total_premiums.map((premium) => {
-      if (
-        premium.applicable_activity === consts.PREMIUM_APPLICABLE_ACTIVITY_BUY
-      ) {
-        if (product.edited_quantity < premium.total_premiumed_quantity) {
-          total +=
-            parseFloat(premium.amount) * parseFloat(product.edited_quantity);
+    total_premiums.forEach(
+      ({
+        applicable_activity,
+        total_premium_quantity,
+        calculation_type,
+        total,
+        amount,
+      }) => {
+        if (applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_BUY) {
+          if (editedQuantity < total_premium_quantity) {
+            totalAmount +=
+              calculation_type === PREMIUM_MANUAL ||
+              calculation_type === PREMIUM_OPTIONS
+                ? total * productRatio
+                : amount * editedQuantity;
+          } else {
+            totalAmount +=
+              calculation_type === PREMIUM_MANUAL ||
+              calculation_type === PREMIUM_OPTIONS
+                ? total
+                : amount * parseFloat(total_premium_quantity);
+          }
         } else {
-          total +=
-            parseFloat(premium.amount) *
-            parseFloat(premium.total_premiumed_quantity);
+          totalAmount += amount * editedQuantity;
         }
-      } else {
-        total +=
-          parseFloat(premium.amount) * parseFloat(product.edited_quantity);
-      }
-    });
+      },
+    );
 
-    return Math.round(parseFloat(total));
+    return Math.round(parseFloat(totalAmount));
   };
 
   /**
    * transaction validate function
-   *
    * @param {object} position geo location coordinates
    */
   const transactionValidate = async (position) => {
@@ -130,60 +158,63 @@ const SendTakePicture = ({ navigation, route }) => {
 
     await Promise.all(
       products.map(async (product) => {
-        const quantity = product.edited_quantity;
-        const price =
-          parseFloat(product.total_amount) * parseFloat(product.ratio);
-        const total = await getTotalAmount(product);
-        const productPrice =
-          parseFloat(product.total_amount) * parseFloat(product.ratio);
+        const { edited_quantity, ratio, total_amount, total_premiums, name } =
+          product;
+        const editedQuantity =
+          edited_quantity !== '' ? parseFloat(edited_quantity) : 0;
+        const productRatio = ratio !== '' ? parseFloat(ratio) : 1;
+
+        const price = parseFloat(total_amount) * productRatio;
+        const allTotal = await getTotalAmount(product);
 
         if (
-          quantity === '' ||
-          quantity <= consts.MINIMUM_TRANSACTION_QUANTITY ||
-          quantity >= consts.MAXIMUM_TRANSACTION_QUANTITY ||
+          editedQuantity === '' ||
+          editedQuantity <= MINIMUM_TRANSACTION_QUANTITY ||
+          editedQuantity >= MAXIMUM_TRANSACTION_QUANTITY ||
           price === '' ||
           price <= 0 ||
-          total === '' ||
-          total <= 0 ||
-          productPrice === '' ||
-          productPrice <= 0
+          allTotal === '' ||
+          allTotal <= 0
         ) {
           valid = false;
-          setError(`${I18n.t('check_the_values_entered')} ${product.name}`);
+          setError(`${I18n.t('check_the_values_entered')} ${name}`);
           setIsVerifying(false);
         } else {
           await Promise.all(
-            product.total_premiums.map(async (premium) => {
-              let amount = 0;
-              if (
-                premium.applicable_activity ===
-                consts.PREMIUM_APPLICABLE_ACTIVITY_BUY
-              ) {
-                if (
-                  product.edited_quantity < premium.total_premiumed_quantity
-                ) {
-                  amount +=
-                    parseFloat(premium.amount) *
-                    parseFloat(product.edited_quantity);
+            total_premiums.map(
+              async ({
+                applicable_activity,
+                total_premium_quantity,
+                calculation_type,
+                total,
+                amount,
+              }) => {
+                let totalAmount = 0;
+                if (applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_BUY) {
+                  if (editedQuantity < total_premium_quantity) {
+                    totalAmount +=
+                      calculation_type === PREMIUM_MANUAL ||
+                      calculation_type === PREMIUM_OPTIONS
+                        ? total * productRatio
+                        : amount * editedQuantity;
+                  } else {
+                    totalAmount +=
+                      calculation_type === PREMIUM_MANUAL ||
+                      calculation_type === PREMIUM_OPTIONS
+                        ? total
+                        : amount * parseFloat(total_premium_quantity);
+                  }
                 } else {
-                  amount +=
-                    parseFloat(premium.amount) *
-                    parseFloat(premium.total_premiumed_quantity);
+                  totalAmount += amount * editedQuantity;
                 }
-              } else {
-                amount +=
-                  parseFloat(premium.amount) *
-                  parseFloat(product.edited_quantity);
-              }
 
-              if (amount <= 0) {
-                valid = false;
-                setError(
-                  `${I18n.t('check_the_values_entered')} ${product.name}`,
-                );
-                setIsVerifying(false);
-              }
-            }),
+                if (totalAmount <= 0) {
+                  valid = false;
+                  setError(`${I18n.t('check_the_values_entered')} ${name}`);
+                  setIsVerifying(false);
+                }
+              },
+            ),
           );
         }
       }),
@@ -197,7 +228,6 @@ const SendTakePicture = ({ navigation, route }) => {
 
   /**
    * submit function. save transaction, premium and batches in local db.
-   *
    * @param {object} position geo location coordinates
    */
   const onVerification = async (position) => {
@@ -213,13 +243,18 @@ const SendTakePicture = ({ navigation, route }) => {
         const productPrice =
           parseFloat(product.total_amount) * parseFloat(product.ratio);
 
+        let extraFields = product.extra_fields || '';
+        if (extraFields && typeof extraFields === 'object') {
+          extraFields = jsonToString(extraFields);
+        }
+
         const transactionObj = {
           server_id: null,
           node_id: buyer.id,
           node_name: buyer.name,
           currency,
           product_id: product.id,
-          type: consts.APP_TRANS_TYPE_OUTGOING,
+          type: APP_TRANS_TYPE_OUTGOING,
           quantity,
           ref_number: null,
           price,
@@ -232,7 +267,7 @@ const SendTakePicture = ({ navigation, route }) => {
           product_price: productPrice,
           quality_correction: 100,
           product_name: product.name,
-          verification_method: consts.VERIFICATION_METHOD_MANUAL,
+          verification_method: VERIFICATION_METHOD_MANUAL,
           transaction_type:
             parseFloat(product.total_quantity) ===
             parseFloat(product.edited_quantity)
@@ -240,9 +275,11 @@ const SendTakePicture = ({ navigation, route }) => {
               : transactionType,
           verification_latitude: position.coords.latitude,
           verification_longitude: position.coords.longitude,
+          extra_fields: extraFields,
         };
 
-        const transactionId = await saveTransaction(transactionObj);
+        const transactionId = await createTransaction(transactionObj);
+
         transactionObj.total_quantity = product.total_quantity;
         transactionObj.edited_quantity = product.edited_quantity;
         transactionArray.push(transactionObj);
@@ -252,6 +289,12 @@ const SendTakePicture = ({ navigation, route }) => {
         await saveSourceBatches(product.batches, transactionId, product.ratio);
       }),
     ).then(async () => {
+      logAnalytics('transactions', {
+        verification_type: 'manual_verification',
+        transaction_type: 'send_transaction',
+        network_status: isConnected && !syncInProgress ? 'online' : 'offline',
+      });
+
       let checkTransactionStatus = false;
 
       if (isConnected && !syncInProgress) {
@@ -271,57 +314,72 @@ const SendTakePicture = ({ navigation, route }) => {
 
   /**
    * saving all transaction premiums in local d
-   *
    * @param {object} product        product object
    * @param {string} transactionId  transaction id
    * @param {object} transactionObj transaction object
    */
   const saveAllPremiums = async (product, transactionId, transactionObj) => {
-    await Promise.all(
-      product.total_premiums.map(async (premium) => {
-        let total = 0;
-        if (
-          premium.applicable_activity === consts.PREMIUM_APPLICABLE_ACTIVITY_BUY
-        ) {
-          if (product.edited_quantity < premium.total_premiumed_quantity) {
-            total +=
-              parseFloat(premium.amount) * parseFloat(product.edited_quantity);
-          } else {
-            total +=
-              parseFloat(premium.amount) *
-              parseFloat(premium.total_premiumed_quantity);
-          }
-        } else {
-          total +=
-            parseFloat(premium.amount) * parseFloat(product.edited_quantity);
-        }
+    const { edited_quantity, ratio } = product;
+    const editedQuantity =
+      edited_quantity !== '' ? parseFloat(edited_quantity) : 0;
+    const productRatio = ratio !== '' ? parseFloat(ratio) : 1;
 
-        const transactionPremium = {
-          premium_id: premium.id,
-          transaction_id: transactionId,
-          amount: total,
-          server_id: '',
-          category: consts.TYPE_TRANSACTION_PREMIUM,
-          type: consts.PAYMENT_INCOMING,
-          verification_method: transactionObj.verification_method,
-          receipt: transactionObj.invoice_file,
-          card_id: transactionObj.card_id,
-          node_id: transactionObj.node_id,
-          date: transactionObj.created_on,
-          currency: transactionObj.currency,
-          source: buyer.server_id,
-          destination: loggedInUser.default_node,
-          verification_longitude: transactionObj.verification_longitude,
-          verification_latitude: transactionObj.verification_latitude,
-        };
-        await saveTransactionPremium(transactionPremium);
-      }),
+    await Promise.all(
+      product.total_premiums.map(
+        async ({
+          applicable_activity,
+          total_premium_quantity,
+          calculation_type,
+          total,
+          amount,
+          id,
+        }) => {
+          let totalAmount = 0;
+          if (applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_BUY) {
+            if (editedQuantity < total_premium_quantity) {
+              totalAmount +=
+                calculation_type === PREMIUM_MANUAL ||
+                calculation_type === PREMIUM_OPTIONS
+                  ? total * productRatio
+                  : amount * editedQuantity;
+            } else {
+              totalAmount +=
+                calculation_type === PREMIUM_MANUAL ||
+                calculation_type === PREMIUM_OPTIONS
+                  ? total
+                  : amount * total_premium_quantity;
+            }
+          } else {
+            totalAmount += amount * editedQuantity;
+          }
+
+          const transactionPremium = {
+            premium_id: id,
+            transaction_id: transactionId,
+            amount: totalAmount,
+            server_id: '',
+            category: TYPE_TRANSACTION_PREMIUM,
+            type: PAYMENT_INCOMING,
+            verification_method: transactionObj.verification_method,
+            receipt: transactionObj.invoice_file,
+            card_id: transactionObj.card_id,
+            node_id: transactionObj.node_id,
+            date: transactionObj.created_on,
+            currency: transactionObj.currency,
+            source: buyer.server_id,
+            destination: loggedInUser.default_node,
+            verification_longitude: transactionObj.verification_longitude,
+            verification_latitude: transactionObj.verification_latitude,
+          };
+
+          await createTransactionPremium(transactionPremium);
+        },
+      ),
     );
   };
 
   /**
    * saving all base price payment
-   *
    * @param {string}  transactionId   corresponding transaction id
    * @param {object}  transactionObj  transaction object
    */
@@ -331,8 +389,8 @@ const SendTakePicture = ({ navigation, route }) => {
       transaction_id: transactionId,
       amount: transactionObj.price,
       server_id: '',
-      category: consts.TYPE_BASE_PRICE,
-      type: consts.PAYMENT_INCOMING,
+      category: TYPE_BASE_PRICE,
+      type: PAYMENT_INCOMING,
       verification_method: transactionObj.verification_method,
       receipt: transactionObj.invoice_file,
       card_id: transactionObj.card_id,
@@ -344,12 +402,12 @@ const SendTakePicture = ({ navigation, route }) => {
       verification_longitude: transactionObj.verification_longitude,
       verification_latitude: transactionObj.verification_latitude,
     };
-    await saveTransactionPremium(basePricePayment);
+
+    await createTransactionPremium(basePricePayment);
   };
 
   /**
    * saving source batches in local db
-   *
    * @param {Array} batches all batch array
    * @param {*} transactionId transaction id
    * @param {*} ratio product ratio
@@ -362,7 +420,7 @@ const SendTakePicture = ({ navigation, route }) => {
           transaction_id: transactionId,
           quantity: batch.current_quantity * ratio,
         };
-        await saveSourceBatch(sourceBatch);
+        await createSourceBatch(sourceBatch);
         await findAndUpdateBatchQuantity(batch.id, { current_quantity: 0 });
       }),
     );
@@ -383,8 +441,8 @@ const SendTakePicture = ({ navigation, route }) => {
         <CustomLeftHeader
           title={I18n.t('verify_with_photo')}
           onPress={() => navigation.goBack(null)}
-          backgroundColor='#4F4F4F'
-          leftIcon='arrow-left'
+          backgroundColor="#4F4F4F"
+          leftIcon="arrow-left"
           titleColor={theme.background_1}
         />
       </View>
@@ -425,7 +483,7 @@ const SendTakePicture = ({ navigation, route }) => {
                   ]}
                 >
                   {isLoading && (
-                    <ActivityIndicator size='large' color='#4F4F4F' />
+                    <ActivityIndicator size="large" color="#4F4F4F" />
                   )}
                 </View>
               </TouchableOpacity>
@@ -486,7 +544,7 @@ const SendTakePicture = ({ navigation, route }) => {
                         <CloseIcon
                           width={width * 0.035}
                           height={width * 0.035}
-                          fill='#ffffff'
+                          fill="#ffffff"
                         />
                       </TouchableOpacity>
                     </View>
@@ -495,12 +553,12 @@ const SendTakePicture = ({ navigation, route }) => {
                   <TouchableOpacity
                     onPress={() => setInfoView(!infoView)}
                     style={styles.infoIconWrap}
-                    hitSlop={consts.HIT_SLOP_FIFTEEN}
+                    hitSlop={HIT_SLOP_FIFTEEN}
                   >
                     <InfoIcon
                       width={width * 0.05}
                       height={width * 0.05}
-                      fill='#ffb74d'
+                      fill="#ffb74d"
                     />
                   </TouchableOpacity>
                 )}
@@ -508,10 +566,7 @@ const SendTakePicture = ({ navigation, route }) => {
             )}
 
             {isVerifying ? (
-              <ActivityIndicator
-                size='large'
-                color={theme.button_bg_1}
-              />
+              <ActivityIndicator size="large" color={theme.button_bg_1} />
             ) : (
               <CustomButton
                 buttonText={I18n.t('verify')}

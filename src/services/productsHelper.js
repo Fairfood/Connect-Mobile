@@ -42,30 +42,12 @@ export const updateProduct = async (productID, product) => {
   });
 };
 
-export const clearAllProducts = async () => {
-  const allProducts = await database.collections
-    .get('products')
-    .query()
-    .fetch();
-  await database.action(async () => {
-    const deleted = allProducts.map((product) => {
-      return product.prepareDestroyPermanently();
-    });
-
-    database.batch(...deleted);
-  });
-};
-
 export const findProductById = async (id) => {
   return products.find(id);
 };
 
 export const findProductByServerId = async (id) => {
   return products.query(Q.where('server_id', id));
-};
-
-export const TotalProductsCount = async () => {
-  return products.query().fetchCount();
 };
 
 export const updateProductActiveStatus = async (id, status) => {

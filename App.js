@@ -11,6 +11,7 @@ import DatabaseProvider from '@nozbe/watermelondb/DatabaseProvider';
 import codePush from 'react-native-code-push';
 import * as Sentry from '@sentry/react-native';
 import { store, persistor } from './src/redux/store';
+import { realmContext } from './src/db/Configuration';
 import api from './src/api/config';
 // models
 import schema from './src/models/schema';
@@ -28,13 +29,11 @@ import Card from './src/models/Card';
 import Root from './src/screens/Root';
 import ToastConfig from './src/components/ToastConfig';
 
-if (__DEV__) {
-  import('./ReactotronConfig').then(() => 'Reactotron Configured');
-} else {
+// if (!__DEV__) {
   Sentry.init({
     dsn: api.SENTRY_URL,
   });
-}
+// }
 
 const codePushOptions = {
   checkFrequency: codePush.CheckFrequency.ON_APP_RESUME,
@@ -66,16 +65,21 @@ export const database = new Database({
   actionsEnabled: true,
 });
 
+// Create a realm context
+const { RealmProvider } = realmContext;
+
 const MyApp = () => {
   return (
-    <DatabaseProvider database={database}>
-      <Provider store={store}>
-        <PersistGate loading={null} persistor={persistor}>
-          <Root />
-        </PersistGate>
-      </Provider>
-      <Toast config={ToastConfig} visibilityTime={2000} />
-    </DatabaseProvider>
+    <RealmProvider>
+      <DatabaseProvider database={database}>
+        <Provider store={store}>
+          <PersistGate loading={null} persistor={persistor}>
+            <Root />
+          </PersistGate>
+        </Provider>
+        <Toast config={ToastConfig} visibilityTime={2000} />
+      </DatabaseProvider>
+    </RealmProvider>
   );
 };
 

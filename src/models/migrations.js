@@ -7,6 +7,52 @@ import {
 export default schemaMigrations({
   migrations: [
     {
+      toVersion: 11,
+      steps: [
+        addColumns({
+          table: 'premiums',
+          columns: [
+            { name: 'calculation_type', type: 'string' },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 10,
+      steps: [
+        addColumns({
+          table: 'transaction_premiums',
+          columns: [
+            { name: 'is_reported', type: 'boolean' },
+            { name: 'reported', type: 'string' },
+            { name: 'extra_fields', type: 'string' },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 9,
+      steps: [
+        addColumns({
+          table: 'transactions',
+          columns: [
+            { name: 'is_reported', type: 'boolean' },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 8,
+      steps: [
+        addColumns({
+          table: 'premiums',
+          columns: [
+            { name: 'is_active', type: 'boolean' },
+          ],
+        }),
+      ],
+    },
+    {
       toVersion: 7,
       steps: [
         addColumns({

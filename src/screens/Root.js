@@ -7,7 +7,10 @@ import { LogBox } from 'react-native';
 import { setConnectionStatus } from '../redux/ConnectionStore';
 import { DEFAULT_SYNC_DATA } from '../services/constants';
 import { updateSyncStage, updateTnxSyncStage } from '../redux/SyncStore';
-import { updateNfcSupported } from '../redux/CommonStore';
+import { migrationCompleted, updateNfcSupported } from '../redux/CommonStore';
+import { store } from '../redux/store';
+// import { initiateSync } from '../sync/SyncInitials';
+// import { populateDatabase } from '../services/populateDatabase';
 import Navigator from '../navigation/Navigator';
 import I18n from '../i18n/i18n';
 
@@ -45,6 +48,11 @@ const Root = () => {
     if (firstTimeSync && firstTimeSync === 'false') {
       dispatch(updateSyncStage(3));
       dispatch(updateTnxSyncStage(3));
+    } else {
+      const { syncStage } = store.getState().sync;
+      if (syncStage === 0) {
+        dispatch(migrationCompleted());
+      }
     }
 
     NfcManager.isSupported().then(async (supported) => {

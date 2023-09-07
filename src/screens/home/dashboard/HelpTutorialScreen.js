@@ -35,7 +35,7 @@ const HelpTutorialScreen = ({ navigation }) => {
             <View style={styles.headerInnerWrap}>
               <View style={styles.onlineWrap}>
                 <Icon
-                  name='Online'
+                  name="Online"
                   size={20}
                   color={isConnected ? '#27AE60' : theme.button_bg_1}
                 />

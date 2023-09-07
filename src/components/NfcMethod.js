@@ -36,7 +36,7 @@ const NfcMethod = ({ ...props }) => {
     <View style={styles.container}>
       <View style={styles.infoWrap}>
         <View style={{ alignItems: 'center', marginRight: 10 }}>
-          <Icon name='info' color='#FFFFFF' size={14} />
+          <Icon name="info" color="#FFFFFF" size={14} />
         </View>
         <View style={{ width: '95%' }}>
           <Text style={styles.policyText}>{I18n.t('privacy_policy')}</Text>
@@ -80,7 +80,7 @@ const NfcMethod = ({ ...props }) => {
               buttonText={getSkipCardText(actionType)}
               onPress={() => onNoCardSubmit()}
               padding={7}
-              color='#4DCAF4'
+              color="#4DCAF4"
             />
           </View>
         )}

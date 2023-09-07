@@ -14,8 +14,6 @@ const { width } = Dimensions.get('window');
 
 const DeleteTransactionView = ({
   error,
-  reportButton,
-  onReport,
   deleteButton,
   onDelete,
 }) => {
@@ -50,26 +48,9 @@ const DeleteTransactionView = ({
       </View>
 
       <View style={styles.buttonWrap}>
-        {reportButton && (
-          <TouchableOpacity onPress={onReport} style={styles.button}>
-            <Text style={[styles.buttonText, { color: '#053B5F' }]}>
-              {`${I18n.t('report_issue')} >`}
-            </Text>
-          </TouchableOpacity>
-        )}
-
         {deleteButton && (
-          <TouchableOpacity
-            onPress={onDelete}
-            style={[
-              styles.button,
-              {
-                borderLeftColor: '#EA2553',
-                borderLeftWidth: reportButton ? 1 : 0,
-              },
-            ]}
-          >
-            <Text style={[styles.buttonText, { color: '#EA2553' }]}>
+          <TouchableOpacity onPress={onDelete} style={styles.button}>
+            <Text style={styles.buttonText}>
               {`${I18n.t('delete_transaction')} >`}
             </Text>
           </TouchableOpacity>
@@ -146,7 +127,7 @@ const StyleSheetFactory = (theme) => {
     buttonText: {
       fontSize: 14,
       fontFamily: theme.font_regular,
-      color: '#053B5F',
+      color: '#EA2553',
     },
   });
 };

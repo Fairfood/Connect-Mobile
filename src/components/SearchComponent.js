@@ -12,7 +12,7 @@ const SearchComponent = ({ ...props }) => {
     <View style={[styles.componentWrap, extraStyle]}>
       <View style={styles.iconWrap}>
         <Icon
-          name='search'
+          name="search"
           size={16}
           color={theme.text_2}
           style={{

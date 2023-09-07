@@ -16,39 +16,40 @@ import ImagePicker from 'react-native-image-crop-picker';
 import FastImage from 'react-native-fast-image';
 import CountryPicker from 'react-native-country-picker-modal';
 import Toast from 'react-native-toast-message';
-
+import { syncUpdatedFarmers } from '../../sync/SyncFarmers';
 import {
-  findAndUpdateFarmerDetails,
-  findFarmerByName,
-} from '../../services/farmersHelper';
+  searchFarmersByName,
+  updateFarmer,
+} from '../../db/services/FarmerHelper';
 import {
   checkMandatory,
   checkEmojis,
   stringToJson,
 } from '../../services/commonFunctions';
-import { updateAllFarmerDetails } from '../../services/syncFarmers';
+import { logAnalytics } from '../../services/googleAnalyticsHelper';
 import FormTextInput from '../../components/FormTextInput';
 import Icon from '../../icons';
-import Countrys from '../../services/countries';
+import Countries from '../../services/countries';
 import I18n from '../../i18n/i18n';
 import CustomLeftHeader from '../../components/CustomLeftHeader';
 import SearchComponent from '../../components/SearchComponent';
 import SelectPicture from '../../components/SelectPicture';
 import CommonAlert from '../../components/CommonAlert';
+
 // import CustomInputFields from '../../components/CustomInputFields';
 
 const { width } = Dimensions.get('window');
 
 const EditFarmer = ({ navigation, route }) => {
   const scrollRef = useRef(null);
-  const mobileref = useRef(null);
-  const cityref = useRef(null);
+  const mobileRef = useRef(null);
+  const cityRef = useRef(null);
   const { isConnected } = useSelector((state) => state.connection);
   const { syncInProgress } = useSelector((state) => state.login);
   const { theme } = useSelector((state) => state.common);
-  const { farmer, otherDetails, updateFarmer } = route.params;
-  const [countrysList, setCountrysList] = useState([]);
-  const [allCountrysList, setAllCountrysList] = useState([]);
+  const { farmer, otherDetails, updateEditedFarmer } = route.params;
+  const [countriesList, setCountriesList] = useState([]);
+  const [allCountriesList, setAllCountriesList] = useState([]);
   const [name, setName] = useState(farmer?.name ?? '');
   const [mobile, setMobile] = useState(farmer?.mobile ?? '');
   const [dialCode, setDialCode] = useState(farmer?.dialCode ?? '');
@@ -80,11 +81,11 @@ const EditFarmer = ({ navigation, route }) => {
     setupProvince();
   }, []);
 
-  // setting province list and initializing dialcode values
+  // setting province list and initializing dial code values
   const setupProvince = async () => {
     getProvinceList(farmer.country);
 
-    const arrayOfObjs = Object.entries(Countrys.data).map((e) => ({
+    const arrayOfObjs = Object.entries(Countries.data).map((e) => ({
       label: `+${e[1].dial_code}`,
       value: e[1].dial_code,
       country_name: e[0],
@@ -168,7 +169,6 @@ const EditFarmer = ({ navigation, route }) => {
 
   /**
    * Capitalizing first letter of input text
-   *
    * @param   {string} text input text
    * @returns {string}      capitalized text
    */
@@ -184,14 +184,13 @@ const EditFarmer = ({ navigation, route }) => {
   };
 
   /**
-   * opening country/provice list modal based on type
-   *
+   * opening country/province list modal based on type
    * @param {string} type modal list type: 'country' or 'province'
    */
   const openDisplayModal = (type) => {
     if (type === 'country') {
       setFocused('country');
-      setCountrysList(allCountrysList);
+      setCountriesList(allCountriesList);
       setDisplayModal(true);
     } else if (type === 'province') {
       setFocused('province');
@@ -202,7 +201,6 @@ const EditFarmer = ({ navigation, route }) => {
 
   /**
    * setting selected dial code and related country
-   *
    * @param {object} selectedCountry selected country object
    */
   const onSelectDialCode = (selectedCountry) => {
@@ -211,7 +209,7 @@ const EditFarmer = ({ navigation, route }) => {
       if (newDialCode !== dialCode) {
         setDialCode(newDialCode);
 
-        const arrayOfObjs = Object.entries(Countrys.data).map((e) => ({
+        const arrayOfObjs = Object.entries(Countries.data).map((e) => ({
           label: `+${e[1].dial_code}`,
           value: e[1].dial_code,
           country_name: e[0],
@@ -230,49 +228,46 @@ const EditFarmer = ({ navigation, route }) => {
 
   /**
    * filtering country list based on search text
-   *
    * @param {string} text search text from country modal
    */
   const onSearchCountry = (text) => {
     const countryText = text.toLowerCase();
     if (countryText === '') {
-      setCountrysList(allCountrysList);
+      setCountriesList(allCountriesList);
     } else {
-      const filteredCountrysList = allCountrysList.filter((e) => {
+      const filteredCountriesList = allCountriesList.filter((e) => {
         const element = e.label.toLowerCase();
         return element.includes(countryText);
       });
-      setCountrysList(filteredCountrysList);
+      setCountriesList(filteredCountriesList);
     }
   };
 
   /**
    * filtering province list based on search text
-   *
    * @param {string} text search text from province modal
    */
   const onSearchProvince = (text) => {
-    const proviceText = text.toLowerCase();
-    if (proviceText === '') {
+    const provinceText = text.toLowerCase();
+    if (provinceText === '') {
       setProvincesList(allProvincesList);
     } else {
-      const filteredCountrysList = allProvincesList.filter((e) => {
+      const filteredCountriesList = allProvincesList.filter((e) => {
         const element = e.label.toLowerCase();
-        return element.includes(proviceText);
+        return element.includes(provinceText);
       });
-      setProvincesList(filteredCountrysList);
+      setProvincesList(filteredCountriesList);
     }
   };
 
   /**
-   * setting provice list based on input country
-   *
+   * setting province list based on input country
    * @param {string} text country name
    */
   const getProvinceList = (text) => {
     setProvince('');
 
-    const arrayOfObj = Object.entries(Countrys.data).map((e) => ({
+    const arrayOfObj = Object.entries(Countries.data).map((e) => ({
       label: e[0],
       additional: e[1],
       value: e[0],
@@ -280,8 +275,8 @@ const EditFarmer = ({ navigation, route }) => {
 
     const listOfCountries = [...arrayOfObj];
 
-    setCountrysList(listOfCountries);
-    setAllCountrysList(listOfCountries);
+    setCountriesList(listOfCountries);
+    setAllCountriesList(listOfCountries);
 
     const selectedCountryArr = listOfCountries.filter((x) => {
       return x.label === text;
@@ -309,9 +304,8 @@ const EditFarmer = ({ navigation, route }) => {
   };
 
   /**
-   * setting selected provice
-   *
-   * @param {string} selectedProvince selected provice name
+   * setting selected province
+   * @param {string} selectedProvince selected province name
    */
   const selectProvince = (selectedProvince) => {
     setProvince(selectedProvince);
@@ -327,6 +321,11 @@ const EditFarmer = ({ navigation, route }) => {
       compressImageQuality: 0.5,
     })
       .then((image) => {
+        logAnalytics('image_selection_for_profile_picture', {
+          selection_method: 'Camera',
+          selection_case: 'edit_farmer',
+        });
+
         setProfilePic(image.path);
       })
       .catch(() => {
@@ -355,6 +354,10 @@ const EditFarmer = ({ navigation, route }) => {
           return;
         }
 
+        logAnalytics('image_selection_for_profile_picture', {
+          selection_method: 'Gallery',
+          selection_case: 'edit_farmer',
+        });
         setProfilePic(image.path);
       })
       .catch(() => {
@@ -371,7 +374,6 @@ const EditFarmer = ({ navigation, route }) => {
 
   /**
    * checks any farmer with same details exist
-   *
    * @param   {object}  props farmer details
    * @returns {boolean}       if duplicate found returns true otherwise false
    */
@@ -390,14 +392,14 @@ const EditFarmer = ({ navigation, route }) => {
     } = props;
 
     // finding farmers with same name
-    const nodes = await findFarmerByName(farmerName);
+    const nodes = await searchFarmersByName(farmerName);
 
     if (nodes.length > 0) {
       const fullMobileNumber =
         farmerMobile !== '' ? `+${farmerDialCode} ${farmerMobile}`.trim() : '';
 
       // filtering existing farmer with same details
-      const duplicate = nodes.filter((item) => {
+      const duplicates = nodes.filter((item) => {
         return (
           farmerName === item.name.trim() &&
           fullMobileNumber ===
@@ -412,7 +414,7 @@ const EditFarmer = ({ navigation, route }) => {
         );
       });
 
-      if (duplicate.length > 0) {
+      if (duplicates && duplicates.length > 0) {
         return true;
       }
       return false;
@@ -463,12 +465,12 @@ const EditFarmer = ({ navigation, route }) => {
       { name: I18n.t('province'), value: farmerProvince },
     ];
 
-    const [madatoryValid, madatoryError] = await checkMandatory(
+    const [mandatoryValid, mandatoryError] = await checkMandatory(
       mandatoryFields,
     );
 
-    if (!madatoryValid) {
-      setError(madatoryError);
+    if (!mandatoryValid) {
+      setError(mandatoryError);
       scrollRef.current.scrollToEnd({ animated: true });
       return;
     }
@@ -541,13 +543,12 @@ const EditFarmer = ({ navigation, route }) => {
       return;
     }
 
-    const phone = {
-      dial_code: `+${farmerDialCode}`,
-      phone: farmerMobile,
-    };
+    let phone = '';
+    if (farmerMobile) {
+      phone = `${farmerDialCode ?? ''} ${farmerMobile}`.trim();
+    }
 
-    let farmerDetails = {
-      ...otherDetails,
+    const farmerDetails = {
       name: farmerName,
       type: 2,
       phone,
@@ -557,35 +558,32 @@ const EditFarmer = ({ navigation, route }) => {
       province: farmerProvince,
       zipcode: farmerPostalCode,
       image: farmerProfilePic,
-      is_modified: otherDetails.server_id !== '',
+      is_modified: true,
       id: otherDetails.server_id,
-      // extra_fields:
-      //   updatedCustomFields && Object.keys(updatedCustomFields).length > 0
-      //     ? updatedCustomFields
-      //     : "",
+      latitude: otherDetails.latitude,
+      longitude: otherDetails.longitude,
+      is_card_modified: otherDetails.is_card_modified,
+      extra_fields: otherDetails.extra_fields,
+      created_on: otherDetails.created_on,
+      card_id: farmer.card_id,
     };
 
     // updating farmer details to local db
-    await findAndUpdateFarmerDetails(
-      otherDetails.id,
-      farmerDetails,
-      farmer.card_id,
-    );
+    await updateFarmer(otherDetails.id, farmerDetails);
 
-    farmerDetails = { ...farmerDetails, id: otherDetails.id };
-    updateFarmer(farmerDetails);
+    const newDetails = { ...farmerDetails, id: otherDetails.id };
+    updateEditedFarmer(newDetails);
 
     // if network is available, starts syncing
     if (isConnected && !syncInProgress) {
-      updateAllFarmerDetails();
+      syncUpdatedFarmers();
     }
 
     backNavigation();
   };
 
   /**
-   * setting country/provice
-   *
+   * setting country/province
    * @param {string} label country/province name
    */
   const onSelectModalItem = (label) => {
@@ -627,17 +625,17 @@ const EditFarmer = ({ navigation, route }) => {
         <CustomLeftHeader
           backgroundColor={theme.background_1}
           title={I18n.t('edit_farmer')}
-          leftIcon='arrow-left'
+          leftIcon="arrow-left"
           onPress={() => backNavigation()}
           rightText={I18n.t('save')}
-          rightTextColor='#EA2553'
+          rightTextColor="#EA2553"
           onPressRight={() => onSave()}
           extraStyle={{ paddingLeft: width * 0.05 }}
         />
 
         <ScrollView
           ref={scrollRef}
-          keyboardShouldPersistTaps='always'
+          keyboardShouldPersistTaps="always"
           style={{ paddingHorizontal: width * 0.05 }}
         >
           <View style={{ width: '100%' }}>
@@ -646,7 +644,7 @@ const EditFarmer = ({ navigation, route }) => {
                 style={[styles.uploadImageView, { backgroundColor: '#ffffff' }]}
               >
                 {profilePic === '' && (
-                  <Icon name='Camera' color='#5691AE' size={50} />
+                  <Icon name="Camera" color="#5691AE" size={50} />
                 )}
                 {profilePic !== '' && (
                   <FastImage
@@ -659,7 +657,7 @@ const EditFarmer = ({ navigation, route }) => {
                 onPress={() => setSelectPicModal(true)}
                 style={styles.addPicture}
               >
-                <Icon name='edit' color='#FFFFFF' size={15} />
+                <Icon name="edit" color="#FFFFFF" size={15} />
               </TouchableOpacity>
             </View>
           </View>
@@ -674,9 +672,9 @@ const EditFarmer = ({ navigation, route }) => {
             value={name}
             onChangeText={(text) => setName(text)}
             onBlur={() => changeName()}
-            onSubmitEditing={() => mobileref.current.focus()}
+            onSubmitEditing={() => mobileRef.current.focus()}
             visibility={fieldVisibility ? fieldVisibility?.name : true}
-            autoCapitalize='sentences'
+            autoCapitalize="sentences"
             extraStyle={{ width: '100%', color: theme.text_1 }}
           />
 
@@ -692,19 +690,19 @@ const EditFarmer = ({ navigation, route }) => {
                     withAlphaFilter
                     withCallingCode
                     placeholder={`+${dialCode.replace('+', '')}`}
-                    keyboardShouldPersistTaps='always'
+                    keyboardShouldPersistTaps="always"
                     onSelect={onSelectDialCode}
                   />
                 )}
               </View>
               <FormTextInput
-                inputRef={mobileref}
+                inputRef={mobileRef}
                 placeholder={I18n.t('mobile_number')}
                 value={mobile}
                 onChangeText={(text) => {
                   setMobile(text.replace(/[^0-9]/g, ''));
                 }}
-                keyboardType='numeric'
+                keyboardType="numeric"
                 internalPadding={70}
                 extraStyle={{ width: '100%', color: theme.text_1 }}
               />
@@ -718,11 +716,11 @@ const EditFarmer = ({ navigation, route }) => {
           <FormTextInput
             placeholder={I18n.t('street_name')}
             value={street}
-            onSubmitEditing={() => cityref.current.focus()}
+            onSubmitEditing={() => cityRef.current.focus()}
             onChangeText={(text) => setStreet(text)}
             onBlur={() => changeStreet()}
             visibility={fieldVisibility ? fieldVisibility?.street : true}
-            autoCapitalize='sentences'
+            autoCapitalize="sentences"
             extraStyle={{ width: '100%', color: theme.text_1 }}
           />
 
@@ -730,17 +728,17 @@ const EditFarmer = ({ navigation, route }) => {
             mandatory
             placeholder={I18n.t('city_village')}
             value={city}
-            inputRef={cityref}
+            inputRef={cityRef}
             onChangeText={(text) => setCity(text)}
             onBlur={() => changeCity()}
             visibility={fieldVisibility ? fieldVisibility?.city : true}
-            autoCapitalize='sentences'
+            autoCapitalize="sentences"
             extraStyle={{ width: '100%', color: theme.text_1 }}
           />
 
           {(fieldVisibility ? fieldVisibility?.country : true) && (
             <TouchableOpacity onPress={() => openDisplayModal('country')}>
-              <View pointerEvents='none'>
+              <View pointerEvents="none">
                 <FormTextInput
                   mandatory
                   placeholder={I18n.t('country')}
@@ -756,7 +754,7 @@ const EditFarmer = ({ navigation, route }) => {
 
           {(fieldVisibility ? fieldVisibility?.province : true) && (
             <TouchableOpacity onPress={() => openDisplayModal('province')}>
-              <View pointerEvents='none'>
+              <View pointerEvents="none">
                 <FormTextInput
                   mandatory
                   placeholder={I18n.t('province')}
@@ -797,7 +795,7 @@ const EditFarmer = ({ navigation, route }) => {
 
           {displayModal && (
             <Modal
-              animationType='slide'
+              animationType="slide"
               transparent
               visible={displayModal}
               onRequestClose={() => {
@@ -825,11 +823,11 @@ const EditFarmer = ({ navigation, route }) => {
                     }}
                   />
                   <FlatList
-                    data={focused === 'country' ? countrysList : provincesList}
+                    data={focused === 'country' ? countriesList : provincesList}
                     renderItem={renderItem}
                     extraData={focused}
-                    keyboardShouldPersistTaps='always'
-                    style={styles.countryFlatlist}
+                    keyboardShouldPersistTaps="always"
+                    style={styles.countryFlatList}
                     ListEmptyComponent={() => (
                       <Text style={styles.emptyText}>
                         {I18n.t('no_matches_found')}
@@ -939,7 +937,7 @@ const StyleSheetFactory = (theme) => {
       marginTop: 'auto',
       backgroundColor: theme.background_1,
     },
-    countryFlatlist: {
+    countryFlatList: {
       flex: 1,
       marginHorizontal: 10,
       backgroundColor: theme.background_1,

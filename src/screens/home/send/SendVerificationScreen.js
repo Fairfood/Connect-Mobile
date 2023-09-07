@@ -1,6 +1,6 @@
 /* eslint-disable react/jsx-wrap-multilines */
 /* eslint-disable camelcase */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,29 +12,46 @@ import {
   ActivityIndicator,
   Linking,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSelector, useDispatch } from 'react-redux';
 import NfcManager, { NfcEvents } from 'react-native-nfc-manager';
 import moment from 'moment';
 import Geolocation from 'react-native-geolocation-service';
 import Toast from 'react-native-toast-message';
-
-import { saveTransaction } from '../../../services/transactionsHelper';
-import { findAndUpdateBatchQuantity } from '../../../services/batchesHelper';
-import { saveTransactionPremium } from '../../../services/transactionPremiumHelper';
-import { saveSourceBatch } from '../../../services/sourceBatchesHelper';
-import { requestPermission } from '../../../services/commonFunctions';
+import { createTransaction } from '../../../db/services/TransactionsHelper';
+import { createTransactionPremium } from '../../../db/services/TransactionPremiumHelper';
+import { findAndUpdateBatchQuantity } from '../../../db/services/BatchHelper';
+import { createSourceBatch } from '../../../db/services/SourceBatchHelper';
+import {
+  convertCurrency,
+  convertQuantity,
+  jsonToString,
+  requestPermission,
+} from '../../../services/commonFunctions';
 import { NfcNotSupportIcon, TurnOnNfcIcon } from '../../../assets/svg';
 import { initSyncProcess } from '../../../redux/LoginStore';
 import { updateNfcSupported } from '../../../redux/CommonStore';
-import { syncTransactions } from '../../../services/syncTransactions';
+import { syncTransactions } from '../../../sync/SyncTransactions';
+import { logAnalytics } from '../../../services/googleAnalyticsHelper';
+import {
+  PREMIUM_APPLICABLE_ACTIVITY_BUY,
+  MINIMUM_TRANSACTION_QUANTITY,
+  MAXIMUM_TRANSACTION_QUANTITY,
+  APP_TRANS_TYPE_OUTGOING,
+  VERIFICATION_METHOD_CARD,
+  TYPE_TRANSACTION_PREMIUM,
+  PAYMENT_INCOMING,
+  TYPE_BASE_PRICE,
+  PREMIUM_MANUAL,
+  PREMIUM_OPTIONS,
+} from '../../../services/constants';
 import CustomLeftHeader from '../../../components/CustomLeftHeader';
 import I18n from '../../../i18n/i18n';
 import CommonAlert from '../../../components/CommonAlert';
 import NfcMethod from '../../../components/NfcMethod';
 import QrCodeMethod from '../../../components/QrCodeMethod';
 import VerificationSwitch from '../../../components/VerificationSwitch';
-import * as consts from '../../../services/constants';
 
 const { width } = Dimensions.get('window');
 const defaultPosition = { coords: { longitude: 0, latitude: 0 } };
@@ -64,10 +81,13 @@ const SendVerificationScreen = ({ navigation, route }) => {
   const [error, setError] = useState('');
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    setInitialLoading(true);
-    setupInitialValues();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setInitialLoading(true);
+      setupInitialValues();
+      return () => {};
+    }, []),
+  );
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener(
@@ -197,7 +217,6 @@ const SendVerificationScreen = ({ navigation, route }) => {
 
   /**
    * clearing NFC event
-   *
    * @param {boolean} tryAgain if true again starting NFC event.
    */
   const cleanUp = (tryAgain) => {
@@ -210,7 +229,6 @@ const SendVerificationScreen = ({ navigation, route }) => {
 
   /**
    * fetching device's geo location
-   *
    * @param {object} card selected card
    */
   const requestAccessLocationPermission = async (card) => {
@@ -247,70 +265,102 @@ const SendVerificationScreen = ({ navigation, route }) => {
 
   /**
    * get total amount including premiums of all product
-   *
    * @returns {number} total amount
    */
   const getAllTotalAmount = () => {
-    let total = 0;
+    let totalAmount = 0;
 
-    products.map((product) => {
-      total += parseFloat(product.total_amount) * parseFloat(product.ratio);
+    products.forEach(
+      ({ edited_quantity, ratio, total_amount, total_premiums }) => {
+        const editedQuantity =
+          edited_quantity !== '' ? parseFloat(edited_quantity) : 0;
+        const productRatio = ratio !== '' ? parseFloat(ratio) : 1;
 
-      product.total_premiums.map((premium) => {
-        if (
-          premium.applicable_activity === consts.PREMIUM_APPLICABLE_ACTIVITY_BUY
-        ) {
-          if (product.edited_quantity < premium.total_premiumed_quantity) {
-            total +=
-              parseFloat(premium.amount) * parseFloat(product.edited_quantity);
+        totalAmount += parseFloat(total_amount) * productRatio;
+
+        total_premiums.forEach((premium) => {
+          const {
+            amount,
+            applicable_activity,
+            calculation_type,
+            total_premium_quantity,
+            total,
+          } = premium;
+
+          if (applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_BUY) {
+            if (editedQuantity < total_premium_quantity) {
+              if (
+                calculation_type === PREMIUM_MANUAL ||
+                calculation_type === PREMIUM_OPTIONS
+              ) {
+                totalAmount += productRatio * total;
+              } else {
+                totalAmount += amount * editedQuantity;
+              }
+            } else if (
+              calculation_type === PREMIUM_MANUAL ||
+              calculation_type === PREMIUM_OPTIONS
+            ) {
+              totalAmount += total;
+            } else {
+              totalAmount += amount * total_premium_quantity;
+            }
           } else {
-            total +=
-              parseFloat(premium.amount) *
-              parseFloat(premium.total_premiumed_quantity);
+            totalAmount += amount * editedQuantity;
           }
-        } else {
-          total +=
-            parseFloat(premium.amount) * parseFloat(product.edited_quantity);
-        }
-      });
-    });
+        });
+      },
+    );
 
-    return Math.round(parseFloat(total));
+    return totalAmount;
   };
 
   /**
    * get total amount including premiums by product
-   *
-   * @param {Array} product product array
+   * @param   {Array} product product array
+   * @returns {number}        total
    */
   const getTotalAmount = async (product) => {
-    let total = 0;
-    total += parseFloat(product.total_amount) * parseFloat(product.ratio);
+    const { total_premiums, total_amount, ratio, edited_quantity } = product;
+    const editedQuantity =
+      edited_quantity !== '' ? parseFloat(edited_quantity) : 0;
+    const productRatio = ratio !== '' ? parseFloat(ratio) : 1;
 
-    product.total_premiums.map((premium) => {
-      if (
-        premium.applicable_activity === consts.PREMIUM_APPLICABLE_ACTIVITY_BUY
-      ) {
-        if (product.edited_quantity < premium.total_premiumed_quantity) {
-          total +=
-            parseFloat(premium.amount) * parseFloat(product.edited_quantity);
+    let totalAmount = parseFloat(total_amount) * productRatio;
+
+    total_premiums.forEach(
+      ({
+        applicable_activity,
+        total_premium_quantity,
+        calculation_type,
+        total,
+        amount,
+      }) => {
+        if (applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_BUY) {
+          if (editedQuantity < total_premium_quantity) {
+            totalAmount +=
+              calculation_type === PREMIUM_MANUAL ||
+              calculation_type === PREMIUM_OPTIONS
+                ? total * productRatio
+                : amount * editedQuantity;
+          } else {
+            totalAmount +=
+              calculation_type === PREMIUM_MANUAL ||
+              calculation_type === PREMIUM_OPTIONS
+                ? total
+                : amount * total_premium_quantity;
+          }
         } else {
-          total +=
-            parseFloat(premium.amount) *
-            parseFloat(premium.total_premiumed_quantity);
+          totalAmount += amount * editedQuantity;
         }
-      } else {
-        total +=
-          parseFloat(premium.amount) * parseFloat(product.edited_quantity);
-      }
-    });
+      },
+    );
 
-    return Math.round(parseFloat(total));
+    return Math.round(parseFloat(totalAmount));
   };
 
   /**
    * calculate total amount paid to farmer by all products
-   *
    * @returns {number} total amount
    */
   const totalPaidToFarmers = () => {
@@ -319,7 +369,7 @@ const SendVerificationScreen = ({ navigation, route }) => {
       total += parseFloat(product.total_amount) * parseFloat(product.ratio);
     });
 
-    return Math.round(parseFloat(total));
+    return total;
   };
 
   /**
@@ -356,48 +406,62 @@ const SendVerificationScreen = ({ navigation, route }) => {
 
   /**
    * calculating total premiums data
-   *
    * @returns {Array} premium data array
    */
   const getTotalPremiums = () => {
     if (products.length > 0) {
       const mainObj = {};
-      products.map((product) => {
-        product.total_premiums.map((premium) => {
-          const { id } = premium;
-          let { name } = premium;
-          let total = 0;
+      products.map(({ total_premiums, edited_quantity, ratio }) => {
+        const editedQuantity =
+          edited_quantity !== '' ? parseFloat(edited_quantity) : 0;
+        const productRatio = ratio !== '' ? parseFloat(ratio) : 1;
 
-          if (mainObj[id]) {
-            const existedObj = mainObj[id];
-            name = existedObj.name;
-            total = existedObj.total;
-          }
-
-          if (
-            premium.applicable_activity ===
-            consts.PREMIUM_APPLICABLE_ACTIVITY_BUY
-          ) {
-            if (product.edited_quantity < premium.total_premiumed_quantity) {
-              total +=
-                parseFloat(premium.amount) *
-                parseFloat(product.edited_quantity);
-            } else {
-              total +=
-                parseFloat(premium.amount) *
-                parseFloat(premium.total_premiumed_quantity);
-            }
-          } else {
-            total +=
-              parseFloat(premium.amount) * parseFloat(product.edited_quantity);
-          }
-
-          const obj = {
+        total_premiums.map(
+          ({
+            id,
             name,
+            amount,
+            applicable_activity,
+            total_premium_quantity,
+            calculation_type,
             total,
-          };
-          mainObj[id] = obj;
-        });
+          }) => {
+            let totalAmount = 0;
+
+            if (mainObj[id]) {
+              const existedObj = mainObj[id];
+              totalAmount = existedObj.total;
+            }
+
+            if (applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_BUY) {
+              if (editedQuantity < total_premium_quantity) {
+                if (
+                  calculation_type === PREMIUM_MANUAL ||
+                  calculation_type === PREMIUM_OPTIONS
+                ) {
+                  totalAmount += total * productRatio;
+                } else {
+                  totalAmount += amount * editedQuantity;
+                }
+              } else if (
+                calculation_type === PREMIUM_MANUAL ||
+                calculation_type === PREMIUM_OPTIONS
+              ) {
+                totalAmount += total;
+              } else {
+                totalAmount += amount * total_premium_quantity;
+              }
+            } else {
+              totalAmount += amount * editedQuantity;
+            }
+
+            const obj = {
+              name,
+              total: totalAmount,
+            };
+            mainObj[id] = obj;
+          },
+        );
       });
       return Object.values(mainObj);
     }
@@ -406,7 +470,6 @@ const SendVerificationScreen = ({ navigation, route }) => {
 
   /**
    * saving source batches in local db
-   *
    * @param {Array} batches all batch array
    * @param {string} transactionId corresponding transaction id
    * @param {number} ratio product quantity ratio
@@ -419,7 +482,7 @@ const SendVerificationScreen = ({ navigation, route }) => {
           transaction_id: transactionId,
           quantity: parseFloat(batch.current_quantity) * parseFloat(ratio),
         };
-        await saveSourceBatch(sourceBatch);
+        await createSourceBatch(sourceBatch);
         await findAndUpdateBatchQuantity(batch.id, { current_quantity: 0 });
       }),
     );
@@ -427,7 +490,6 @@ const SendVerificationScreen = ({ navigation, route }) => {
 
   /**
    * transaction validate function
-   *
    * @param {object} position device's geo location coordinates
    * @param {object} card     deleted card
    */
@@ -436,58 +498,60 @@ const SendVerificationScreen = ({ navigation, route }) => {
 
     await Promise.all(
       products.map(async (product) => {
-        const quantity = product.edited_quantity;
-        const price =
-          parseFloat(product.total_amount) * parseFloat(product.ratio);
-        const total = await getTotalAmount(product);
-        const productPrice =
-          parseFloat(product.total_amount) * parseFloat(product.ratio);
+        const { edited_quantity, ratio, total_amount, name, total_premiums } =
+          product;
+        const editedQuantity =
+          edited_quantity !== '' ? parseFloat(edited_quantity) : 0;
+        const productRatio = ratio !== '' ? parseFloat(ratio) : 1;
+        const price = parseFloat(total_amount) * productRatio;
+        const totalAmount = await getTotalAmount(product);
 
         if (
-          quantity === '' ||
-          quantity <= consts.MINIMUM_TRANSACTION_QUANTITY ||
-          quantity >= consts.MAXIMUM_TRANSACTION_QUANTITY ||
+          edited_quantity === '' ||
+          edited_quantity <= MINIMUM_TRANSACTION_QUANTITY ||
+          edited_quantity >= MAXIMUM_TRANSACTION_QUANTITY ||
           price === '' ||
           price <= 0 ||
-          total === '' ||
-          total <= 0 ||
-          productPrice === '' ||
-          productPrice <= 0
+          totalAmount === '' ||
+          totalAmount <= 0
         ) {
           valid = false;
-          setError(`${I18n.t('check_the_values_entered')} ${product.name}`);
+          setError(`${I18n.t('check_the_values_entered')} ${name}`);
         } else {
           await Promise.all(
-            product.total_premiums.map(async (premium) => {
-              let amount = 0;
-              if (
-                premium.applicable_activity ===
-                consts.PREMIUM_APPLICABLE_ACTIVITY_BUY
-              ) {
-                if (
-                  product.edited_quantity < premium.total_premiumed_quantity
-                ) {
-                  amount +=
-                    parseFloat(premium.amount) *
-                    parseFloat(product.edited_quantity);
+            total_premiums.map(
+              async ({
+                applicable_activity,
+                total_premium_quantity,
+                calculation_type,
+                total,
+                amount,
+              }) => {
+                let premiumAmount = 0;
+                if (applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_BUY) {
+                  if (editedQuantity < total_premium_quantity) {
+                    premiumAmount +=
+                      calculation_type === PREMIUM_MANUAL ||
+                      calculation_type === PREMIUM_OPTIONS
+                        ? total * productRatio
+                        : amount * editedQuantity;
+                  } else {
+                    premiumAmount +=
+                      calculation_type === PREMIUM_MANUAL ||
+                      calculation_type === PREMIUM_OPTIONS
+                        ? total
+                        : amount * total_premium_quantity;
+                  }
                 } else {
-                  amount +=
-                    parseFloat(premium.amount) *
-                    parseFloat(premium.total_premiumed_quantity);
+                  premiumAmount += amount * editedQuantity;
                 }
-              } else {
-                amount +=
-                  parseFloat(premium.amount) *
-                  parseFloat(product.edited_quantity);
-              }
 
-              if (amount <= 0) {
-                valid = false;
-                setError(
-                  `${I18n.t('check_the_values_entered')} ${product.name}`,
-                );
-              }
-            }),
+                if (premiumAmount <= 0) {
+                  valid = false;
+                  setError(`${I18n.t('check_the_values_entered')} ${name}`);
+                }
+              },
+            ),
           );
         }
       }),
@@ -503,7 +567,6 @@ const SendVerificationScreen = ({ navigation, route }) => {
 
   /**
    * submit function. saving transaction, premiums and batch in local db
-   *
    * @param {object} position device's geo location coordinates
    * @param {object} card     selected card
    */
@@ -520,25 +583,30 @@ const SendVerificationScreen = ({ navigation, route }) => {
         const productPrice =
           parseFloat(product.total_amount) * parseFloat(product.ratio);
 
+        let extraFields = product.extra_fields || '';
+        if (extraFields && typeof extraFields === 'object') {
+          extraFields = jsonToString(extraFields);
+        }
+
         const transactionObj = {
           server_id: null,
           node_id: buyer.id,
           node_name: buyer.name,
           currency,
           product_id: product.id,
-          type: consts.APP_TRANS_TYPE_OUTGOING,
+          type: APP_TRANS_TYPE_OUTGOING,
           quantity,
           ref_number: null,
           price,
           invoice_file: '',
-          card_id: card[0].card_id,
+          card_id: card[0].id,
           date: moment(Math.round(date)).format('DD MMM YYYY'),
           total,
           created_on: parseInt(Math.round(date) / 1000),
           product_price: productPrice,
           quality_correction: 100,
           product_name: product.name,
-          verification_method: consts.VERIFICATION_METHOD_CARD,
+          verification_method: VERIFICATION_METHOD_CARD,
           transaction_type:
             parseFloat(product.total_quantity) ===
             parseFloat(product.edited_quantity)
@@ -546,9 +614,11 @@ const SendVerificationScreen = ({ navigation, route }) => {
               : transactionType,
           verification_latitude: position.coords.latitude,
           verification_longitude: position.coords.longitude,
+          extra_fields: extraFields,
         };
 
-        const transactionId = await saveTransaction(transactionObj);
+        const transactionId = await createTransaction(transactionObj);
+
         transactionObj.total_quantity = product.total_quantity;
         transactionObj.edited_quantity = product.edited_quantity;
         transactionArray.push(transactionObj);
@@ -558,6 +628,15 @@ const SendVerificationScreen = ({ navigation, route }) => {
         await saveSourceBatches(product.batches, transactionId, product.ratio);
       }),
     ).then(async () => {
+      logAnalytics('transactions', {
+        verification_type:
+          verificationMode === 'nfc'
+            ? 'nfc_verification'
+            : 'qr_code_verification',
+        transaction_type: 'send_transaction',
+        network_status: isConnected && !syncInProgress ? 'online' : 'offline',
+      });
+
       let checkTransactionStatus = false;
 
       if (isConnected && !syncInProgress) {
@@ -582,57 +661,72 @@ const SendVerificationScreen = ({ navigation, route }) => {
 
   /**
    * saving corresponding transaction premium in local db
-   *
    * @param {object} product        product object
    * @param {string} transactionId  transaction id
    * @param {object} transactionObj transaction object
    */
   const saveAllPremiums = async (product, transactionId, transactionObj) => {
-    await Promise.all(
-      product.total_premiums.map(async (premium) => {
-        let total = 0;
-        if (
-          premium.applicable_activity === consts.PREMIUM_APPLICABLE_ACTIVITY_BUY
-        ) {
-          if (product.edited_quantity < premium.total_premiumed_quantity) {
-            total +=
-              parseFloat(premium.amount) * parseFloat(product.edited_quantity);
-          } else {
-            total +=
-              parseFloat(premium.amount) *
-              parseFloat(premium.total_premiumed_quantity);
-          }
-        } else {
-          total +=
-            parseFloat(premium.amount) * parseFloat(product.edited_quantity);
-        }
+    const { total_premiums, edited_quantity, ratio } = product;
+    const editedQuantity =
+      edited_quantity !== '' ? parseFloat(edited_quantity) : 0;
+    const productRatio = ratio !== '' ? parseFloat(ratio) : 1;
 
-        const transactionPremium = {
-          premium_id: premium.id,
-          transaction_id: transactionId,
-          amount: parseFloat(total),
-          server_id: '',
-          category: consts.TYPE_TRANSACTION_PREMIUM,
-          type: consts.PAYMENT_INCOMING,
-          verification_method: transactionObj.verification_method,
-          receipt: transactionObj.invoice_file,
-          card_id: transactionObj.card_id,
-          node_id: transactionObj.node_id,
-          date: transactionObj.created_on,
-          currency: transactionObj.currency,
-          source: buyer.server_id,
-          destination: loggedInUser.default_node,
-          verification_longitude: transactionObj.verification_longitude,
-          verification_latitude: transactionObj.verification_latitude,
-        };
-        await saveTransactionPremium(transactionPremium);
-      }),
+    await Promise.all(
+      total_premiums.map(
+        async ({
+          id,
+          applicable_activity,
+          total_premium_quantity,
+          calculation_type,
+          total,
+          amount,
+        }) => {
+          let premiumTotal = 0;
+          if (applicable_activity === PREMIUM_APPLICABLE_ACTIVITY_BUY) {
+            if (editedQuantity < total_premium_quantity) {
+              premiumTotal +=
+                calculation_type === PREMIUM_MANUAL ||
+                calculation_type === PREMIUM_OPTIONS
+                  ? total * productRatio
+                  : amount * editedQuantity;
+            } else {
+              premiumTotal +=
+                calculation_type === PREMIUM_MANUAL ||
+                calculation_type === PREMIUM_OPTIONS
+                  ? total
+                  : amount * parseFloat(total_premium_quantity);
+            }
+          } else {
+            premiumTotal += amount * editedQuantity;
+          }
+
+          const transactionPremium = {
+            premium_id: id,
+            transaction_id: transactionId,
+            amount: premiumTotal,
+            server_id: '',
+            category: TYPE_TRANSACTION_PREMIUM,
+            type: PAYMENT_INCOMING,
+            verification_method: transactionObj.verification_method,
+            receipt: transactionObj.invoice_file,
+            card_id: transactionObj.card_id,
+            node_id: transactionObj.node_id,
+            date: transactionObj.created_on,
+            currency: transactionObj.currency,
+            source: buyer.server_id,
+            destination: loggedInUser.default_node,
+            verification_longitude: transactionObj.verification_longitude,
+            verification_latitude: transactionObj.verification_latitude,
+          };
+
+          await createTransactionPremium(transactionPremium);
+        },
+      ),
     );
   };
 
   /**
    * saving all base price payment
-   *
    * @param {string}  transactionId   corresponding transaction id
    * @param {object}  transactionObj  transaction object
    */
@@ -642,8 +736,8 @@ const SendVerificationScreen = ({ navigation, route }) => {
       transaction_id: transactionId,
       amount: transactionObj.price,
       server_id: '',
-      category: consts.TYPE_BASE_PRICE,
-      type: consts.PAYMENT_INCOMING,
+      category: TYPE_BASE_PRICE,
+      type: PAYMENT_INCOMING,
       verification_method: transactionObj.verification_method,
       receipt: transactionObj.invoice_file,
       card_id: transactionObj.card_id,
@@ -655,7 +749,8 @@ const SendVerificationScreen = ({ navigation, route }) => {
       verification_longitude: transactionObj.verification_longitude,
       verification_latitude: transactionObj.verification_latitude,
     };
-    await saveTransactionPremium(basePricePayment);
+
+    await createTransactionPremium(basePricePayment);
   };
 
   /**
@@ -677,7 +772,6 @@ const SendVerificationScreen = ({ navigation, route }) => {
 
   /**
    * creating alert modal based on put key
-   *
    * @param {string} key alert modal type
    */
   const createAlert = (key) => {
@@ -704,7 +798,7 @@ const SendVerificationScreen = ({ navigation, route }) => {
       setAlertIcon(
         <Image
           source={require('../../../assets/images/card-not-found.png')}
-          resizeMode='contain'
+          resizeMode="contain"
           style={{ width: width * 0.3, height: width * 0.3 }}
         />,
       );
@@ -714,7 +808,6 @@ const SendVerificationScreen = ({ navigation, route }) => {
 
   /**
    * submit function of alert modal
-   *
    * @param {*} key alert type
    */
   const onPressAlert = (key) => {
@@ -739,7 +832,7 @@ const SendVerificationScreen = ({ navigation, route }) => {
       <View style={styles.headerWrap}>
         <CustomLeftHeader
           title={I18n.t('premium_verification')}
-          leftIcon='arrow-left'
+          leftIcon="arrow-left"
           onPress={() => backNavigation()}
           extraStyle={{ width: '90%' }}
         />
@@ -752,12 +845,12 @@ const SendVerificationScreen = ({ navigation, route }) => {
       </View>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {initialLoading && (
-          <ActivityIndicator size='small' color={theme.icon_1} />
+          <ActivityIndicator size="small" color={theme.icon_1} />
         )}
 
         {verificationMode === 'nfc' && !initialLoading && (
           <NfcMethod
-            actionType='send'
+            actionType="send"
             verifyLoading={verifyLoading}
             error={error}
             onNoCardSubmit={requestCameraPermission}
@@ -777,7 +870,7 @@ const SendVerificationScreen = ({ navigation, route }) => {
 
         {verificationMode === 'qr_code' && !initialLoading && (
           <QrCodeMethod
-            actionType='send'
+            actionType="send"
             verifyLoading={verifyLoading}
             error={error}
             onNoCardSubmit={requestCameraPermission}
@@ -847,10 +940,8 @@ const CardContainer = ({ ...props }) => {
             {`${item.name}:`}
           </Text>
           <View style={{ flexDirection: 'row' }}>
-            <Text
-              style={[styles.cardRightItem, { color: theme.background_1 }]}
-            >
-              {`${parseFloat(item.edited_quantity).toLocaleString('pt-BR')} Kg`}
+            <Text style={[styles.cardRightItem, { color: theme.background_1 }]}>
+              {`${convertQuantity(item.edited_quantity)} Kg`}
             </Text>
           </View>
         </View>
@@ -873,7 +964,7 @@ const CardContainer = ({ ...props }) => {
         </Text>
         <View style={{ flexDirection: 'row' }}>
           <Text style={[styles.cardRightItem, { color: theme.background_1 }]}>
-            {`${totalPaidToFarmers().toLocaleString('pt-BR')} ${currency}`}
+            {`${convertCurrency(totalPaidToFarmers())} ${currency}`}
           </Text>
         </View>
       </View>
@@ -895,9 +986,7 @@ const CardContainer = ({ ...props }) => {
               },
             ]}
           >
-            {`${Math.round(parseFloat(premium.total)).toLocaleString(
-              'pt-BR',
-            )} ${currency}`}
+            {`${convertCurrency(premium.total)} ${currency}`}
           </Text>
         </View>
       ))}
@@ -928,7 +1017,7 @@ const CardContainer = ({ ...props }) => {
             },
           ]}
         >
-          {`${getAllTotalAmount().toLocaleString('pt-BR')} ${currency}`}
+          {`${convertCurrency(getAllTotalAmount())} ${currency}`}
         </Text>
       </View>
     </View>

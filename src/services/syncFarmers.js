@@ -16,11 +16,13 @@ import { getPremiumList } from './populateDatabase';
 import { syncTransactions } from './syncTransactions';
 import { getAllUnSyncCards, updateCardServerID } from './cardsHelper';
 import { stringToJson } from './commonFunctions';
-import api from '../api/config';
 import {
+  findAllTransactionPremiumByCardID,
   findAllTransactionPremiumByDestination,
+  updateTransactionPremiumCard,
   updateTransactionPremiumDestination,
 } from './transactionPremiumHelper';
+import api from '../api/config';
 
 export const syncFarmers = async () => {
   let lastSyncedTime = new Date();
@@ -151,7 +153,17 @@ export const syncCards = async (headers) => {
       const response = await CommonFetchRequest(config);
 
       if (response?.success) {
-        await updateCardServerID(card.id, response.data.id);
+        const serverId = response.data.id;
+        await updateCardServerID(card.id, serverId);
+
+        // finding all transaction premium with local card_id and updating with server_id
+        const transactions = await findAllTransactionPremiumByCardID(card.id);
+
+        if (transactions.length > 0) {
+          await transactions.map(async (tx) => {
+            await updateTransactionPremiumCard(tx.id, serverId);
+          });
+        }
       }
 
       return card;
@@ -177,7 +189,7 @@ export const uploadProfilePicture = async (userId, node) => {
 
   const headers = {
     Bearer: loggedInUser.token,
-    'Content-Type': 'application/json',
+    'Content-Type': 'multipart/form-data',
     'User-ID': loggedInUser.id,
     'Node-ID': loggedInUser.default_node,
     'Project-ID': loggedInUser.project_id,
@@ -210,7 +222,6 @@ export const uploadProfilePicture = async (userId, node) => {
 
 export const updateAllFarmerDetails = async () => {
   const nodes = await findAllUpdatedFarmers();
-  nodes.reverse();
 
   let loggedInUser = await AsyncStorage.getItem('loggedInUser');
   loggedInUser = JSON.parse(loggedInUser);

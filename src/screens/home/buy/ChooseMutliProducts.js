@@ -27,7 +27,6 @@ const ChooseProducts = ({ navigation, route }) => {
 
   /**
    * Navigation function to buy product page
-   *
    * @param {object} item product object
    */
   const goToBuy = (item) => {
@@ -50,7 +49,7 @@ const ChooseProducts = ({ navigation, route }) => {
         <View style={styles.topSectionWrap}>
           <CustomLeftHeader
             title={I18n.t('buy')}
-            leftIcon='arrow-left'
+            leftIcon="arrow-left"
             onPress={() => navigation.goBack()}
           />
           <View style={styles.imageSection}>

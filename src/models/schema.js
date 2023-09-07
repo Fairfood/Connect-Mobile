@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export default appSchema({
-  version: 7,
+  version: 11,
   tables: [
     tableSchema({
       name: 'nodes',
@@ -48,9 +48,6 @@ export default appSchema({
         { name: 'verification_method', type: 'number' },
         { name: 'verification_longitude', type: 'number' },
         { name: 'verification_latitude', type: 'number' },
-        // { name: "timestamp", type: "string" },
-        // { name: "latitude", type: "number", isOptional: true },
-        // { name: "longitude", type: "number", isOptional: true },
         { name: 'is_verified', type: 'boolean' }, // specify default
         { name: 'is_loss', type: 'boolean' }, // specify default
         { name: 'is_deleted', type: 'boolean' }, // specify default
@@ -61,6 +58,7 @@ export default appSchema({
         { name: 'extra_fields', type: 'string' },
         { name: 'error', type: 'string' },
         { name: 'reported', type: 'string' },
+        { name: 'is_reported', type: 'boolean' },
       ],
     }),
     tableSchema({
@@ -111,6 +109,8 @@ export default appSchema({
         { name: 'updated_at', type: 'number' },
         { name: 'applicable_activity', type: 'number' },
         { name: 'category', type: 'string' },
+        { name: 'is_active', type: 'boolean' },
+        { name: 'calculation_type', type: 'string' },
       ],
     }),
     tableSchema({
@@ -134,6 +134,9 @@ export default appSchema({
         { name: 'destination', type: 'string' },
         { name: 'verification_latitude', type: 'number' },
         { name: 'verification_longitude', type: 'number' },
+        { name: 'is_reported', type: 'boolean' },
+        { name: 'reported', type: 'string' },
+        { name: 'extra_fields', type: 'string' },
       ],
     }),
     tableSchema({

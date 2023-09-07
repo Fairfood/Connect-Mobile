@@ -11,10 +11,9 @@ import {
 import { useSelector } from 'react-redux';
 import DatePicker from 'react-native-date-picker';
 import Toast from 'react-native-toast-message';
-
-import { CloseIcon } from '../assets/svg';
 import { ISOdateConvert } from '../services/commonFunctions';
-import { getAllProducts } from '../services/productsHelper';
+import { logAnalytics } from '../services/googleAnalyticsHelper';
+import { CloseIcon } from '../assets/svg';
 import {
   VERIFICATION_METHOD_CARD,
   VERIFICATION_METHOD_MANUAL,
@@ -29,6 +28,7 @@ import FormTextInput from './FormTextInput';
 import TransparentButton from './TransparentButton';
 import CustomButton from './CustomButton';
 import ToastConfig from './ToastConfig';
+import { fetchAllProducts } from '../db/services/ProductsHelper';
 
 const { width } = Dimensions.get('window');
 const floatRegExp = /^[+-]?([0-9]+([.,][0-9]*)?|[.,][0-9]+)$/;
@@ -100,8 +100,8 @@ const TransactionFilter = ({
    * setting active products
    */
   const setupProducts = async () => {
-    const allProducts = await getAllProducts();
-    const activeProducts = allProducts.reverse().filter((prod) => {
+    const allProducts = await fetchAllProducts();
+    const activeProducts = allProducts.filter((prod) => {
       return prod.is_active;
     });
     setProducts(activeProducts);
@@ -110,7 +110,6 @@ const TransactionFilter = ({
 
   /**
    * updating quantity change
-   *
    * @param {string} quantity quantity value entered
    * @param {string} type     quantity field type: 'minQuantity' or 'maxQuantity'
    */
@@ -134,7 +133,6 @@ const TransactionFilter = ({
 
   /**
    * opening date modal based on type
-   *
    * @param {string} type date field type: 'start_date' or 'end_date'
    */
   const openDateModal = (type) => {
@@ -151,7 +149,6 @@ const TransactionFilter = ({
 
   /**
    * updating date value
-   *
    * @param {Date} value selected date
    */
   const onSelectingDate = (value) => {
@@ -170,7 +167,6 @@ const TransactionFilter = ({
 
   /**
    * updating transaction type value
-   *
    * @param {boolean} key current updated transaction type key
    */
   const updateTransactionType = (key) => {
@@ -181,7 +177,6 @@ const TransactionFilter = ({
 
   /**
    * updating product value
-   *
    * @param {string} name selected product
    */
   const updateProducts = (name) => {
@@ -201,7 +196,6 @@ const TransactionFilter = ({
 
   /**
    * updating verification method value
-   *
    * @param {boolean} key selected verification method key
    */
   const updateVerificationMethod = (key) => {
@@ -213,7 +207,7 @@ const TransactionFilter = ({
   /**
    * filter validate before submit
    */
-  const validateFilter = () => {
+  const validateFilter = async () => {
     if (filter.quantity) {
       const { minQuantity, maxQuantity } = filter.quantity;
 
@@ -242,6 +236,10 @@ const TransactionFilter = ({
       }
     }
 
+    logAnalytics('filters', {
+      filter_type: 'transaction_filter',
+    });
+
     applyFilters(filter, true);
   };
 
@@ -265,7 +263,7 @@ const TransactionFilter = ({
 
   return (
     <Modal
-      animationType='fade'
+      animationType="fade"
       transparent
       visible={visible}
       onRequestClose={hideModal}
@@ -294,7 +292,7 @@ const TransactionFilter = ({
                     onPress={() => openDateModal('start_date')}
                     style={{ width: '48%' }}
                   >
-                    <View pointerEvents='none'>
+                    <View pointerEvents="none">
                       <FormTextInput
                         placeholder={I18n.t('start_date')}
                         value={
@@ -313,7 +311,7 @@ const TransactionFilter = ({
                     onPress={() => openDateModal('end_date')}
                     style={{ width: '48%' }}
                   >
-                    <View pointerEvents='none'>
+                    <View pointerEvents="none">
                       <FormTextInput
                         placeholder={I18n.t('end_date')}
                         value={
@@ -422,7 +420,7 @@ const TransactionFilter = ({
                       maxLength={6}
                       onChangeText={(text) =>
                         onChangeQuantity(text, 'minQuantity')}
-                      keyboardType='number-pad'
+                      keyboardType="number-pad"
                       color={theme.text_1}
                       extraStyle={{ width: '100%', paddingLeft: 0 }}
                     />
@@ -434,7 +432,7 @@ const TransactionFilter = ({
                       maxLength={6}
                       onChangeText={(text) =>
                         onChangeQuantity(text, 'maxQuantity')}
-                      keyboardType='number-pad'
+                      keyboardType="number-pad"
                       color={theme.text_1}
                       extraStyle={{ width: '100%', paddingLeft: 0 }}
                     />
@@ -444,11 +442,11 @@ const TransactionFilter = ({
 
               {dateModal && (
                 <DatePicker
-                  theme='light'
+                  theme="light"
                   modal
                   open={dateModal}
                   date={activeDate ? new Date(activeDate) : new Date()}
-                  mode='date'
+                  mode="date"
                   maximumDate={new Date()}
                   onConfirm={(date) => onSelectingDate(date)}
                   onCancel={() => setDateModal(false)}
@@ -461,7 +459,7 @@ const TransactionFilter = ({
           <TransparentButton
             buttonText={I18n.t('reset_filter')}
             onPress={() => resetFilter()}
-            color='#EA2553'
+            color="#EA2553"
             extraStyle={{
               width: '48%',
               marginHorizontal: 0,

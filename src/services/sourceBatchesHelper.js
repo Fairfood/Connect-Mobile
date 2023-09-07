@@ -5,7 +5,7 @@ const sourceBatches = database.collections.get('source_batches');
 
 export const getAllSourceBatches = async () => {
   const allBatches = await sourceBatches.query().fetch();
-  return allBatches[0];
+  return allBatches;
 };
 
 export const observeBatches = () => {
