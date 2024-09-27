@@ -1,0 +1,57 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "src/assets/fonts/FairFood.ttf",
+      "sha1": "44830812945b453a6531e5dfcb71f0c426db210c"
+    },
+    {
+      "path": "src/assets/fonts/Moderat-Black-Italic.ttf",
+      "sha1": "822b9618c8f22dc1225606cd5641f45b77587ea6"
+    },
+    {
+      "path": "src/assets/fonts/Moderat-Black.ttf",
+      "sha1": "498b69982ba2635fbe027ea9bebe298fd12c2859"
+    },
+    {
+      "path": "src/assets/fonts/Moderat-Bold-Italic.ttf",
+      "sha1": "1e7ca2bcfe22f317a0a8d5dc02bcd009fb10f883"
+    },
+    {
+      "path": "src/assets/fonts/Moderat-Bold.ttf",
+      "sha1": "2b7e32def5f8e5f9dd631663851acb8a58101f25"
+    },
+    {
+      "path": "src/assets/fonts/Moderat-Light-Italic.ttf",
+      "sha1": "6fdfa77a84f315e06b4c7927f391419228843451"
+    },
+    {
+      "path": "src/assets/fonts/Moderat-Light.ttf",
+      "sha1": "b2f9719d28c6e3f91d58e2cea7a0e546f34bddcf"
+    },
+    {
+      "path": "src/assets/fonts/Moderat-Medium-Italic.ttf",
+      "sha1": "94e28a3aef908253e7398cd3d0025309f5531f26"
+    },
+    {
+      "path": "src/assets/fonts/Moderat-Medium.ttf",
+      "sha1": "d67426349e532644c9c3e6688a08b0d378fb199c"
+    },
+    {
+      "path": "src/assets/fonts/Moderat-Regular-Italic.ttf",
+      "sha1": "602beae4b2da93ef0ca3f2397300cd52b57434c4"
+    },
+    {
+      "path": "src/assets/fonts/Moderat-Regular.ttf",
+      "sha1": "3ebd3260b9390d93e6e7d4ef127905b40aac0383"
+    },
+    {
+      "path": "src/assets/fonts/Moderat-Thin-Italic.ttf",
+      "sha1": "81bfac05bb99155d6211ac3aebc1b672d9655dfc"
+    },
+    {
+      "path": "src/assets/fonts/Moderat-Thin.ttf",
+      "sha1": "5c983d51e08c4f2cc1b24ada050f59054cfc4fad"
+    }
+  ]
+}

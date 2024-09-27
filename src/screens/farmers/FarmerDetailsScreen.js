@@ -12,10 +12,6 @@ import {
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import moment from 'moment';
-import { findAllTransactionsById } from '../../services/transactionsHelper';
-import { findProductById } from '../../services/productsHelper';
-import { findFarmerById } from '../../services/farmersHelper';
-import { getAllCardsByNodeId } from '../../services/cardsHelper';
 import {
   getCustomFieldValue,
   stringToJson,
@@ -27,6 +23,10 @@ import Icon from '../../icons';
 import I18n from '../../i18n/i18n';
 import Countries from '../../services/countries';
 import Avatar from '../../components/Avatar';
+import { findFarmer } from '../../db/services/FarmerHelper';
+import { fetchCardsByNodeId } from '../../db/services/CardHelper';
+import { findProduct } from '../../db/services/ProductsHelper';
+import { fetchTransactionsByNodId } from '../../db/services/TransactionsHelper';
 
 const { width } = Dimensions.get('window');
 
@@ -40,7 +40,7 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
   const [selectedTab, setSelectedTab] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [cards, setCards] = useState([]);
-  const [farmer, setFarmer] = useState(node._raw);
+  const [farmer, setFarmer] = useState(node);
   const [farmerExtraFields, setFarmerExtraFields] = useState([]);
   const appCustomFields = userCompanyDetails?.app_custom_fields
     ? stringToJson(userCompanyDetails.app_custom_fields)
@@ -55,16 +55,10 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
    * setting initial values
    */
   const setupDetails = async () => {
-    const transactionsList = await findAllTransactionsById(farmer.id);
-    const farmerCards = await getAllCardsByNodeId(farmer.id);
+    const farmerCards = await fetchCardsByNodeId(farmer.id);
 
     // sorting cards descending order by updated time
-    farmerCards.sort((a, b) => {
-      const small = a?.updated_at ?? 0;
-      const big = b?.updated_at ?? 0;
-      return big - small;
-    });
-
+    farmerCards.sorted('updated_at', false);
     setCards(farmerCards);
 
     // setting extra field values
@@ -82,17 +76,19 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
     }
 
     // adding product and farmer name for transaction list
-    transactionsList.map(async (tx) => {
+    const transactionsList = await fetchTransactionsByNodId(farmer.id);
+    const convertedTransactionsList = Array.from(transactionsList);
+    convertedTransactionsList.map(async (tx) => {
       if (!tx.node_name || !tx.product_name) {
         if (tx.product_id) {
-          const product = await findProductById(tx.product_id);
+          const product = await findProduct(tx.product_id);
           tx.product_name = product.name;
         } else {
           tx.product_name = '';
         }
 
         if (tx.node_id) {
-          const nodeObj = await findFarmerById(tx.node_id);
+          const nodeObj = await findFarmer(tx.node_id);
           tx.node_name = nodeObj.name;
         } else {
           tx.node_name = '';
@@ -101,12 +97,15 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
     });
 
     // sorting transaction list based on created date
-    transactionsList.sort((a, b) => b.created_on - a.created_on);
+    convertedTransactionsList.sort(
+      (a, b) =>
+        new Date(b.created_on).getTime() - new Date(a.created_on).getTime(),
+    );
     setTransactions(transactionsList);
   };
 
   const issueCardToFarmer = () => {
-    navigation.navigate('IssueFarmerCard', { farmer, newFarmer: true });
+    navigation.navigate('IssueFarmerCard', { farmer });
   };
 
   /**
@@ -174,6 +173,7 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
         profilePic: farmer.image,
         dialCode: phone.replace('+', ''),
         ktp: farmer.ktp,
+        card_id: cards.length > 0 ? cards[0].card_id : '',
         extra_fields:
           extraFields && Object.keys(extraFields).length > 0 ? extraFields : '',
       };
@@ -183,20 +183,16 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
     navigation.navigate('EditFarmer', {
       farmer: farmerDetails,
       otherDetails: farmer,
-      updateFarmer,
+      updateEditedFarmer,
     });
   };
 
   /**
    * updating farmer details from edit farmer page
-   *
    * @param {object} farmerDetails updated farmer object
    */
-  const updateFarmer = (farmerDetails) => {
+  const updateEditedFarmer = (farmerDetails) => {
     const farmerObj = farmerDetails;
-    const phone =
-      `${farmerDetails.phone.dial_code} ${farmerDetails.phone.phone}`.trim();
-    farmerObj.phone = phone;
     farmerObj.updated_on = Math.round(Date.now());
     setFarmer(farmerObj);
   };
@@ -204,7 +200,6 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
   /**
    * checking phone text includes both dial code and phone number.
    * if this condition true, returns phone text otherwise null
-   *
    * @param   {string} phone phone text
    * @returns {any}          phone text or null
    */
@@ -216,18 +211,20 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
     return null;
   };
 
-  const renderItem = ({ item }) => (
-    <TransactionListItem
-      item={item}
-      onSelect={(i) =>
-        navigation.navigate('FarmerTransactionDetails', {
-          transactionItem: i,
-        })
-      }
-      currency={currency}
-      historyView
-    />
-  );
+  const renderItem = ({ item }) => {
+    return (
+      <TransactionListItem
+        item={item}
+        onSelect={(i) =>
+          navigation.navigate('FarmerTransactionDetails', {
+            transactionItem: i,
+          })
+        }
+        currency={currency}
+        historyView
+      />
+    );
+  };
 
   const styles = StyleSheetFactory(theme);
 
@@ -236,10 +233,10 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
       <CustomLeftHeader
         backgroundColor={theme.background_1}
         title={I18n.t('farmer_details')}
-        leftIcon='arrow-left'
+        leftIcon="arrow-left"
         onPress={() => navigation.goBack(null)}
         rightText={I18n.t('edit')}
-        rightTextColor='#EA2553'
+        rightTextColor="#EA2553"
         onPressRight={editFarmerDetails}
         extraStyle={{ paddingHorizontal: width * 0.05 }}
       />
@@ -247,7 +244,7 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
       <View style={styles.topSectionWrap}>
         <View style={styles.headerWrap}>
           <Avatar
-            image={farmer.image}
+            image={farmer?.image ?? ''}
             containerStyle={styles.proPic}
             avatarName={farmer.name}
             avatarNameStyle={styles.avatarNameStyle}
@@ -264,9 +261,9 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
         {(farmer.server_id === '' || farmer.is_modified) && (
           <View style={styles.syncWarningWrap}>
             <Icon
-              name='Sync-warning2'
+              name="Sync-warning2"
               size={28}
-              color='#F2994A'
+              color="#F2994A"
               style={{ marginHorizontal: 10 }}
             />
             <Text style={styles.syncMsg}>
@@ -282,8 +279,7 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
           style={[
             styles.tabItemWrap,
             {
-              borderBottomColor:
-                selectedTab === 0 ? theme.text_1 : '#EDEEEF',
+              borderBottomColor: selectedTab === 0 ? theme.text_1 : '#EDEEEF',
             },
           ]}
         >
@@ -302,8 +298,7 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
           style={[
             styles.tabItemWrap,
             {
-              borderBottomColor:
-                selectedTab === 1 ? theme.text_1 : '#EDEEEF',
+              borderBottomColor: selectedTab === 1 ? theme.text_1 : '#EDEEEF',
             },
           ]}
         >
@@ -360,9 +355,7 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
                   <Text style={styles.fieldValue} numberOfLines={1}>
                     {I18n.t('ktp')}
                   </Text>
-                  <Text style={styles.formTitle}>
-                    {farmer.ktp.trim() === '' ? '-' : farmer.ktp}
-                  </Text>
+                  <Text style={styles.formTitle}>{farmer.ktp || '-'}</Text>
                 </View>
               )}
           </View>
@@ -378,9 +371,7 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
               <Text style={styles.fieldValue} numberOfLines={1}>
                 {I18n.t('street_name')}
               </Text>
-              <Text style={styles.formTitle}>
-                {farmer.street.trim() === '' ? '-' : farmer.street}
-              </Text>
+              <Text style={styles.formTitle}>{farmer.street || '-'}</Text>
             </View>
           )}
 
@@ -445,7 +436,7 @@ const FarmerDetailsScreen = ({ navigation, route }) => {
               {` ${moment(
                 farmer.updated_on === 0
                   ? farmer.created_on * 1000
-                  : farmer.updated_on,
+                  : farmer.updated_on * 1000,
               ).format('MMMM Do YYYY, h:mm a')}`}
             </Text>
           </View>

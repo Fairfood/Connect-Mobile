@@ -1,0 +1,11 @@
+{
+  "search.useGlobalIgnoreFiles": true,
+  "search.useParentIgnoreFiles": true,
+  "java.compile.nullAnalysis.mode": "automatic",
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "prettier.singleQuote": true,
+  "prettier.singleAttributePerLine": true,
+  "cSpell.words": [
+    "Moderat"
+  ],
+}

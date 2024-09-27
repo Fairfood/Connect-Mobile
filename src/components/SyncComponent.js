@@ -26,11 +26,12 @@ import { populateDatabase } from '../services/populateDatabase';
 import ToastConfig from './ToastConfig';
 import TransparentButton from './TransparentButton';
 import I18n from '../i18n/i18n';
+import { initiateSync } from '../sync/SyncInitials';
 
 const { width } = Dimensions.get('window');
 
 const SyncComponent = ({ ...props }) => {
-  const { theme } = useSelector((state) => state.common);
+  const { theme, migration } = useSelector((state) => state.common);
   const { syncPercentage, syncInProgress, syncSuccessfull } = useSelector(
     (state) => state.login,
   );
@@ -88,6 +89,8 @@ const SyncComponent = ({ ...props }) => {
         text1: I18n.t('in_progress'),
         text2: I18n.t('sync_already_in_progress'),
       });
+    } else if (migration) {
+      initiateSync();
     } else {
       populateDatabase();
     }
@@ -97,7 +100,7 @@ const SyncComponent = ({ ...props }) => {
 
   return (
     <Modal
-      animationType='slide'
+      animationType="slide"
       transparent
       visible={props.visible}
       onRequestClose={() => props.hideModal()}
@@ -160,7 +163,7 @@ const SyncComponent = ({ ...props }) => {
                     progress={syncPercentage > 100 ? 1 : syncPercentage / 100}
                     width={width * 0.8}
                     height={8}
-                    color='#27AE60'
+                    color="#27AE60"
                   />
                 </View>
               </>
@@ -177,6 +180,7 @@ const SyncComponent = ({ ...props }) => {
                 subtitle={localSyncData.farmer}
                 loading={localSyncData.farmer.status}
                 syncInProgress={syncInProgress}
+                styles={styles}
               />
               <SyncFields
                 leftImage={(
@@ -204,7 +208,7 @@ const SyncComponent = ({ ...props }) => {
             <TransparentButton
               buttonText={I18n.t('sync_manually')}
               onPress={() => startSyncing()}
-              color='#EA2553'
+              color="#EA2553"
               paddingHorizontal={45}
               extraStyle={{ width: '100%' }}
             />
@@ -272,7 +276,7 @@ const SyncFields = ({ ...props }) => {
           <SyncCloseIcon
             width={width * 0.07}
             height={width * 0.07}
-            fill='#EA2553'
+            fill="#EA2553"
           />
         )}
       </View>

@@ -14,28 +14,34 @@ import {
   TouchableOpacity,
   Modal,
 } from 'react-native';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import Collapsible from 'react-native-collapsible';
-import withObservables from '@nozbe/with-observables';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Geolocation from 'react-native-geolocation-service';
 import Toast from 'react-native-toast-message';
 
-import { observeProducts } from '../../../services/productsHelper';
-import { findPremiumByServerId } from '../../../services/premiumsHelper';
-import { findAllPremiumsByProduct } from '../../../services/productPremiumHelper';
-import { stringToJson } from '../../../services/commonFunctions';
-import I18n from '../../../i18n/i18n';
-import FormTextInput from '../../../components/FormTextInput';
-import CustomLeftHeader from '../../../components/CustomLeftHeader';
-import CustomButton from '../../../components/CustomButton';
-import CustomInputFields from '../../../components/CustomInputFields';
+import {
+  convertCurrency,
+  convertQuantity,
+  stringToJson,
+} from '../../../services/commonFunctions';
+import {
+  fetchPremiumsByCalculationType,
+  searchPremiumByServerId,
+} from '../../../db/services/PremiumsHelper';
+import { fetchAllPremiumsByProduct } from '../../../db/services/ProductPremiumHelper';
 import {
   BlueRoundTickIcon,
   DeleteBinIcon,
   PlusRoundIcon,
   ThinArrowDownIcon,
 } from '../../../assets/svg';
+import { clearTransactionStatus } from '../../../redux/CommonStore';
+import I18n from '../../../i18n/i18n';
+import FormTextInput from '../../../components/FormTextInput';
+import CustomLeftHeader from '../../../components/CustomLeftHeader';
+import CustomButton from '../../../components/CustomButton';
+import CustomInputFields from '../../../components/CustomInputFields';
 import * as consts from '../../../services/constants';
 
 const { width, height } = Dimensions.get('window');
@@ -46,6 +52,7 @@ const BuyScreen = ({ navigation, route }) => {
   const localPriceRef = useRef(null);
   const quantityRefs = useRef([]);
   const basePriceRefs = useRef([]);
+  const manualPremiumRefs = useRef([]);
 
   const { userProjectDetails, userCompanyDetails } = useSelector(
     (state) => state.login,
@@ -58,6 +65,7 @@ const BuyScreen = ({ navigation, route }) => {
     : null;
   const fieldVisibility = appCustomFields?.field_visibility?.buy_txn ?? null;
 
+  const dispatch = useDispatch();
   const [load, setLoad] = useState(false);
   const [loading, setLoading] = useState(false);
   const [valid, setValid] = useState(false);
@@ -71,6 +79,12 @@ const BuyScreen = ({ navigation, route }) => {
   const [activeCollapse, setActiveCollapse] = useState(null);
   const [productModal, setProductModal] = useState(false);
   const [basePrices, setBasePrices] = useState(null);
+  const [currentOptions, setCurrentOptions] = useState([]);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [productIndex, setProductIndex] = useState(null);
+  const [premiumIndex, setPremiumIndex] = useState(null);
+  const [currentPremiumName, setCurrentPremiumName] = useState(null);
+  const [optionPremiumModal, setOptionPremiumModal] = useState(false);
 
   const backNavigation = () => {
     navigation.goBack(null);
@@ -85,11 +99,12 @@ const BuyScreen = ({ navigation, route }) => {
    */
   const setupInitialValues = async () => {
     setLoading(true);
+
+    dispatch(clearTransactionStatus());
+
     if (locationAllowed) {
       fetchLocation();
     }
-
-    await AsyncStorage.setItem('transactionStatus', JSON.stringify({}));
 
     let productPrices =
       (await AsyncStorage.getItem('product_base_prices')) || '{}';
@@ -102,7 +117,60 @@ const BuyScreen = ({ navigation, route }) => {
       setLocalPrice('');
     }
 
-    const allProd = allProducts.map((prod) => {
+    const existingManualPremiums = await fetchPremiumsByCalculationType(
+      consts.PREMIUM_MANUAL,
+    );
+
+    const convertedManualPremiums = [];
+    existingManualPremiums.map((prem) => {
+      const newObj = {
+        amount: '',
+        applicable_activity: prem.applicable_activity,
+        calculation_type: prem.calculation_type,
+        category: prem.category,
+        created_at: prem.created_at,
+        id: prem.id,
+        included_in_amt: prem.included_in_amt,
+        is_active: prem.is_active,
+        is_card_dependent: prem.is_card_dependent,
+        name: prem.name,
+        server_id: prem.server_id,
+        type: prem.type,
+        options: prem.options,
+        updated_at: prem.updated_at,
+      };
+      convertedManualPremiums.push(newObj);
+    });
+
+    const existingSlabPremiums = await fetchPremiumsByCalculationType(
+      consts.PREMIUM_OPTIONS,
+    );
+
+    const convertedSlabPremiums = [];
+    existingSlabPremiums.map((prem) => {
+      const updatedOptions = stringToJson(prem.options);
+      const newObj = {
+        amount: 0,
+        applicable_activity: prem.applicable_activity,
+        calculation_type: prem.calculation_type,
+        category: prem.category,
+        created_at: prem.created_at,
+        id: prem.id,
+        included_in_amt: prem.included_in_amt,
+        is_active: prem.is_active,
+        is_card_dependent: prem.is_card_dependent,
+        name: prem.name,
+        server_id: prem.server_id,
+        type: prem.type,
+        updated_at: prem.updated_at,
+        options: updatedOptions,
+        selected_option: null,
+      };
+      convertedSlabPremiums.push(newObj);
+    });
+
+    const convertedProjects = Array.from(allProducts);
+    const allProd = convertedProjects.map((prod) => {
       prod.label = prod.name;
       prod.value = prod.id;
       prod.quantity = ''; // calculated
@@ -110,6 +178,8 @@ const BuyScreen = ({ navigation, route }) => {
       prod.total_amount = ''; // base price * quantity
       prod.premium_total = ''; // total premium amount applied for this product
       prod.applied_premiums = []; // all premiums applied for this product
+      prod.manual_premiums = convertedManualPremiums;
+      prod.option_premiums = convertedSlabPremiums;
       prod.extra_fields =
         appCustomFields && Object.keys(appCustomFields).length > 0
           ? appCustomFields
@@ -117,8 +187,20 @@ const BuyScreen = ({ navigation, route }) => {
       return prod;
     });
 
-    setProducts(selectedProducts);
-    setActiveCollapse(selectedProducts[0].id);
+    const firstProduct = allProd.filter((x) => {
+      return x.id === selectedProducts[0].id;
+    });
+
+    if (firstProduct.length > 0) {
+      setProducts(firstProduct);
+      setActiveCollapse(firstProduct[0].id);
+      validateData(firstProduct);
+    } else {
+      setProducts(allProd[0]);
+      validateData(allProd[0]);
+      setActiveCollapse(allProd[0].id);
+    }
+
     setInitialProducts(allProd);
     setBasePrices(productPrices);
     setLoading(false);
@@ -135,14 +217,11 @@ const BuyScreen = ({ navigation, route }) => {
       (error) => {
         setLocation(null);
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 },
     );
   };
 
-  /**
-   * calculating total values based on inputs
-   */
-  const calculateValues = async () => {
+  const calculateValues = async (products) => {
     products.map(async (product) => {
       const currentQuantity = product.quantity;
 
@@ -153,51 +232,63 @@ const BuyScreen = ({ navigation, route }) => {
             parseFloat(product.base_price) * parseFloat(currentQuantity);
         }
 
-        const premiums = await findAllPremiumsByProduct(product.server_id);
+        const productPremiums = await fetchAllPremiumsByProduct(
+          product.server_id,
+        );
 
-        let sumAllPremiums = 0;
-        let premiumsPerTransaction = 0;
+        const manualPremiums = product.manual_premiums;
+        const slabPremiums = product.option_premiums;
+        const totalAppliedPremiums = [
+          ...productPremiums,
+          ...manualPremiums,
+          ...slabPremiums,
+        ];
+        const sumAllPremiums = 0;
+        const premiumsPerTransaction = 0;
         let premiumTotal = 0;
         const appliedPremiums = [];
 
-        if (premiums.length > 0) {
-          premiums.map(async (premium) => {
-            let premiumAmount = 0;
-            const pp = await findPremiumByServerId(premium.premium_id);
-            let p = pp.slice(0);
-
-            if (p.length > 0) {
-              // checking premium exist
-              [p] = p;
+        if (totalAppliedPremiums.length > 0) {
+          await Promise.all(
+            totalAppliedPremiums.map(async (premium) => {
+              // checking premium is manual premium or not
+              let premiumServerId = null;
+              let existingPremium = null;
 
               if (
-                p.applicable_activity === consts.PREMIUM_APPLICABLE_ACTIVITY_BUY
+                premium?.calculation_type === consts.PREMIUM_MANUAL ||
+                premium?.calculation_type === consts.PREMIUM_OPTIONS
               ) {
-                if (p.included_in_amt) {
-                  sumAllPremiums += p.amount;
+                existingPremium = premium;
+              } else {
+                premiumServerId = premium.premium_id;
+
+                const existingPremiums = await searchPremiumByServerId(
+                  premiumServerId,
+                );
+
+                if (existingPremiums.length > 0) {
+                  [existingPremium] = existingPremiums;
                 }
-
-                if (p.type === 101) {
-                  premiumsPerTransaction += p.amount;
-                }
-
-                if (p.type === 101) {
-                  premiumAmount = Math.round(p.amount);
-                } else if (p.type === 301) {
-                  premiumAmount = Math.round(currentQuantity * p.amount);
-                } else {
-                  premiumAmount = Math.round(currentQuantity * p.amount);
-                }
-
-                premiumTotal += premiumAmount;
-
-                const obj = { total: premiumAmount };
-                p = { ...p, ...obj };
-                appliedPremiums.push(p);
               }
-              product.premium_total = premiumTotal;
-            }
-          });
+
+              // checking premium exist
+              if (existingPremium) {
+                if (
+                  existingPremium.applicable_activity ===
+                  consts.PREMIUM_APPLICABLE_ACTIVITY_BUY
+                ) {
+                  const { amount } = existingPremium;
+                  const premiumAmount = Math.round(currentQuantity * amount);
+                  premiumTotal += premiumAmount;
+
+                  existingPremium.total = premiumAmount;
+                  appliedPremiums.push(existingPremium);
+                }
+                product.premium_total = premiumTotal;
+              }
+            }),
+          );
         } else {
           product.premium_total = premiumTotal;
         }
@@ -220,36 +311,30 @@ const BuyScreen = ({ navigation, route }) => {
 
         product.total_amount = baseValue;
 
-        setTimeout(() => {
-          updateValues(products);
-        }, 100);
+        updateValues(products);
       } else {
         product.total_amount = 0;
         product.premium_total = 0;
         product.applied_premiums = [];
 
-        setTimeout(() => {
-          updateValues(products);
-        }, 100);
+        updateValues(products);
       }
     });
   };
 
   /**
    * creating an alert message that card is already assigned
-   *
    * @param {Array} products updated product array
    */
   const updateValues = (products) => {
     setProducts((products) => products);
     calculatePremiums(products);
-    validateData();
+    validateData(products);
     setLoad(!load);
   };
 
   /**
    * setting quantity of each product based on the array index
-   *
    * @param {string}  quantity product quantity
    * @param {number}  orIndex  index of updated product in product array
    */
@@ -260,15 +345,12 @@ const BuyScreen = ({ navigation, route }) => {
       productQuantity = '0.';
     }
 
-    products.find((i, index) => index === orIndex).quantity = productQuantity;
-    setProducts((products) => products);
-    setLoad(!load);
-    calculateValues();
+    products[orIndex].quantity = productQuantity;
+    calculateValues(products);
   };
 
   /**
    * setting quantity of each product based on the array index
-   *
    * @param {string}  price   product base price
    * @param {number}  orIndex index of updated product in product array
    */
@@ -286,16 +368,13 @@ const BuyScreen = ({ navigation, route }) => {
         text2: `${I18n.t('max_base_price_is')} ${consts.MAX_BASE_PRICE}`,
       });
     } else {
-      products.find((i, index) => index === orIndex).base_price = basePrice;
-      setProducts((products) => products);
-      setLoad(!load);
-      calculateValues();
+      products[orIndex].base_price = basePrice;
+      calculateValues(products);
     }
   };
 
   /**
    * setting local market price based on input
-   *
    * @param {string} price local market price
    */
   const onChangeLocalPrice = (price) => {
@@ -322,8 +401,9 @@ const BuyScreen = ({ navigation, route }) => {
 
   /**
    * validating input data
+   * @param {Array} products updated product array
    */
-  const validateData = async () => {
+  const validateData = async (products) => {
     if (products.length === 0) {
       setValid(false);
       setLoad(!load);
@@ -333,7 +413,12 @@ const BuyScreen = ({ navigation, route }) => {
     let success = true;
 
     products.map((product) => {
-      if (!product.quantity || !product.base_price) {
+      if (
+        !product.quantity ||
+        product.quantity === '' ||
+        !product.base_price ||
+        product.base_price === ''
+      ) {
         success = false;
       }
     });
@@ -347,6 +432,7 @@ const BuyScreen = ({ navigation, route }) => {
 
   /**
    * submit validation
+   * @returns {boolean} valid or not
    */
   const validateSubmit = async () => {
     if (products.length === 0) {
@@ -418,6 +504,17 @@ const BuyScreen = ({ navigation, route }) => {
           }
         });
       }
+
+      if (product?.manual_premiums) {
+        product.manual_premiums.map((field) => {
+          if (parseFloat(field.amount) === 0) {
+            setError(
+              `${field.name} of ${product.name} ${I18n.t('cannot_be_0')}.`,
+            );
+            valid = false;
+          }
+        });
+      }
     });
 
     if (valid) {
@@ -458,12 +555,14 @@ const BuyScreen = ({ navigation, route }) => {
       return parseFloat(prod.quantity) > consts.MINIMUM_TRANSACTION_QUANTITY;
     });
 
+    const premiumUpdatedArr = await removeUnwantedPremiums(applicableProducts);
+
     if (!qualityCorrection) {
       await AsyncStorage.setItem('LocalPrice', localPrice);
     } // caching Local price
 
     const params = {
-      products: applicableProducts,
+      products: premiumUpdatedArr,
       totalPrice,
       newFarmer: newFarmer ?? null,
       preLocation: location,
@@ -474,14 +573,13 @@ const BuyScreen = ({ navigation, route }) => {
 
   /**
    * calculate and set premiums based on updated product array
-   *
    * @param {Array} products updated product array
    */
   const calculatePremiums = (products) => {
     const mainObj = {};
     products.map((product) => {
       product.applied_premiums.map((premium) => {
-        const serverId = premium._raw.server_id;
+        const serverId = premium.server_id;
         if (mainObj[serverId]) {
           const obj = mainObj[serverId];
           let { total } = obj;
@@ -490,7 +588,7 @@ const BuyScreen = ({ navigation, route }) => {
           mainObj[serverId] = obj;
         } else {
           const obj = {
-            name: premium._raw.name,
+            name: premium.name,
             total: premium.total,
           };
           mainObj[serverId] = obj;
@@ -499,13 +597,15 @@ const BuyScreen = ({ navigation, route }) => {
     });
 
     const premiumCalculated = Object.values(mainObj);
-    setTotalPremiums((totalPremiums) => premiumCalculated);
+    const filtered = premiumCalculated.filter((x) => {
+      return x.total.toString() !== '0';
+    });
+    setTotalPremiums((totalPremiums) => filtered);
     calculateTotalPrice(products);
   };
 
   /**
    * calculate and set total price based on updated product array
-   *
    * @param {Array} products updated product array
    */
   const calculateTotalPrice = (products) => {
@@ -523,21 +623,20 @@ const BuyScreen = ({ navigation, route }) => {
       total += parseFloat(product.premium_total);
     });
 
-    total = Math.round(parseFloat(total));
+    // total = Math.round(parseFloat(total));
 
     setTotalPrice(total);
   };
 
   /**
    * updating custom field values based on productId and index
-   *
-   * @param {object}  item        updated custom fields object
-   * @param {number}  index       index of updated product in product array
-   * @param {Array}   productId   updated product's productId
+   * @param {object}  item    updated custom fields object
+   * @param {number}  index   index of updated product in product array
+   * @param {Array}   itemId  updated product's itemId
    */
-  const updateCustomData = (item, index, productId) => {
+  const updateCustomData = (item, index, itemId) => {
     products.map((product) => {
-      if (product.id === productId) {
+      if (product.id === itemId) {
         if (
           product?.extra_fields?.custom_fields?.buy_txn_fields?.[index]?.key ===
           item.key
@@ -545,9 +644,9 @@ const BuyScreen = ({ navigation, route }) => {
           product.extra_fields.custom_fields.buy_txn_fields[index].value =
             item.value;
 
-          setProducts((products) => products);
+          validateData(products);
           setLoad(!load);
-          validateData();
+          setProducts((products) => products);
         }
       }
     });
@@ -565,7 +664,6 @@ const BuyScreen = ({ navigation, route }) => {
 
   /**
    * opening collapse based on product id
-   *
    * @param {string} key product id
    */
   const toggleExpanded = (key) => {
@@ -578,15 +676,62 @@ const BuyScreen = ({ navigation, route }) => {
 
   /**
    * adding products to current product array
-   *
    * @param {object} item new product object
    */
   const addProduct = (item) => {
+    const existingManual = [...item.manual_premiums];
+    const existingSlab = [...item.option_premiums];
+
+    const convertedManualPremiums = [];
+    existingManual.map((prem) => {
+      const newObj = {
+        amount: '',
+        applicable_activity: prem.applicable_activity,
+        calculation_type: prem.calculation_type,
+        category: prem.category,
+        created_at: prem.created_at,
+        id: prem.id,
+        included_in_amt: prem.included_in_amt,
+        is_active: prem.is_active,
+        is_card_dependent: prem.is_card_dependent,
+        name: prem.name,
+        server_id: prem.server_id,
+        type: prem.type,
+        options: prem.options,
+        updated_at: prem.updated_at,
+      };
+      convertedManualPremiums.push(newObj);
+    });
+
+    const convertedSlabPremiums = [];
+    existingSlab.map((prem) => {
+      const newObj = {
+        amount: '',
+        applicable_activity: prem.applicable_activity,
+        calculation_type: prem.calculation_type,
+        category: prem.category,
+        created_at: prem.created_at,
+        id: prem.id,
+        included_in_amt: prem.included_in_amt,
+        is_active: prem.is_active,
+        is_card_dependent: prem.is_card_dependent,
+        name: prem.name,
+        server_id: prem.server_id,
+        type: prem.type,
+        updated_at: prem.updated_at,
+        options: prem.options,
+        selected_option: null,
+      };
+      convertedSlabPremiums.push(newObj);
+    });
+
     item.quantity = '';
     item.base_price = basePrices[item.server_id] ?? '';
     item.total_amount = '';
     item.premium_total = '';
     item.applied_premiums = [];
+    item.manual_premiums = convertedManualPremiums;
+    item.option_premiums = convertedSlabPremiums;
     products.push(item);
 
     setActiveCollapse(item.id);
@@ -595,9 +740,64 @@ const BuyScreen = ({ navigation, route }) => {
     setProductModal(false);
   };
 
+  const onChangeManualPremiumPrice = (text, productIndex, premiumIndex) => {
+    let premiumPrice = text === '' ? '' : text.toString().replace(',', '.');
+
+    if (premiumPrice === '.') {
+      premiumPrice = '0.';
+    }
+
+    const updatedProducts = [...products]; // Create a copy of the products array
+    const newArr = Array.from(updatedProducts);
+    const updatedPremiums = [...newArr[productIndex].manual_premiums];
+    const convertedPremiums = Array.from(updatedPremiums);
+    convertedPremiums[premiumIndex].amount = premiumPrice;
+
+    newArr[productIndex].manual_premiums = convertedPremiums;
+
+    calculateValues(newArr);
+  };
+
+  const onChangeSlabPremiumPrice = (option, productIndex, premiumIndex) => {
+    let premiumPrice = 0;
+    if (option && option.amount) {
+      premiumPrice = parseFloat(option.amount);
+    }
+
+    const updatedProducts = [...products]; // Create a copy of the products array
+    const newArr = Array.from(updatedProducts);
+    const updatedPremiums = [...newArr[productIndex].option_premiums];
+    const convertedPremiums = Array.from(updatedPremiums);
+    convertedPremiums[premiumIndex].amount = premiumPrice;
+    convertedPremiums[premiumIndex].selected_option = option;
+    newArr[productIndex].option_premiums = convertedPremiums;
+
+    calculateValues(newArr);
+  };
+
+  /**
+   * removing unwanted manual premium with zero value
+   * @param   {Array} products Current product array
+   * @returns {Array}           updated product array
+   */
+  const removeUnwantedPremiums = async (products) => {
+    await Promise.all(
+      products.map((p) => {
+        const existingArray = p.applied_premiums;
+        // return only manual premiums with value
+        const updatedArr = existingArray.filter((x) => {
+          return x.amount !== '' && x.amount !== 0;
+        });
+
+        p.applied_premiums = updatedArr;
+      }),
+    );
+
+    return products;
+  };
+
   /**
    * removing product from product array
-   *
    * @param {string} id product id
    */
   const removeProduct = (id) => {
@@ -612,6 +812,46 @@ const BuyScreen = ({ navigation, route }) => {
     }
   };
 
+  const openOptionPremiumModal = (
+    item,
+    productIndex,
+    premiumIndex,
+    selectedOption,
+    name,
+  ) => {
+    if (item.options && item.options.length > 0) {
+      setCurrentOptions(item.options);
+      setSelectedOption(item.selected_option);
+      setProductIndex(productIndex);
+      setPremiumIndex(premiumIndex);
+      setCurrentPremiumName(item.name);
+      setOptionPremiumModal(true);
+    } else {
+      setError(`${I18n.t('no_options_found')}.`);
+    }
+  };
+
+  const onSelectOption = (option, index, n) => {
+    if (option) {
+      onChangeSlabPremiumPrice(option, productIndex, premiumIndex);
+      setProductIndex(null);
+      setPremiumIndex(null);
+      setCurrentPremiumName(null);
+      setOptionPremiumModal(false);
+    } else {
+      onChangeSlabPremiumPrice(option, index, n);
+      resetOptionPremiumModal();
+    }
+  };
+
+  const resetOptionPremiumModal = () => {
+    setSelectedOption(null);
+    setProductIndex(null);
+    setPremiumIndex(null);
+    setCurrentPremiumName(null);
+    setOptionPremiumModal(false);
+  };
+
   const styles = StyleSheetFactory(theme);
 
   return (
@@ -619,15 +859,15 @@ const BuyScreen = ({ navigation, route }) => {
       <CustomLeftHeader
         backgroundColor={theme.background_1}
         title={I18n.t('buy')}
-        leftIcon='arrow-left'
+        leftIcon="arrow-left"
         onPress={() => backNavigation()}
       />
 
-      {loading && <ActivityIndicator size='small' color={theme.text_1} />}
+      {loading && <ActivityIndicator size="small" color={theme.text_1} />}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps='always'
+        keyboardShouldPersistTaps="always"
       >
         {products.map((item, index) => (
           <View key={index.toString()} style={styles.productWrap}>
@@ -664,7 +904,7 @@ const BuyScreen = ({ navigation, route }) => {
                   <ThinArrowDownIcon
                     width={width * 0.04}
                     height={width * 0.04}
-                    fill='#7091A6'
+                    fill="#7091A6"
                   />
                 )}
               </View>
@@ -684,7 +924,7 @@ const BuyScreen = ({ navigation, route }) => {
                     {`${I18n.t('quantity')}: `}
                   </Text>
                   <Text style={styles.detailsText}>
-                    {item.quantity.toLocaleString('pt-BR')}
+                    {convertQuantity(item.quantity)}
                     {item.quantity ? 'kg' : ''}
                   </Text>
                   <Text style={styles.detailsText}> | </Text>
@@ -701,12 +941,19 @@ const BuyScreen = ({ navigation, route }) => {
                     {`${I18n.t('base_price')}: `}
                   </Text>
                   <Text style={styles.detailsText}>
-                    {`${item.base_price} ${item.base_price ? currency : ''}`}
+                    {`${convertCurrency(item.base_price)} ${
+                      item.base_price ? currency : ''
+                    }`}
                   </Text>
                 </View>
               )}
             </TouchableOpacity>
-            <Collapsible collapsed={activeCollapse !== item.id} align='center'>
+            <Collapsible
+              collapsed={activeCollapse !== item.id}
+              // key={collapsibleKey}
+              align="center"
+              style={{ flex: 1, paddingBottom: 10 }}
+            >
               <View key={index.toString()} style={styles.bottomWrap}>
                 <FormTextInput
                   inputRef={(el) => (quantityRefs.current[index] = el)}
@@ -720,9 +967,9 @@ const BuyScreen = ({ navigation, route }) => {
                       onChangeQuantity(text, index);
                     }
                   }}
-                  keyboardType='number-pad'
+                  keyboardType="number-pad"
                   color={theme.text_1}
-                  returnKeyType='next'
+                  returnKeyType="next"
                   onSubmitEditing={() => {
                     if (basePriceRefs?.current?.[index]) {
                       basePriceRefs.current[index].focus();
@@ -750,9 +997,9 @@ const BuyScreen = ({ navigation, route }) => {
                   visibility={
                     fieldVisibility ? fieldVisibility?.base_price : true
                   }
-                  keyboardType='number-pad'
+                  keyboardType="number-pad"
                   color={theme.text_1}
-                  returnKeyType='next'
+                  returnKeyType="next"
                   onSubmitEditing={() => {
                     if (qualityCorrection) {
                       if (quantityRefs?.current?.[index + 1]) {
@@ -782,11 +1029,103 @@ const BuyScreen = ({ navigation, route }) => {
                     visibility={
                       fieldVisibility ? fieldVisibility?.market_price : true
                     }
-                    keyboardType='numeric'
+                    keyboardType="numeric"
                     color={theme.text_1}
                     extraStyle={{ width: '100%' }}
                   />
                 )}
+
+                {item.manual_premiums.map((i, n) => {
+                  return (
+                    <View
+                      key={n.toString()}
+                      style={{ width: '100%', alignSelf: 'center' }}
+                    >
+                      <FormTextInput
+                        inputRef={(el) =>
+                          (manualPremiumRefs.current[index] = el)
+                        }
+                        placeholder={`${i.name ?? 'NA'}`}
+                        value={
+                          i.amount === ''
+                            ? ''
+                            : i.amount.toLocaleString('id').replace('.', ',')
+                        }
+                        maxLength={10}
+                        onChangeText={(text) =>
+                          onChangeManualPremiumPrice(text, index, n)
+                        }
+                        keyboardType="number-pad"
+                        color={theme.text_1}
+                        extraStyle={{ width: '100%' }}
+                      />
+
+                      {i.amount !== '' && (
+                        <TouchableOpacity
+                          onPress={() =>
+                            onChangeManualPremiumPrice('', index, n)
+                          }
+                          style={styles.resetWrap}
+                          hitSlop={consts.HIT_SLOP_TEN}
+                        >
+                          <View style={{ marginTop: 2 }}>
+                            <DeleteBinIcon
+                              width={width * 0.04}
+                              height={width * 0.04}
+                              fill={theme.icon_error}
+                            />
+                          </View>
+                          <Text style={styles.removeText}>
+                            {I18n.t('remove')}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  );
+                })}
+
+                {item.option_premiums &&
+                  item.option_premiums.map((i, n) => {
+                    return (
+                      <View key={n.toString()}>
+                        <View style={styles.optionsTitleWrap}>
+                          <Text style={styles.placeholderText}>{i.name}</Text>
+                        </View>
+                        <TouchableOpacity
+                          key={n.toString()}
+                          onPress={() =>
+                            openOptionPremiumModal(i, index, n)
+                          }
+                          style={styles.optionPremiumWarp}
+                          hitSlop={consts.HIT_SLOP_TEN}
+                        >
+                          <Text style={styles.optionPremiumText}>
+                            {i?.selected_option?.name ??
+                              '-- Select an option --'}
+                          </Text>
+                        </TouchableOpacity>
+
+                        {i.selected_option !== null && (
+                          <TouchableOpacity
+                            onPress={() => onSelectOption(null, index, n)}
+                            style={styles.resetOptionWrap}
+                            hitSlop={consts.HIT_SLOP_TEN}
+                          >
+                            <View style={{ marginTop: 2 }}>
+                              <DeleteBinIcon
+                                width={width * 0.04}
+                                height={width * 0.04}
+                                fill={theme.icon_error}
+                              />
+                            </View>
+                            <Text style={styles.removeText}>
+                              {I18n.t('remove')}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    );
+                  })}
 
                 {/* custom fields */}
                 {item?.extra_fields?.custom_fields?.buy_txn_fields && (
@@ -796,7 +1135,7 @@ const BuyScreen = ({ navigation, route }) => {
                         return (
                           <CustomInputFields
                             key={n.toString()}
-                            productId={item.id}
+                            itemId={item.id}
                             item={i}
                             index={n}
                             updatedItem={updateCustomData}
@@ -815,7 +1154,6 @@ const BuyScreen = ({ navigation, route }) => {
           <TouchableOpacity
             onPress={() => openProductModal()}
             style={styles.addProductWarp}
-            add_another_product
           >
             <Text style={styles.addText}>
               {initialProducts.length > 0 &&
@@ -829,7 +1167,7 @@ const BuyScreen = ({ navigation, route }) => {
               <PlusRoundIcon
                 width={width * 0.05}
                 height={width * 0.05}
-                fill='#4DCAF4'
+                fill="#4DCAF4"
               />
             )}
           </TouchableOpacity>
@@ -842,16 +1180,14 @@ const BuyScreen = ({ navigation, route }) => {
                 <View key={index.toString()} style={styles.basePriceWrap}>
                   <View style={{ width: '70%' }}>
                     <Text style={styles.cardLeftItem}>
-                      {`${I18n.t('base_price_for')} ${parseFloat(item.quantity)
-                        .toFixed(2)
-                        .toLocaleString('pt-BR')} Kg ${item.name} :`}
+                      {`${I18n.t('base_price_for')} ${convertQuantity(
+                        item.quantity,
+                      )} Kg ${item.name} :`}
                     </Text>
                   </View>
                   <View style={{ width: '30%' }}>
                     <Text style={styles.cardRightItem}>
-                      {`${Math.round(
-                        parseFloat(item.total_amount),
-                      ).toLocaleString('pt-BR')} ${currency}`}
+                      {`${convertCurrency(item.total_amount)} ${currency}`}
                     </Text>
                   </View>
                 </View>
@@ -859,18 +1195,14 @@ const BuyScreen = ({ navigation, route }) => {
             })}
 
             {totalPremiums.map((item, index) => (
-              <View key={index.toString()} style={{ marginBottom: 10 }}>
-                <View style={styles.premiumWrap}>
-                  <View style={{ width: '70%' }}>
-                    <Text style={styles.cardLeftItem}>{item.name}</Text>
-                  </View>
-                  <View style={{ width: '30%' }}>
-                    <Text style={styles.cardRightItem}>
-                      {`${Math.round(parseFloat(item.total)).toLocaleString(
-                        'pt-BR',
-                      )} ${currency}`}
-                    </Text>
-                  </View>
+              <View key={index.toString()} style={styles.premiumWrap}>
+                <View style={{ width: '70%' }}>
+                  <Text style={styles.cardLeftItem}>{item.name}</Text>
+                </View>
+                <View style={{ width: '30%' }}>
+                  <Text style={styles.cardRightItem}>
+                    {`${convertCurrency(item.total)} ${currency}`}
+                  </Text>
                 </View>
               </View>
             ))}
@@ -885,7 +1217,7 @@ const BuyScreen = ({ navigation, route }) => {
               </View>
               <View style={{ width: '70%' }}>
                 <Text style={styles.totalValue}>
-                  {`${totalPrice.toLocaleString('pt-BR')} ${currency}`}
+                  {`${convertCurrency(totalPrice)} ${currency}`}
                 </Text>
               </View>
             </View>
@@ -913,6 +1245,19 @@ const BuyScreen = ({ navigation, route }) => {
           theme={theme}
         />
       )}
+
+      {optionPremiumModal && (
+        <PremiumOptionsModal
+          visible={optionPremiumModal}
+          options={currentOptions}
+          selectedOption={selectedOption}
+          hideModal={() => resetOptionPremiumModal()}
+          onSelectOption={onSelectOption}
+          currentPremiumName={currentPremiumName}
+          currency={currency}
+          theme={theme}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -936,7 +1281,7 @@ const ProductsModal = ({
 
   return (
     <Modal
-      animationType='fade'
+      animationType="fade"
       transparent
       visible={visible}
       onRequestClose={() => hideModal()}
@@ -964,8 +1309,67 @@ const ProductsModal = ({
               <PlusRoundIcon
                 width={width * 0.05}
                 height={width * 0.05}
-                fill='#4DCAF4'
+                fill="#4DCAF4"
               />
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+    </Modal>
+  );
+};
+
+const PremiumOptionsModal = ({
+  visible,
+  options = [],
+  hideModal,
+  selectedOption,
+  onSelectOption,
+  currentPremiumName,
+  currency,
+  theme,
+}) => {
+  const getIsSelected = (id) => {
+    if (selectedOption && selectedOption.id === id) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const styles = StyleSheetFactory(theme);
+
+  return (
+    <Modal
+      animationType="fade"
+      transparent
+      visible={visible}
+      onRequestClose={() => hideModal()}
+    >
+      <TouchableOpacity
+        onPress={() => hideModal()}
+        style={styles.modalContainer}
+      />
+      <View style={styles.modalContainerSub}>
+        <View style={styles.modalTitleSection}>
+          <Text style={styles.modalTitle}>{currentPremiumName}</Text>
+        </View>
+
+        {options.map((item, index) => (
+          <TouchableOpacity
+            key={index.toString()}
+            onPress={() => onSelectOption(item)}
+            style={styles.modalItemWrap}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={styles.modalItem}>{`${item.name}: `}</Text>
+              <Text style={styles.modalItem2}>
+                {`${item.amount} ${currency} (per Kg)`}
+              </Text>
+            </View>
+
+            {getIsSelected(item.id) && (
+              <BlueRoundTickIcon width={width * 0.055} height={width * 0.055} />
             )}
           </TouchableOpacity>
         ))}
@@ -1067,6 +1471,11 @@ const StyleSheetFactory = (theme) => {
       fontSize: 15,
       fontFamily: theme.font_regular,
     },
+    modalItem2: {
+      color: theme.text_2,
+      fontSize: 14,
+      fontFamily: theme.font_regular,
+    },
     modalTitle: {
       color: theme.text_1,
       fontSize: 17,
@@ -1138,6 +1547,7 @@ const StyleSheetFactory = (theme) => {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      marginBottom: 10,
     },
     totalWrap: {
       flexDirection: 'row',
@@ -1149,11 +1559,51 @@ const StyleSheetFactory = (theme) => {
       justifyContent: 'flex-end',
       marginBottom: 20,
     },
+    resetWrap: {
+      position: 'absolute',
+      top: 25,
+      right: 15,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    resetOptionWrap: {
+      position: 'absolute',
+      top: 15,
+      right: 15,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    optionPremiumWarp: {
+      height: 53,
+      width: '100%',
+      alignSelf: 'center',
+      justifyContent: 'center',
+      borderRadius: theme.border_radius,
+      borderColor: theme.placeholder,
+      borderWidth: 1,
+      marginBottom: 20,
+      paddingLeft: 15,
+    },
+    optionPremiumText: {
+      color: theme.text_1,
+      fontSize: 15,
+      fontFamily: theme.font_regular,
+    },
+    optionsTitleWrap: {
+      zIndex: 99,
+      position: 'absolute',
+      top: -8,
+      left: 8,
+    },
+    placeholderText: {
+      color: theme.placeholder,
+      backgroundColor: theme.background_1,
+      fontSize: 12,
+      fontFamily: theme.font_regular,
+      letterSpacing: 0.4,
+      paddingHorizontal: 3,
+    },
   });
 };
 
-const enhanceWithWeights = withObservables([], () => ({
-  PRODUCTS: observeProducts(),
-}));
-
-export default enhanceWithWeights(BuyScreen);
+export default BuyScreen;

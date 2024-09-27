@@ -7,19 +7,17 @@ import {
   Image,
   Linking,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import DeviceInfo from 'react-native-device-info';
 import Toast from 'react-native-toast-message';
 
 import { logoutUser } from '../../../services/syncInitials';
-import {
-  newFarmersCount,
-  updatedFarmersCount,
-} from '../../../services/farmersHelper';
-import { newTransactionsCount } from '../../../services/transactionsHelper';
-import { LogoutIcon } from '../../../assets/svg';
+import { EmailIcon, LogoutIcon } from '../../../assets/svg';
 import { AVATAR_BG_COLORS, PROFILE_MENUS } from '../../../services/constants';
+import { countNewFarmers, countUpdatedFarmers } from '../../../db/services/FarmerHelper';
+import { countNewTransactions } from '../../../db/services/TransactionsHelper';
 import CustomLeftHeader from '../../../components/CustomLeftHeader';
 import TransparentButton from '../../../components/TransparentButton';
 import CommonAlert from '../../../components/CommonAlert';
@@ -28,11 +26,13 @@ import Icon from '../../../icons';
 import api from '../../../api/config';
 import Avatar from '../../../components/Avatar';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const ProfileScreen = ({ navigation }) => {
   const { theme } = useSelector((state) => state.common);
-  const { loggedInUser } = useSelector((state) => state.login);
+  const { loggedInUser, userCompanyDetails } = useSelector(
+    (state) => state.login,
+  );
   const { isConnected } = useSelector((state) => state.connection);
   const [pendingSync, setPendingSync] = useState([]);
   const [logoutModal, setLogoutModal] = useState(false);
@@ -41,9 +41,9 @@ const ProfileScreen = ({ navigation }) => {
    * calculating pending sync counts on logout
    */
   const logoutCurrentUser = async () => {
-    const newFarmers = await newFarmersCount();
-    const modifiedFarmers = await updatedFarmersCount();
-    const newTransactions = await newTransactionsCount();
+    const newFarmers = await countNewFarmers();
+    const modifiedFarmers = await countUpdatedFarmers();
+    const newTransactions = await countNewTransactions();
     const arr = [];
 
     const farmerCount = newFarmers + modifiedFarmers;
@@ -93,7 +93,6 @@ const ProfileScreen = ({ navigation }) => {
 
   /**
    * managing operations based on settings options
-   *
    * @param {string} key selected settings option key
    */
   const onPressMenu = (key) => {
@@ -132,74 +131,81 @@ const ProfileScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={{ flex: 1 }}>
-        <CustomLeftHeader
-          backgroundColor={theme.background_1}
-          title={I18n.t('account')}
-          leftIcon='arrow-left'
-          onPress={() => navigation.goBack(null)}
-          rightText={I18n.t('edit_profile')}
-          rightTextColor={isConnected ? '#EA2553' : '#808080'}
-          onPressRight={() => onPressRight()}
-        />
+      <CustomLeftHeader
+        backgroundColor={theme.background_2}
+        title={I18n.t('account')}
+        leftIcon="arrow-left"
+        onPress={() => navigation.goBack(null)}
+        rightText={I18n.t('edit_profile')}
+        rightTextColor={isConnected ? '#EA2553' : '#808080'}
+        onPressRight={() => onPressRight()}
+        extraStyle={{ paddingLeft: 20 }}
+      />
+      <ScrollView
+        style={styles.subContainer}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.firstSectionWrap}>
-          <View style={styles.firstSectionSubWrap}>
-            <Avatar
-              image={loggedInUser.image}
-              containerStyle={styles.proPic}
-              avatarBgColor={AVATAR_BG_COLORS[0]}
-              avatarName={`${loggedInUser.first_name} ${loggedInUser.last_name}`}
-              avatarNameStyle={styles.avatarNameStyle}
-            />
-            <View style={{ marginLeft: 15 }}>
-              <Text style={styles.nameText}>
-                {`${loggedInUser.first_name} ${loggedInUser.last_name}`}
-              </Text>
-              <Text style={styles.phoneText}>
-                {`${loggedInUser.phone.dial_code} ${loggedInUser.phone.phone}`}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.horizontalLine} />
-        </View>
-
-        {PROFILE_MENUS.map((item) => (
-          <TouchableOpacity
-            key={item.key}
-            onPress={() => onPressMenu(item.key)}
-            style={styles.listItem}
-            testID='ChangeLanguageTouch'
-          >
-            <View style={styles.listItemRightIcon}>
-              <Text style={styles.listItemLeft}>{I18n.t(item.title)}</Text>
-            </View>
-            <View style={styles.listItemRightIcon}>
-              {/* {item.key === 'language' && (
-                <Text style={styles.rightTextStyle}>{appLanguage}</Text>
-              )} */}
-              {item.rightArrow && (
-                <Icon name='right-arrow' size={20} color='#5691AE' />
-              )}
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <View style={styles.footer}>
-        <View style={styles.logoContainer}>
-          <Image
-            source={require('../../../assets/images/fairfood_logo.png')}
-            style={styles.logo}
+          <Avatar
+            image={loggedInUser.image}
+            containerStyle={styles.proPic}
+            avatarBgColor={AVATAR_BG_COLORS[0]}
+            avatarName={`${loggedInUser.first_name} ${loggedInUser.last_name}`}
+            avatarNameStyle={styles.avatarNameStyle}
           />
-          <Text style={styles.versionText}>
-            {`Version: ${api.APP_ENV} v${DeviceInfo.getVersion()}`}
+          <Text style={styles.nameText}>
+            {`${loggedInUser.first_name} ${loggedInUser.last_name}`}
           </Text>
+          <View style={styles.companyWrap}>
+            <Text style={styles.companyText}>Company: </Text>
+            <Text style={styles.companyName}>
+              {userCompanyDetails.full_name}
+            </Text>
+          </View>
+          <View style={styles.emailWrap}>
+            <EmailIcon width={17} height={17} fill={theme.text_2} />
+            <Text style={styles.emailText}>{loggedInUser.email}</Text>
+          </View>
         </View>
+        <View
+          style={{ width: '90%', alignSelf: 'center', paddingVertical: 10 }}
+        >
+          {PROFILE_MENUS.map((item) => (
+            <TouchableOpacity
+              key={item.key}
+              onPress={() => onPressMenu(item.key)}
+              style={styles.listItem}
+              testID="ChangeLanguageTouch"
+            >
+              <View style={styles.listItemRightIcon}>
+                <Text style={styles.listItemLeft}>{I18n.t(item.title)}</Text>
+              </View>
+              <View style={styles.listItemRightIcon}>
+                {item.rightArrow && (
+                  <Icon name="right-arrow" size={20} color="#5691AE" />
+                )}
+              </View>
+            </TouchableOpacity>
+          ))}
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('../../../assets/images/fairfood_logo.png')}
+              style={styles.logo}
+            />
+            <Text style={styles.versionText}>
+              {`Version: ${api.APP_ENV} v${DeviceInfo.getVersion()}`}
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+
+      <View style={styles.footer}>
         <TransparentButton
           buttonText={I18n.t('logout')}
           onPress={() => logoutCurrentUser()}
-          color='#EA2553'
+          color="#EA2553"
           padding={7}
-          extraStyle={{ width: '100%' }}
+          extraStyle={{ width: '90%' }}
         />
       </View>
 
@@ -229,11 +235,14 @@ const StyleSheetFactory = (theme) => {
     container: {
       height: '100%',
       backgroundColor: theme.background_1,
-      paddingHorizontal: width * 0.05,
+    },
+    subContainer: {
+      flex: 1,
     },
     logoContainer: {
       justifyContent: 'flex-start',
       alignItems: 'flex-start',
+      marginTop: 5,
     },
     versionText: {
       fontSize: 12,
@@ -246,32 +255,44 @@ const StyleSheetFactory = (theme) => {
       opacity: 0.7,
     },
     firstSectionWrap: {
-      marginVertical: 20,
-    },
-    firstSectionSubWrap: {
-      flexDirection: 'row',
+      backgroundColor: theme.background_2,
+      justifyContent: 'center',
       alignItems: 'center',
+      paddingBottom: height * 0.045,
+      borderBottomLeftRadius: 20,
+      borderBottomRightRadius: 20,
     },
     nameText: {
       color: theme.text_1,
-      fontWeight: '500',
+      fontFamily: theme.font_bold,
+      fontSize: width * 0.05,
+      marginTop: 15,
+    },
+    companyWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 7,
+    },
+    emailWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 7,
+    },
+    companyText: {
+      color: theme.text_2,
+      fontSize: width * 0.04,
       fontFamily: theme.font_medium,
-      fontStyle: 'normal',
-      fontSize: 18,
-      lineHeight: 24,
-      letterSpacing: 0.3,
-      marginVertical: 5,
     },
-    phoneText: {
-      fontSize: 14,
-      marginBottom: 10,
+    companyName: {
       color: theme.text_1,
-      marginVertical: 5,
+      fontSize: width * 0.04,
+      fontFamily: theme.font_medium,
     },
-    horizontalLine: {
-      borderBottomWidth: 1,
-      borderColor: theme.border_1,
-      marginTop: 20,
+    emailText: {
+      fontSize: width * 0.038,
+      color: theme.text_2,
+      fontFamily: theme.font_regular,
+      marginLeft: 5,
     },
     listItem: {
       width: '100%',
@@ -312,9 +333,9 @@ const StyleSheetFactory = (theme) => {
       justifyContent: 'flex-end',
     },
     proPic: {
-      width: 70,
-      height: 70,
-      borderRadius: 70 / 2,
+      width: 90,
+      height: 90,
+      borderRadius: 90 / 2,
       justifyContent: 'center',
       alignItems: 'center',
     },

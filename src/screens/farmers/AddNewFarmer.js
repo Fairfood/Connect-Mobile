@@ -22,17 +22,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import CountryPicker from 'react-native-country-picker-modal';
 import Toast from 'react-native-toast-message';
 
-import { findFarmerByName } from '../../services/farmersHelper';
+import { searchFarmersByName } from '../../db/services/FarmerHelper';
 import {
   checkEmojis,
   checkMandatory,
   stringToJson,
 } from '../../services/commonFunctions';
+import { logAnalytics } from '../../services/googleAnalyticsHelper';
 import CustomLeftHeader from '../../components/CustomLeftHeader';
 import CustomButton from '../../components/CustomButton';
 import FormTextInput from '../../components/FormTextInput';
 import Icon from '../../icons';
-import Countrys from '../../services/countries';
+import Countries from '../../services/countries';
 import I18n from '../../i18n/i18n';
 import SearchComponent from '../../components/SearchComponent';
 import SelectPicture from '../../components/SelectPicture';
@@ -46,8 +47,8 @@ const AddNewFarmer = ({ navigation }) => {
   const { theme } = useSelector((state) => state.common);
   const [stepper, setStepper] = useState(1);
   const [farmer, setFarmer] = useState({});
-  const [countrysList, setCountrysList] = useState([]);
-  const [allCountrysList, setAllCountrysList] = useState([]);
+  const [countriesList, setCountriesList] = useState([]);
+  const [allCountriesList, setAllCountriesList] = useState([]);
   const isFocused = useIsFocused();
 
   useEffect(() => {
@@ -58,19 +59,19 @@ const AddNewFarmer = ({ navigation }) => {
    * setting country list
    */
   const setupCountryList = async () => {
-    const arrayOfObj = Object.entries(Countrys.data).map((e) => ({
+    const arrayOfObj = Object.entries(Countries.data).map((e) => ({
       label: e[0],
       additional: e[1],
       value: e[0],
     }));
 
-    setCountrysList([...arrayOfObj]);
+    setCountriesList([...arrayOfObj]);
 
-    setAllCountrysList([...arrayOfObj]);
+    setAllCountriesList([...arrayOfObj]);
   };
 
   /**
-   * on back navigation pages are srolled to backwards
+   * on back navigation pages are scrolled to backwards
    */
   const backNavigation = () => {
     if (isFocused) {
@@ -88,9 +89,8 @@ const AddNewFarmer = ({ navigation }) => {
   };
 
   /**
-   * each page submition farmer details updated and scrolled to forward
-   *
-   * @param {object} obj famrmer details object
+   * each page submission farmer details updated and scrolled to forward
+   * @param {object} obj farmer details object
    */
   const onNext = (obj) => {
     Keyboard.dismiss();
@@ -129,7 +129,7 @@ const AddNewFarmer = ({ navigation }) => {
       <CustomLeftHeader
         backgroundColor={theme.background_1}
         title={I18n.t('add_new_farmer')}
-        leftIcon='arrow-left'
+        leftIcon="arrow-left"
         onPress={() => backNavigation()}
         extraStyle={{ paddingHorizontal: 25 }}
       />
@@ -138,7 +138,7 @@ const AddNewFarmer = ({ navigation }) => {
 
       <ScrollView
         ref={addFarmerScrollRef}
-        keyboardShouldPersistTaps='handled'
+        keyboardShouldPersistTaps="handled"
         pagingEnabled
         horizontal
         scrollEnabled={false}
@@ -154,8 +154,8 @@ const AddNewFarmer = ({ navigation }) => {
           <StepTwo
             onNext={onNext}
             farmer={farmer}
-            countrysList={countrysList}
-            allCountrysList={allCountrysList}
+            countriesList={countriesList}
+            allCountriesList={allCountriesList}
             theme={theme}
           />
         )}
@@ -180,14 +180,14 @@ const StepOne = ({ onNext, farmer, theme }) => {
     : null;
   const fieldVisibility = appCustomFields?.field_visibility?.add_farmer ?? null;
 
-  const mobileref = useRef(null);
+  const mobileRef = useRef(null);
   const [buttonLoading, setButtonLoading] = useState(false);
   const [name, setName] = useState(farmer?.name ?? '');
   const [ktp, setKtp] = useState(farmer?.ktp ?? '');
   const [mobile, setMobile] = useState(farmer?.mobile ?? '');
   const [dialCode, setDialCode] = useState(farmer?.dialCode ?? '');
   const [error, setError] = useState('');
-  const [countrysList, setCountrysList] = useState([]);
+  const [countriesList, setCountriesList] = useState([]);
   const [updatedCustomFields, setUpdatedCustomFields] = useState(
     farmer?.extraFields ?? appCustomFields,
   );
@@ -200,7 +200,7 @@ const StepOne = ({ onNext, farmer, theme }) => {
    * setting country and country list
    */
   const setupCountry = async () => {
-    const arrayOfObj = Object.entries(Countrys.data).map((e) => ({
+    const arrayOfObj = Object.entries(Countries.data).map((e) => ({
       label: `+${e[1].dial_code}`,
       value: e[1].dial_code,
       country_name: e[0],
@@ -227,7 +227,7 @@ const StepOne = ({ onNext, farmer, theme }) => {
       setDialCode(arrayOfObj[0].value);
     }
 
-    setCountrysList([...arrayOfObj]);
+    setCountriesList([...arrayOfObj]);
   };
 
   /**
@@ -246,7 +246,6 @@ const StepOne = ({ onNext, farmer, theme }) => {
 
   /**
    * setting dial code
-   *
    * @param {object} country selected country
    */
   const onSelect = (country) => {
@@ -262,9 +261,9 @@ const StepOne = ({ onNext, farmer, theme }) => {
   };
 
   /**
-   * validating datas
+   * validating data
    */
-  const validateDatas = async () => {
+  const validateData = async () => {
     setButtonLoading(true);
 
     const farmerName = await capitalizeText(name);
@@ -289,12 +288,12 @@ const StepOne = ({ onNext, farmer, theme }) => {
     // checking mandatory fields
     const mandatoryFields = [{ name: I18n.t('full_name'), value: farmerName }];
 
-    const [madatoryValid, madatoryError] = await checkMandatory(
+    const [mandatoryValid, mandatoryError] = await checkMandatory(
       mandatoryFields,
     );
 
-    if (!madatoryValid) {
-      setError(madatoryError);
+    if (!mandatoryValid) {
+      setError(mandatoryError);
       setButtonLoading(false);
       return;
     }
@@ -310,12 +309,12 @@ const StepOne = ({ onNext, farmer, theme }) => {
       return;
     }
 
-    // checking custom fileds
+    // checking custom fields
     if (updatedCustomFields?.custom_fields?.farmer_fields) {
       const farmerFields = updatedCustomFields.custom_fields.farmer_fields;
 
       let customFieldsValid = true;
-      // checking custom mandatory fileds
+      // checking custom mandatory fields
       farmerFields.map((field) => {
         if (field.required === true && !field.value) {
           setError(`${field?.label?.en ?? field.key} ${I18n.t('required')}`);
@@ -349,7 +348,6 @@ const StepOne = ({ onNext, farmer, theme }) => {
 
   /**
    * updating custom field data
-   *
    * @param {object} item currently edited field
    * @param {number} index currently edited field index
    */
@@ -371,7 +369,7 @@ const StepOne = ({ onNext, farmer, theme }) => {
   return (
     <ScrollView
       style={styles.pageOneContainer}
-      keyboardShouldPersistTaps='always'
+      keyboardShouldPersistTaps="always"
     >
       <View style={styles.formTitleContainer}>
         <Text style={styles.formTitle}>{I18n.t('basic_information')}</Text>
@@ -380,10 +378,10 @@ const StepOne = ({ onNext, farmer, theme }) => {
         placeholder={`${I18n.t('full_name')}*`}
         value={name}
         onChangeText={(text) => setName(text)}
-        onSubmitEditing={() => mobileref.current.focus()}
+        onSubmitEditing={() => mobileRef.current.focus()}
         onBlur={() => changeName()}
         visibility={fieldVisibility ? fieldVisibility?.name : true}
-        autoCapitalize='sentences'
+        autoCapitalize="sentences"
         color={theme.text_1}
         extraStyle={{ width: '100%' }}
       />
@@ -391,12 +389,12 @@ const StepOne = ({ onNext, farmer, theme }) => {
       {(fieldVisibility ? fieldVisibility?.phone : true) && (
         <View>
           <View style={styles.countryPickerWrap}>
-            {countrysList.length > 0 && (
+            {countriesList.length > 0 && (
               <CountryPicker
                 withFilter
                 withAlphaFilter
                 withCallingCode
-                keyboardShouldPersistTaps='always'
+                keyboardShouldPersistTaps="always"
                 placeholder={`+${dialCode.replace('+', '')}`}
                 onSelect={onSelect}
               />
@@ -405,9 +403,9 @@ const StepOne = ({ onNext, farmer, theme }) => {
           <FormTextInput
             placeholder={I18n.t('mobile_number')}
             value={mobile}
-            inputRef={mobileref}
+            inputRef={mobileRef}
             color={theme.text_1}
-            keyboardType='numeric'
+            keyboardType="numeric"
             onChangeText={(text) => {
               setMobile(text.replace(/[^0-9]/g, ''));
             }}
@@ -441,7 +439,7 @@ const StepOne = ({ onNext, farmer, theme }) => {
 
         <CustomButton
           buttonText={I18n.t('next_address')}
-          onPress={() => validateDatas()}
+          onPress={() => validateData()}
           disabled={buttonLoading}
           extraStyle={{ width: '100%' }}
         />
@@ -450,8 +448,14 @@ const StepOne = ({ onNext, farmer, theme }) => {
   );
 };
 
-const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
-  const cityref = useRef(null);
+const StepTwo = ({
+  onNext,
+  farmer,
+  countriesList,
+  allCountriesList,
+  theme,
+}) => {
+  const cityRef = useRef(null);
   const [buttonLoading, setButtonLoading] = useState(false);
   const [street, setStreet] = useState(farmer?.street ?? '');
   const [city, setCity] = useState(farmer?.city ?? '');
@@ -467,7 +471,7 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
   const [province, setProvince] = useState(farmer?.province ?? '');
   const [provincesList, setProvincesList] = useState([]);
   const [allProvincesList, setAllProvincesList] = useState([]);
-  const [countryList, setCountryList] = useState(allCountrysList);
+  const [countryList, setCountryList] = useState(allCountriesList);
   const [postalCode, setPostalCode] = useState(farmer?.postalCode ?? '');
   const [error, setError] = useState('');
   const [alertModal, setAlertModal] = useState(false);
@@ -487,14 +491,14 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
   const setupCountry = async () => {
     if (!farmer?.country) {
       const { dialCode } = farmer;
-      const currentCountry = countrysList.filter((i) => {
+      const currentCountry = countriesList.filter((i) => {
         return i.additional.dial_code === dialCode;
       });
 
       if (currentCountry.length > 0) {
         getProvinceList(currentCountry[0].value);
       } else {
-        getProvinceList(countrysList[0].value);
+        getProvinceList(countriesList[0].value);
       }
     } else if (!farmer?.province) {
       getProvinceList(farmer.country);
@@ -533,14 +537,13 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
   };
 
   /**
-   * opening country/provice modal based on type
-   *
+   * opening country/province modal based on type
    * @param  {string} type country or province
    */
   const openDisplayModal = (type) => {
     if (type === 'country') {
       setFocused('country');
-      setCountryList(allCountrysList);
+      setCountryList(allCountriesList);
       setDisplayModal(true);
     } else if (type === 'province') {
       setFocused('province');
@@ -550,9 +553,8 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
   };
 
   /**
-   * setting country/provice selected from modal
-   *
-   * @param  {object} item object containing country/provice details
+   * setting country/province selected from modal
+   * @param  {object} item object containing country/province details
    */
   const onSelectingModalItem = async (item) => {
     setDisplayModal(false);
@@ -579,47 +581,44 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
 
   /**
    * filtering country based on search text
-   *
    * @param  {string} text country search text
    */
   const onSearchCountry = (text) => {
     const countryText = text.toLowerCase();
     if (countryText === '') {
-      setCountryList(allCountrysList);
+      setCountryList(allCountriesList);
     } else {
-      const filteredCountrysList = allCountrysList.filter((e) => {
+      const filteredCountriesList = allCountriesList.filter((e) => {
         const element = e.label.toLowerCase();
         return element.includes(countryText);
       });
-      setCountryList(filteredCountrysList);
+      setCountryList(filteredCountriesList);
     }
   };
 
   /**
-   * filtering provice based on search text
-   *
-   * @param  {string} text provice search text
+   * filtering province based on search text
+   * @param  {string} text province search text
    */
   const onSearchProvince = (text) => {
-    const proviceText = text.toLowerCase();
-    if (proviceText === '') {
+    const provinceText = text.toLowerCase();
+    if (provinceText === '') {
       setProvincesList(allProvincesList);
     } else {
-      const filteredCountrysList = allProvincesList.filter((e) => {
+      const filteredCountriesList = allProvincesList.filter((e) => {
         const element = e.label.toLowerCase();
-        return element.includes(proviceText);
+        return element.includes(provinceText);
       });
-      setProvincesList(filteredCountrysList);
+      setProvincesList(filteredCountriesList);
     }
   };
 
   /**
-   * setting provice list based on country
-   *
+   * setting province list based on country
    * @param  {string} text selected country
    */
   const getProvinceList = async (text) => {
-    const filterdCountry = countrysList.filter((x) => {
+    const filteredCountry = countriesList.filter((x) => {
       return x.label === text;
     });
 
@@ -628,9 +627,9 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
     setCountry(text);
     await AsyncStorage.setItem('country', text);
 
-    if (filterdCountry.length > 0) {
-      setSelectedCountry(filterdCountry[0]);
-      const provinces = filterdCountry[0].additional.sub_divisions;
+    if (filteredCountry.length > 0) {
+      setSelectedCountry(filteredCountry[0]);
+      const provinces = filteredCountry[0].additional.sub_divisions;
 
       const selectedProvinces = Object.entries(provinces).map((e) => ({
         label: e[0],
@@ -683,7 +682,7 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
     }
   };
 
-  const validateDatas = async () => {
+  const validateData = async () => {
     setButtonLoading(true);
 
     const farmerName = farmer.name;
@@ -719,12 +718,12 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
       { name: I18n.t('province'), value: farmerProvince },
     ];
 
-    const [madatoryValid, madatoryError] = await checkMandatory(
+    const [mandatoryValid, mandatoryError] = await checkMandatory(
       mandatoryFields,
     );
 
-    if (!madatoryValid) {
-      setError(madatoryError);
+    if (!mandatoryValid) {
+      setError(mandatoryError);
       setButtonLoading(false);
       return;
     }
@@ -742,12 +741,13 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
     };
 
     // checking duplicate farmer
-    const nodes = await findFarmerByName(farmerName);
+    const nodes = await searchFarmersByName(farmerName);
+
     if (nodes.length > 0) {
       const fullMobileNumber =
         farmerMobile !== '' ? `+${farmerDialCode} ${farmerMobile}`.trim() : '';
 
-      const duplicate = nodes.filter((item) => {
+      const duplicates = nodes.filter((item) => {
         return (
           farmerName === item.name.trim() &&
           fullMobileNumber ===
@@ -761,7 +761,7 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
         );
       });
 
-      if (duplicate.length > 0) {
+      if (duplicates && duplicates.length > 0) {
         setButtonLoading(false);
         setAlertModal(true);
       } else {
@@ -783,10 +783,10 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
   return (
     <ScrollView
       style={styles.stepTwoContainer}
-      keyboardShouldPersistTaps='always'
+      keyboardShouldPersistTaps="always"
     >
       <KeyboardAvoidingView
-        behavior='position'
+        behavior="position"
         keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : -40}
         style={{ flex: 1 }}
       >
@@ -798,30 +798,30 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
           placeholder={I18n.t('street_name')}
           value={street}
           onChangeText={(text) => setStreet(text)}
-          onSubmitEditing={() => cityref.current.focus()}
+          onSubmitEditing={() => cityRef.current.focus()}
           onBlur={() => changeStreet()}
           visibility={fieldVisibility ? fieldVisibility?.street : true}
-          autoCapitalize='sentences'
+          autoCapitalize="sentences"
           color={theme.text_1}
           extraStyle={{ width: '100%' }}
         />
 
         <FormTextInput
-          inputRef={cityref}
+          inputRef={cityRef}
           mandatory
           placeholder={I18n.t('city_village')}
           value={city}
           onChangeText={(text) => setCity(text)}
           onBlur={() => changeCity()}
           visibility={fieldVisibility ? fieldVisibility?.city : true}
-          autoCapitalize='sentences'
+          autoCapitalize="sentences"
           color={theme.text_1}
           extraStyle={{ width: '100%' }}
         />
 
         {(fieldVisibility ? fieldVisibility?.country : true) && (
           <TouchableOpacity onPress={() => openDisplayModal('country')}>
-            <View pointerEvents='none'>
+            <View pointerEvents="none">
               <FormTextInput
                 mandatory
                 placeholder={I18n.t('country')}
@@ -835,7 +835,7 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
 
         {(fieldVisibility ? fieldVisibility?.province : true) && (
           <TouchableOpacity onPress={() => openDisplayModal('province')}>
-            <View pointerEvents='none'>
+            <View pointerEvents="none">
               <FormTextInput
                 mandatory
                 placeholder={I18n.t('province')}
@@ -862,7 +862,7 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
 
           <CustomButton
             buttonText={I18n.t('next_profile_photo')}
-            onPress={() => validateDatas()}
+            onPress={() => validateData()}
             disabled={buttonLoading}
             extraStyle={{ width: '100%', marginBottom: 20 }}
           />
@@ -871,7 +871,7 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
 
       {displayModal && (
         <Modal
-          animationType='slide'
+          animationType="slide"
           transparent
           visible={displayModal}
           onRequestClose={() => setDisplayModal(false)}
@@ -900,8 +900,8 @@ const StepTwo = ({ onNext, farmer, countrysList, allCountrysList, theme }) => {
                 data={focused === 'country' ? countryList : provincesList}
                 renderItem={renderItem}
                 extraData={focused}
-                keyboardShouldPersistTaps='always'
-                style={styles.countryFlatlist}
+                keyboardShouldPersistTaps="always"
+                style={styles.countryFlatList}
                 ListEmptyComponent={() => (
                   <Text style={styles.emptyText}>
                     {I18n.t('no_matches_found')}
@@ -963,6 +963,11 @@ const StepThree = ({ onNext, onAddFarmer, farmer, theme }) => {
           return;
         }
 
+        logAnalytics('image_selection_for_profile_picture', {
+          selection_method: 'Camera',
+          selection_case: 'add_farmer',
+        });
+
         setProfilePic(image.path);
         onNext({ profilePic: image.path });
       })
@@ -992,6 +997,11 @@ const StepThree = ({ onNext, onAddFarmer, farmer, theme }) => {
           return;
         }
 
+        logAnalytics('image_selection_for_profile_picture', {
+          selection_method: 'Gallery',
+          selection_case: 'add_farmer',
+        });
+
         setProfilePic(image.path);
         onNext({ profilePic: image.path });
       })
@@ -1013,7 +1023,7 @@ const StepThree = ({ onNext, onAddFarmer, farmer, theme }) => {
 
   return (
     <View style={{ width }}>
-      <View style={styles.formTitleContainer}>
+      <View style={[styles.formTitleContainer, { marginLeft: '5%' }]}>
         <Text style={styles.formTitle}>{I18n.t('profile_photo_optional')}</Text>
       </View>
       <View style={[styles.uploadImageContainer]}>
@@ -1022,7 +1032,7 @@ const StepThree = ({ onNext, onAddFarmer, farmer, theme }) => {
           onPress={() => openModal()}
         >
           {profilePic === '' && (
-            <Icon name='Camera' color='#5691AE' size={50} />
+            <Icon name="Camera" color="#5691AE" size={50} />
           )}
 
           {profilePic !== '' && (
@@ -1220,7 +1230,8 @@ const StyleSheetFactory = (theme) => {
       width: 70,
     },
     formTitleContainer: {
-      margin: 30,
+      marginTop: 35,
+      marginBottom: 25,
     },
     formTitle: {
       color: theme.text_1,
@@ -1306,7 +1317,7 @@ const StyleSheetFactory = (theme) => {
       marginTop: 'auto',
       backgroundColor: theme.background_1,
     },
-    countryFlatlist: {
+    countryFlatList: {
       flex: 1,
       marginHorizontal: 10,
       backgroundColor: theme.background_1,

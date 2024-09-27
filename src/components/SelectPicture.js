@@ -19,7 +19,7 @@ const SelectPicture = ({ ...props }) => {
 
   return (
     <Modal
-      animationType='slide'
+      animationType="slide"
       transparent
       visible={visible}
       onRequestClose={hideModal}

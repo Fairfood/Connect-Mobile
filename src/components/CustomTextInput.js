@@ -33,12 +33,12 @@ const CustomTextInput = (props) => {
         <TouchableOpacity onPress={showPassword} style={styles.showEyeWrap}>
           {secureTextEntry && (
             <View style={{ opacity: 0.5 }}>
-              <Icon name='eye' size={24} color={theme.placeholder} />
+              <Icon name="eye" size={24} color={theme.placeholder} />
             </View>
           )}
           {!secureTextEntry && (
             <View style={{ opacity: 0.5 }}>
-              <Icon name='eye-off' size={24} color={theme.placeholder} />
+              <Icon name="eye-off" size={24} color={theme.placeholder} />
             </View>
           )}
         </TouchableOpacity>
@@ -46,7 +46,7 @@ const CustomTextInput = (props) => {
 
       {rightIcon && (
         <View style={styles.rightIconWrap}>
-          <Icon name={rightIcon} size={20} color='#B3B3B3' />
+          <Icon name={rightIcon} size={20} color="#B3B3B3" />
         </View>
       )}
     </View>

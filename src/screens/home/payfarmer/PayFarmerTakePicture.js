@@ -12,11 +12,12 @@ import {
 import { RNCamera } from 'react-native-camera';
 import { useDispatch, useSelector } from 'react-redux';
 import Geolocation from 'react-native-geolocation-service';
-import { saveTransactionPremium } from '../../../services/transactionPremiumHelper';
 import { InfoIcon, CloseIcon } from '../../../assets/svg';
-import { requestPermission } from '../../../services/commonFunctions';
+import {
+  jsonToString,
+  requestPermission,
+} from '../../../services/commonFunctions';
 import { initSyncProcess } from '../../../redux/LoginStore';
-import { syncPayments } from '../../../services/syncTransactions';
 import {
   MINIMUM_PAY_FARMER_AMOUNT,
   MAXIMUM_PAY_FARMER_AMOUNT,
@@ -28,6 +29,9 @@ import {
 import CustomLeftHeader from '../../../components/CustomLeftHeader';
 import CustomButton from '../../../components/CustomButton';
 import I18n from '../../../i18n/i18n';
+import { logAnalytics } from '../../../services/googleAnalyticsHelper';
+import { createTransactionPremium } from '../../../db/services/TransactionPremiumHelper';
+import { syncPayments } from '../../../sync/SyncTransactions';
 
 const { height, width } = Dimensions.get('window');
 const defaultPosition = { coords: { longitude: 0, latitude: 0 } };
@@ -93,7 +97,6 @@ const PayFarmerTakePicture = ({ navigation, route }) => {
 
   /**
    * transaction validate function
-   *
    * @param {object} position geo location coordinates
    */
   const transactionValidate = async (position) => {
@@ -122,15 +125,18 @@ const PayFarmerTakePicture = ({ navigation, route }) => {
 
   /**
    * submit function. save transaction, premium and batches in local db.
-   *
    * @param {object} position geo location coordinates
    */
   const onVerification = async (position) => {
     await Promise.all(
       premiums.map(async (premium) => {
         const date = parseInt(new Date().getTime() / 1000);
+        const extraFields = premium.extra_fields
+          ? jsonToString(premium.extra_fields)
+          : '';
+
         const transactionPremium = {
-          premium_id: premium._raw.id,
+          premium_id: premium.id,
           transaction_id: '',
           amount: parseFloat(premium.paid_amount),
           server_id: '',
@@ -146,10 +152,18 @@ const PayFarmerTakePicture = ({ navigation, route }) => {
           currency,
           source: loggedInUser.default_node,
           destination: farmer.server_id !== '' ? farmer.server_id : farmer.id,
+          extra_fields: extraFields,
         };
-        await saveTransactionPremium(transactionPremium);
+
+        await createTransactionPremium(transactionPremium);
       }),
     ).then(async () => {
+      logAnalytics('transactions', {
+        verification_type: 'manual_verification',
+        transaction_type: 'pay_farmer',
+        network_status: isConnected && !syncInProgress ? 'online' : 'offline',
+      });
+
       if (isConnected && !syncInProgress) {
         dispatch(initSyncProcess());
         await syncPayments();
@@ -178,8 +192,8 @@ const PayFarmerTakePicture = ({ navigation, route }) => {
         <CustomLeftHeader
           title={I18n.t('verify_with_photo')}
           onPress={() => navigation.goBack(null)}
-          backgroundColor='#4F4F4F'
-          leftIcon='arrow-left'
+          backgroundColor="#4F4F4F"
+          leftIcon="arrow-left"
           titleColor={theme.background_1}
         />
       </View>
@@ -220,7 +234,7 @@ const PayFarmerTakePicture = ({ navigation, route }) => {
                   ]}
                 >
                   {isLoading && (
-                    <ActivityIndicator size='large' color='#4F4F4F' />
+                    <ActivityIndicator size="large" color="#4F4F4F" />
                   )}
                 </View>
               </TouchableOpacity>
@@ -281,7 +295,7 @@ const PayFarmerTakePicture = ({ navigation, route }) => {
                         <CloseIcon
                           width={width * 0.035}
                           height={width * 0.035}
-                          fill='#ffffff'
+                          fill="#ffffff"
                         />
                       </TouchableOpacity>
                     </View>
@@ -295,7 +309,7 @@ const PayFarmerTakePicture = ({ navigation, route }) => {
                     <InfoIcon
                       width={width * 0.05}
                       height={width * 0.05}
-                      fill='#ffb74d'
+                      fill="#ffb74d"
                     />
                   </TouchableOpacity>
                 )}
@@ -303,10 +317,7 @@ const PayFarmerTakePicture = ({ navigation, route }) => {
             )}
 
             {isVerifying ? (
-              <ActivityIndicator
-                size='large'
-                color={theme.button_bg_1}
-              />
+              <ActivityIndicator size="large" color={theme.button_bg_1} />
             ) : (
               <CustomButton
                 buttonText={I18n.t('verify')}

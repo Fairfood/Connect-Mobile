@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  View,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -13,7 +14,7 @@ const CustomButton = ({
   isLoading,
   backgroundColor,
   medium,
-  disabled,
+  disabled = false,
   extraStyle = {},
   testID = 'CustomButton',
 }) => {
@@ -22,30 +23,32 @@ const CustomButton = ({
 
   return (
     <TouchableOpacity
+      onPress={onPress}
       style={[
         styles.container,
         extraStyle,
         { backgroundColor: backgroundColor ?? theme.button_bg_1 },
       ]}
       disabled={disabled}
-      onPress={onPress}
       activeOpacity={0.5}
       testID={testID}
     >
-      {!isLoading && (
-        <Text
-          style={[
-            styles.buttonText,
-            {
-              color: backgroundColor ? theme.button_bg_1 : theme.background_1,
-              fontFamily: medium ? theme.font_medium : theme.font_regular,
-            },
-          ]}
-        >
-          {buttonText}
-        </Text>
-      )}
-      {isLoading && <ActivityIndicator color={theme.background_1} />}
+      <View>
+        {!isLoading && (
+          <Text
+            style={[
+              styles.buttonText,
+              {
+                color: backgroundColor ? theme.button_bg_1 : theme.background_1,
+                fontFamily: medium ? theme.font_medium : theme.font_regular,
+              },
+            ]}
+          >
+            {buttonText}
+          </Text>
+        )}
+        {isLoading && <ActivityIndicator color={theme.background_1} />}
+      </View>
     </TouchableOpacity>
   );
 };
@@ -65,8 +68,7 @@ const StyleSheetFactory = (theme) => {
     },
     buttonText: {
       color: theme.background_1,
-      fontStyle: 'normal',
-      fontWeight: '500',
+      fontFamily: theme.font_bold,
     },
   });
 };

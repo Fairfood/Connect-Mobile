@@ -20,6 +20,7 @@ import Toast from 'react-native-toast-message';
 import { updateUserDetails } from '../../../redux/LoginStore';
 import { CommonFetchRequest } from '../../../api/middleware';
 import { checkEmojis, checkMandatory } from '../../../services/commonFunctions';
+import { logAnalytics } from '../../../services/googleAnalyticsHelper';
 import FormTextInput from '../../../components/FormTextInput';
 import Icon from '../../../icons';
 import Countries from '../../../services/countries';
@@ -88,6 +89,11 @@ const EditProfile = ({ navigation }) => {
       compressImageQuality: 0.5,
     })
       .then((image) => {
+        logAnalytics('image_selection_for_profile_picture', {
+          selection_method: 'Camera',
+          selection_case: 'edit_profile',
+        });
+
         setProfilePic(image.path);
       })
       .catch(() => {
@@ -115,6 +121,12 @@ const EditProfile = ({ navigation }) => {
           });
           return;
         }
+
+        logAnalytics('image_selection_for_profile_picture', {
+          selection_method: 'Gallery',
+          selection_case: 'edit_profile',
+        });
+
         setProfilePic(image.path);
       })
       .catch(() => {
@@ -200,7 +212,6 @@ const EditProfile = ({ navigation }) => {
 
   /**
    * update profile request to server side
-   *
    * @param {object} user updated user values
    */
   const updateProfileDetails = async (user) => {
@@ -209,7 +220,7 @@ const EditProfile = ({ navigation }) => {
     const headers = {
       Bearer: loggedInUser.token,
       'User-ID': loggedInUser.id,
-      'Content-Type': 'application/json',
+      'Content-Type': 'multipart/form-data',
       'Node-ID': loggedInUser.default_node,
       Version: DeviceInfo.getVersion(),
       'Client-Code': api.API_CLIENT_CODE,
@@ -256,7 +267,6 @@ const EditProfile = ({ navigation }) => {
 
   /**
    * setting dial code based on selected country
-   *
    * @param {object} country selected country
    */
   const onSelect = (country) => {
@@ -274,16 +284,16 @@ const EditProfile = ({ navigation }) => {
         <CustomLeftHeader
           backgroundColor={theme.background_1}
           title={I18n.t('edit_profile')}
-          leftIcon='arrow-left'
+          leftIcon="arrow-left"
           onPress={() => backNavigation()}
           rightText={I18n.t('save')}
-          rightTextColor='#EA2553'
+          rightTextColor="#EA2553"
           onPressRight={onSave}
           extraStyle={{ paddingLeft: width * 0.06 }}
         />
 
         <ScrollView
-          keyboardShouldPersistTaps='always'
+          keyboardShouldPersistTaps="always"
           style={{ paddingHorizontal: 25 }}
         >
           <View style={{ width: '100%' }}>
@@ -292,7 +302,7 @@ const EditProfile = ({ navigation }) => {
                 style={[styles.uploadImageView, { backgroundColor: '#ffffff' }]}
               >
                 {profilePic == null && (
-                  <Icon name='Camera' color='#5691AE' size={50} />
+                  <Icon name="Camera" color="#5691AE" size={50} />
                 )}
                 {profilePic != null && (
                   <FastImage
@@ -305,7 +315,7 @@ const EditProfile = ({ navigation }) => {
                 style={styles.addPicture}
                 onPress={() => setSelectPicModal(true)}
               >
-                <Icon name='edit' color='#FFFFFF' size={15} />
+                <Icon name="edit" color="#FFFFFF" size={15} />
               </TouchableOpacity>
             </View>
           </View>
@@ -339,7 +349,7 @@ const EditProfile = ({ navigation }) => {
                   withCountryNameButton
                   withAlphaFilter
                   withCallingCode
-                  keyboardShouldPersistTaps='always'
+                  keyboardShouldPersistTaps="always"
                   placeholder={`+${dialCode.replace('+', '')}`}
                   onSelect={onSelect}
                 />
@@ -350,7 +360,7 @@ const EditProfile = ({ navigation }) => {
               value={mobile}
               inputRef={mobileRef}
               color={theme.text_1}
-              keyboardType='numeric'
+              keyboardType="numeric"
               onChangeText={(text) => {
                 // text = text.replace(/[^0-9]/g, '');
                 setMobile(text.replace(/[^0-9]/g, ''));
@@ -367,9 +377,9 @@ const EditProfile = ({ navigation }) => {
           )}
         </ScrollView>
       </View>
-      <Modal animationType='slide' transparent visible={loading}>
+      <Modal animationType="slide" transparent visible={loading}>
         <View style={styles.modalWrap}>
-          <ActivityIndicator size='large' color='#EA2353' />
+          <ActivityIndicator size="large" color="#EA2353" />
         </View>
       </Modal>
 

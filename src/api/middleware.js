@@ -1,17 +1,16 @@
-/* eslint-disable no-await-in-loop */
-/* eslint-disable no-plusplus */
+/* eslint-disable no-underscore-dangle */
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable no-alert */
 /**
  * middleware
  */
-import * as Sentry from '@sentry/react-native';
 import Toast from 'react-native-toast-message';
 import { signOutUser } from '../redux/LoginStore';
 import { tnxSyncFailed } from '../redux/SyncStore';
 import { store } from '../redux/store';
-import axios from '../axios';
+import axios from './axios';
 import I18n from '../i18n/i18n';
+import captureSentry from '../services/sentryHelper';
 
 // common fetch request
 export const CommonFetchRequest = async (config) => {
@@ -41,26 +40,9 @@ export const ErrorHandler = async (response) => {
 
     return { success: false, error: I18n.t('bad_internet_connection') };
   }
-  const { status } = response;
+
   const { detail } = response.data;
-
   const errorObj = detail ?? {};
-
-  if (!status) {
-    Toast.show({
-      type: 'error',
-      text1: I18n.t('error'),
-      text2: I18n.t('something_went_wrong'),
-    });
-
-    Sentry.captureMessage(`fetch_error_1: ${JSON.stringify(errorObj)}`);
-
-    if (syncStage === 2) {
-      store.dispatch(tnxSyncFailed());
-    }
-
-    return { success: false, error: I18n.t('something_went_wrong') };
-  }
 
   if (syncStage === 2) {
     store.dispatch(tnxSyncFailed());
@@ -82,6 +64,7 @@ export const ErrorHandler = async (response) => {
         text1: I18n.t('error'),
         text2: errorMsg,
       });
+      captureSentry('message', `fetch_error_2: ${errorMsg}`);
       return { success: false, error: errorMsg };
     }
   }
@@ -91,63 +74,32 @@ export const ErrorHandler = async (response) => {
     text1: I18n.t('error'),
     text2: I18n.t('something_went_wrong'),
   });
-  Sentry.captureMessage(`fetch_error_4: ${JSON.stringify(errorObj)}`);
+
+  captureSentry('message', `fetch_error_3: ${response._response}`);
   return { success: false, error: I18n.t('something_went_wrong') };
 };
 
 // modifying error object into readable form
 const setErrorMsg = async (errorObj) => {
-  if (errorObj) {
-    const { detail, batches } = errorObj;
-    if (detail) {
-      const details = detail;
-      if (typeof details === 'string') {
-        return details;
-      }
-      return JSON.stringify(details);
-    }
-    if (batches) {
-      if (typeof batches === 'string') {
-        return batches;
-      }
-      return I18n.t('error_based_batches');
-    }
-    if (typeof errorObj === 'string') {
-      return errorObj;
-    }
-    if (typeof errorObj === 'object') {
-      let errorMsg = '';
-      for (const [key, value] of Object.entries(errorObj)) {
-        if (Array.isArray(value)) {
-          if (value.length > 1) {
-            for (j = 0; j < value.length; j++) {
-              const msgText = await combineAttribute(key, value[j]);
-              errorMsg += msgText;
-            }
-          } else {
-            const msgText = await combineAttribute(key, value[0]);
-            errorMsg = msgText;
-          }
-        }
-      }
-      return errorMsg;
-    }
-    return JSON.stringify(errorObj);
+  if (!errorObj) {
+    return null;
   }
-  return null;
-};
 
-// combining error attribute into the error message
-const combineAttribute = async (key, value) => {
-  let keyText = key;
-  let valueText = value;
-  if (valueText.includes('This field') && keyText !== 'non_field_errors') {
-    keyText = keyText.toString().replace('_', ' ');
-    const firstLetter = keyText.substr(0, 1);
-    keyText = firstLetter.toUpperCase() + keyText.substr(1);
-
-    valueText = valueText.replace('This field', keyText);
-    return valueText;
+  if (typeof errorObj === 'string') {
+    return errorObj;
   }
-  return value;
+
+  const { detail, batches } = errorObj;
+
+  if (detail) {
+    return typeof detail === 'string' ? detail : JSON.stringify(detail);
+  }
+
+  if (batches) {
+    return typeof batches === 'string'
+      ? batches
+      : I18n.t('error_based_batches');
+  }
+
+  return JSON.stringify(errorObj);
 };

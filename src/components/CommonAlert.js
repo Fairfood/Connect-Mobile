@@ -26,7 +26,7 @@ const CommonAlert = ({
 
   return (
     <Modal
-      animationType='slide'
+      animationType="slide"
       transparent
       visible={visible}
       onRequestClose={onRequestClose ?? null}
@@ -77,7 +77,7 @@ const CommonAlert = ({
             {onCancel && (
               <TransparentButton
                 buttonText={cancelText || I18n.t('cancel')}
-                color='#EA2553'
+                color="#EA2553"
                 onPress={onCancel}
                 extraStyle={{
                   width: '45%',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,21 +9,30 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useSelector } from 'react-redux';
-import { useIsFocused } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import moment from 'moment';
+// import Collapsible from 'react-native-collapsible';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { findAllPremiumsByTransactionAndCategory } from '../../services/transactionPremiumHelper';
-import { findPremiumById } from '../../services/premiumsHelper';
-import { erroredTransactionsCount } from '../../services/transactionsHelper';
-import { deleteTransaction } from '../../services/commonFunctions';
-import { DeleteConfirmIcon } from '../../assets/svg';
-import { populateDatabase } from '../../services/populateDatabase';
+import {
+  convertCurrency,
+  convertQuantity,
+  deleteTransaction,
+} from '../../services/commonFunctions';
+import {
+  DeleteConfirmIcon,
+  // ReportedIcon,
+  // ThinArrowDownIcon,
+} from '../../assets/svg';
 import {
   TYPE_TRANSACTION_PREMIUM,
   APP_TRANS_TYPE_OUTGOING,
   DELETE_TRANSACTION_ENABLED,
   HIT_SLOP_FIFTEEN,
 } from '../../services/constants';
+import { fetchPremiumsByTransactionAndCategory } from '../../db/services/TransactionPremiumHelper';
+import { findPremium } from '../../db/services/PremiumsHelper';
+import { initiateSync } from '../../sync/SyncInitials';
+import { countErroredTransactions } from '../../db/services/TransactionsHelper';
 import CustomLeftHeader from '../../components/CustomLeftHeader';
 import InvoiceModal from '../../components/InvoiceModal';
 import Icon from '../../icons';
@@ -35,7 +44,6 @@ const { width } = Dimensions.get('window');
 
 const SendTransactionDetails = ({ navigation, route }) => {
   const { transactionItem } = route.params;
-  const isFocused = useIsFocused();
   const { theme } = useSelector((state) => state.common);
   const { userProjectDetails } = useSelector((state) => state.login);
   const { currency } = userProjectDetails;
@@ -46,14 +54,20 @@ const SendTransactionDetails = ({ navigation, route }) => {
   const [filename, setFilename] = useState('');
   const [alertModal, setAlertModal] = useState(false);
   const [deleteButton, setDeleteButton] = useState(false);
+  const [cardDetails, setCardDetails] = useState({});
+  // const [activeCollapse, setActiveCollapse] = useState(true);
+  // const [reportedDetails, setReportedDetails] = useState(null);
 
   useEffect(() => {
     setupDetails();
   }, []);
 
-  useEffect(() => {
-    setupDeleteTnxStatus();
-  }, [isFocused]);
+  useFocusEffect(
+    useCallback(() => {
+      setUpDeleteTnxStatus();
+      return () => {};
+    }, []),
+  );
 
   /**
    * setting initial values
@@ -69,20 +83,22 @@ const SendTransactionDetails = ({ navigation, route }) => {
       const name = filepath.replace(/^.*[\\/]/, '');
       setFilename(name);
     }
-    const transactionPremiums = await findAllPremiumsByTransactionAndCategory(
+
+    const transactionPremiums = await fetchPremiumsByTransactionAndCategory(
       transactionItem.id,
       TYPE_TRANSACTION_PREMIUM,
     );
 
     const filteredPremiums = await Promise.all(
       transactionPremiums.map(async (p) => {
-        const premium = await findPremiumById(p._raw.premium_id);
+        const premium = await findPremium(p.premium_id);
+
         if (premium.type === 101) {
           premium.total = premium.amount;
         } else if (premium.type === 301) {
-          premium.total = Math.round(p._raw.amount);
+          premium.total = Math.round(p.amount);
         } else {
-          premium.total = Math.round(p._raw.amount);
+          premium.total = Math.round(p.amount);
         }
         return premium;
       }),
@@ -101,15 +117,41 @@ const SendTransactionDetails = ({ navigation, route }) => {
     if (total < 0) {
       setPaidToFarmers(`[${I18n.t('not_available')}]`);
     } else {
-      total = Math.round(parseInt(total)).toLocaleString('pt-BR');
       setPaidToFarmers(total);
+    }
+
+    if (transactionItem.card_id) {
+      let buyers = await AsyncStorage.getItem('buyers');
+      buyers = JSON.parse(buyers);
+      if (buyers.length > 0) {
+        const { cards } = buyers[0];
+
+        const filteredCards = cards.filter((card) => {
+          return card.id === transactionItem.card_id;
+        });
+        if (filteredCards.length > 0) {
+          setCardDetails(filteredCards[0]);
+        } else {
+          setCardDetails({});
+        }
+      }
+    }
+
+    if (transactionItem.is_reported) {
+      let reportedData = transactionItem.reported;
+
+      if (reportedData && typeof reportedData === 'string') {
+        reportedData = stringToJson(reportedData);
+      }
+
+      setReportedDetails(reportedData);
     }
   };
 
   /**
    * setting delete transaction option
    */
-  const setupDeleteTnxStatus = async () => {
+  const setUpDeleteTnxStatus = async () => {
     const deleteTnxEnabled = await AsyncStorage.getItem('deleteTnxEnabled');
     if (deleteTnxEnabled && deleteTnxEnabled === 'true') {
       setDeleteButton(true);
@@ -123,14 +165,20 @@ const SendTransactionDetails = ({ navigation, route }) => {
    */
   const handleDelete = async () => {
     await deleteTransaction(transactionItem, APP_TRANS_TYPE_OUTGOING);
-    const count = await erroredTransactionsCount();
+    const count = await countErroredTransactions();
     if (count === 0) {
-      populateDatabase();
+      initiateSync();
     }
 
     setAlertModal(false);
     navigation.goBack();
   };
+
+  // const goToReportPage = () => {
+  //   navigation.navigate('ReportTransaction', {
+  //     transactionItem,
+  //   });
+  // };
 
   /**
    * redirecting to previous page
@@ -146,7 +194,7 @@ const SendTransactionDetails = ({ navigation, route }) => {
       <CustomLeftHeader
         backgroundColor={theme.background_1}
         title={I18n.t('transaction_details')}
-        leftIcon='arrow-left'
+        leftIcon="arrow-left"
         onPress={() => backNavigation()}
         extraStyle={{ paddingHorizontal: width * 0.05 }}
       />
@@ -156,9 +204,9 @@ const SendTransactionDetails = ({ navigation, route }) => {
           transactionItem.error === '' && (
             <View style={styles.syncWarningWrap}>
               <Icon
-                name='Sync-warning2'
+                name="Sync-warning2"
                 size={28}
-                color='#F2994A'
+                color="#F2994A"
                 style={{ marginHorizontal: 10 }}
               />
               <Text style={styles.syncMsg}>
@@ -166,6 +214,50 @@ const SendTransactionDetails = ({ navigation, route }) => {
               </Text>
             </View>
           )}
+
+        {/* {transactionItem.is_reported && reportedDetails && (
+          <TouchableOpacity
+            onPress={() => setActiveCollapse(!activeCollapse)}
+            style={styles.errorWrap}
+          >
+            <View style={styles.errorTitleWrap}>
+              <ReportedIcon width={width * 0.06} height={width * 0.06} />
+              <Text style={styles.errorTile}>
+                {I18n.t('transaction_reported')}
+              </Text>
+              <View style={styles.arrowWrap}>
+                <ThinArrowDownIcon
+                  width={width * 0.035}
+                  height={width * 0.035}
+                  fill={theme.primary}
+                />
+              </View>
+            </View>
+            <Collapsible collapsed={activeCollapse} align="center">
+              <View style={styles.errorMessageWrap}>
+                <View style={styles.leftColumn}>
+                  <View style={styles.bulletin} />
+                </View>
+                <View style={styles.rightColumn}>
+                  <Text style={styles.errorMessage}>
+                    {I18n.t(reportedDetails.report_category)}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.errorMessageWrap}>
+                <View style={styles.leftColumn}>
+                  <View style={styles.bulletin} />
+                </View>
+                <View style={styles.rightColumn}>
+                  <Text style={styles.errorMessage}>
+                    {reportedDetails.report_message}
+                  </Text>
+                </View>
+              </View>
+            </Collapsible>
+          </TouchableOpacity>
+        )} */}
 
         {(transactionItem.server_id === '' ||
           transactionItem.server_id == null) &&
@@ -192,7 +284,7 @@ const SendTransactionDetails = ({ navigation, route }) => {
             {`${I18n.t('total_quantity_delivered')} Kg`}
           </Text>
           <Text style={styles.formTitle}>
-            {transactionItem.quantity.toLocaleString('id').replace(/\./g, '')}
+            {convertQuantity(transactionItem.quantity)}
           </Text>
         </View>
         <View style={styles.formTitleContainer}>
@@ -203,6 +295,21 @@ const SendTransactionDetails = ({ navigation, route }) => {
             )}
           </Text>
         </View>
+
+        {cardDetails?.card_id && (
+          <View style={styles.formTitleContainer}>
+            <Text style={styles.formSubTitle}>
+              {`${I18n.t('card_id')} ${
+                cardDetails.fair_id !== '' ? `/ ${I18n.t('fair_id')}` : ''
+              }`}
+            </Text>
+            <Text style={styles.formTitle}>
+              {`${cardDetails.card_id} ${
+                cardDetails.fairid !== '' ? `/ FF ${cardDetails.fairid}` : ''
+              }`}
+            </Text>
+          </View>
+        )}
 
         {transactionItem.invoice_file !== '' &&
           transactionItem.invoice_file != null && (
@@ -253,7 +360,9 @@ const SendTransactionDetails = ({ navigation, route }) => {
                   },
                 ]}
               >
-                {`${paidToFarmers} ${paidToFarmers ? currency : ''}`}
+                {`${convertCurrency(paidToFarmers)} ${
+                  convertCurrency(paidToFarmers) ? currency : ''
+                }`}
               </Text>
             </View>
           </View>
@@ -272,12 +381,11 @@ const SendTransactionDetails = ({ navigation, route }) => {
                   },
                 ]}
               >
-                {`${parseInt(premium.total).toLocaleString(
-                  'pt-BR',
-                )} ${currency}`}
+                {`${convertCurrency(premium.total)} ${currency}`}
               </Text>
             </View>
           ))}
+
           <View style={styles.dottedLine} />
           <View style={[styles.cardItem, { marginVertical: 10 }]}>
             <Text
@@ -303,12 +411,26 @@ const SendTransactionDetails = ({ navigation, route }) => {
                 },
               ]}
             >
-              {`${parseInt(transactionItem.total).toLocaleString(
-                'pt-BR',
-              )} ${currency}`}
+              {`${convertCurrency(transactionItem.total)} ${currency}`}
             </Text>
           </View>
         </View>
+
+        {/* {!transactionItem.is_reported && (
+          <View style={styles.reportSectionWrap}>
+            <Text style={styles.reportTitleText}>
+              {I18n.t('trouble_in_transaction')}
+            </Text>
+            <TouchableOpacity
+              onPress={() => goToReportPage()}
+              hitSlop={HIT_SLOP_FIFTEEN}
+            >
+              <Text style={styles.reportButtonText}>
+                {`${I18n.t('report_issue')} >`}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )} */}
 
         {alertModal && (
           <CommonAlert
@@ -364,12 +486,21 @@ const StyleSheetFactory = (theme) => {
       marginBottom: 10,
       color: theme.text_2,
     },
+    formSubTitle: {
+      fontWeight: '500',
+      fontFamily: theme.font_regular,
+      fontStyle: 'normal',
+      fontSize: 16,
+      marginBottom: 10,
+      color: '#5691AE',
+    },
     cardContainer: {
       marginTop: 10,
       marginBottom: 20,
       paddingHorizontal: 10,
       marginHorizontal: width * 0.05,
       backgroundColor: theme.background_2,
+      borderRadius: theme.border_radius,
     },
     cardItem: {
       flexDirection: 'row',
@@ -454,28 +585,79 @@ const StyleSheetFactory = (theme) => {
       textAlign: 'right',
       marginVertical: 10,
     },
+    reportSectionWrap: {
+      width: '90%',
+      alignSelf: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 15,
+      paddingHorizontal: 5,
+    },
+    reportTitleText: {
+      color: theme.text_2,
+      fontFamily: theme.font_regular,
+      fontSize: width * 0.035,
+    },
+    reportButtonText: {
+      color: theme.primary,
+      fontFamily: theme.font_medium,
+      fontSize: width * 0.035,
+    },
+    bulletin: {
+      width: 5,
+      height: 5,
+      borderRadius: 5 / 2,
+      backgroundColor: '#053B5F',
+    },
+    errorTitleWrap: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingBottom: 2,
+      paddingHorizontal: 20,
+    },
+    errorMessageWrap: {
+      flexDirection: 'row',
+      paddingHorizontal: 25,
+    },
+    leftColumn: {
+      width: '5%',
+      alignItems: 'center',
+      paddingTop: 12,
+    },
+    rightColumn: {
+      width: '95%',
+      justifyContent: 'center',
+      paddingLeft: 5,
+    },
     errorTile: {
       fontSize: 14,
       fontFamily: theme.font_bold,
-      lineHeight: 28,
-      paddingBottom: 2,
-      color: theme.button_bg_1,
+      color: theme.primary,
+      marginLeft: 10,
     },
     errorMessage: {
       fontSize: 14,
       fontFamily: theme.font_regular,
-      lineHeight: 28,
-      paddingBottom: 10,
-      color: theme.button_bg_1,
+      lineHeight: 25,
+      paddingBottom: 5,
+      color: '#053B5F',
     },
     errorWrap: {
       width: '90%',
       alignSelf: 'center',
-      paddingHorizontal: 20,
-      paddingVertical: 10,
+      paddingVertical: 15,
       marginVertical: 10,
-      backgroundColor: '#fcd4d1',
+      backgroundColor: 'rgba(255, 176, 170, 0.04)',
       borderRadius: theme.border_radius,
+      borderColor: 'rgba(255, 176, 170, 1)',
+      borderWidth: 1,
+    },
+    arrowWrap: {
+      position: 'absolute',
+      right: 15,
+      alignSelf: 'center',
     },
   });
 };

@@ -11,9 +11,10 @@ import {
 import { useIsFocused } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { SuccessScreenTickIcon } from '../../assets/svg';
-import { getAllProducts } from '../../services/productsHelper';
 import { requestPermission } from '../../services/commonFunctions';
 import { AVATAR_BG_COLORS } from '../../services/constants';
+import { logAnalytics } from '../../services/googleAnalyticsHelper';
+import { fetchAllProducts } from '../../db/services/ProductsHelper';
 import CustomButton from '../../components/CustomButton';
 import TransparentButton from '../../components/TransparentButton';
 import I18n from '../../i18n/i18n';
@@ -24,7 +25,6 @@ const { height, width } = Dimensions.get('window');
 const FarmerSuccessScreen = ({ navigation, route }) => {
   const isFocused = useIsFocused();
   const { farmer, newFarmer, cardId, fairId } = route.params;
-  const { userCompanyDetails } = useSelector((state) => state.login);
   const { theme } = useSelector((state) => state.common);
   const [buttonLoading, setButtonLoading] = useState(false);
 
@@ -47,31 +47,27 @@ const FarmerSuccessScreen = ({ navigation, route }) => {
   const toBuy = async () => {
     setButtonLoading(true);
 
+    logAnalytics('direct_buy_after_farmer_creation', {
+      direct_buy: 'yes',
+    });
+
     // requesting location permission
     const locationGranted = await requestPermission('location');
 
-    const allProducts = await getAllProducts();
-
-    // filtering products only eligible for that company
-    const companyProducts = userCompanyDetails?.products ?? [];
-    const filteredProducts = allProducts.filter((prod) => {
-      return companyProducts.includes(prod.server_id);
-    });
+    const allProducts = await fetchAllProducts();
 
     // filtering products by active status
-    const productActiveList = filteredProducts.filter((prod) => {
-      return prod.is_active;
-    });
+    const activeProducts = allProducts.filtered('is_active == true');
 
     navigation.popToTop();
 
-    if (productActiveList.length > 1) {
+    if (activeProducts.length > 1) {
       setButtonLoading(false);
 
       navigation.navigate('ChooseProducts', {
         newFarmer: farmer,
         locationAllowed: locationGranted,
-        allProducts: productActiveList,
+        allProducts: activeProducts,
       });
     } else {
       setButtonLoading(false);
@@ -79,16 +75,23 @@ const FarmerSuccessScreen = ({ navigation, route }) => {
       navigation.navigate('Buy', {
         newFarmer: farmer,
         locationAllowed: locationGranted,
-        allProducts: productActiveList,
-        selectedProducts: productActiveList,
+        allProducts: activeProducts,
+        selectedProducts: activeProducts,
       });
     }
+  };
+
+  const toFarmers = () => {
+    logAnalytics('direct_buy_after_farmer_creation', {
+      direct_buy: 'no',
+    });
+
+    navigation.navigate('Farmers');
   };
 
   /**
    * checking phone text includes both dial code and phone number.
    * if this condition true, returns phone text otherwise ''
-   *
    * @param   {string} phone phone text
    * @returns {any}          phone text or ''
    */
@@ -98,7 +101,6 @@ const FarmerSuccessScreen = ({ navigation, route }) => {
 
   /**
    * creating address text from farmer details
-   *
    * @param   {object} farmerObj farmer details
    * @returns {string}           address text
    */
@@ -167,9 +169,7 @@ const FarmerSuccessScreen = ({ navigation, route }) => {
             <View style={styles.buttonWrap}>
               <TransparentButton
                 buttonText={I18n.t('back_to_home')}
-                onPress={() => {
-                  navigation.navigate('Farmers');
-                }}
+                onPress={() => toFarmers()}
                 extraStyle={{ width: '45%', marginHorizontal: 0 }}
               />
 
@@ -211,13 +211,11 @@ const FarmerSuccessScreen = ({ navigation, route }) => {
 
             <View style={[styles.buttonWrap, { justifyContent: 'center' }]}>
               {buttonLoading ? (
-                <ActivityIndicator color={theme.icon_error} size='small' />
+                <ActivityIndicator color={theme.icon_error} size="small" />
               ) : (
                 <TransparentButton
                   buttonText={I18n.t('back_to_home')}
-                  onPress={() => {
-                    navigation.navigate('Farmers');
-                  }}
+                  onPress={() => toFarmers()}
                   extraStyle={{ width: '45%', marginHorizontal: 0 }}
                 />
               )}

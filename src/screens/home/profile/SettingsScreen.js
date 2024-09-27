@@ -14,15 +14,18 @@ import { signOutUser } from '../../../redux/LoginStore';
 import { database } from '../../../../App';
 import { store } from '../../../redux/store';
 import { ClearDataIcon } from '../../../assets/svg';
+import { migrationCompleted, updateForceClearDatabase } from '../../../redux/CommonStore';
 import {
   SETTINGS_MENUS,
   HIT_SLOP_TEN,
   HIT_SLOP_TWENTY,
 } from '../../../services/constants';
+import { updateSyncStage } from '../../../redux/SyncStore';
 import CustomLeftHeader from '../../../components/CustomLeftHeader';
 import CommonAlert from '../../../components/CommonAlert';
 import I18n from '../../../i18n/i18n';
 import Icon from '../../../icons';
+// import { realm } from '../../../db/Configuration';
 
 const { width, height } = Dimensions.get('window');
 const Languages = { 'en-GB': 'English', 'id-ID': 'Indonesian' };
@@ -65,13 +68,19 @@ const SettingsScreen = ({ navigation }) => {
       await database.unsafeResetDatabase();
     });
 
+    // realm.write(() => {
+    //   realm.deleteAll();
+    // });
+
     setClearDataModal(false);
+    store.dispatch(migrationCompleted());
+    store.dispatch(updateSyncStage(0));
+    store.dispatch(updateForceClearDatabase(true));
     store.dispatch(signOutUser());
   };
 
   /**
    * open collapsible based on list option keys
-   *
    * @param {string} key list option key
    */
   const toggleExpanded = (key) => {
@@ -97,7 +106,6 @@ const SettingsScreen = ({ navigation }) => {
 
   /**
    * managing operations based on settings options
-   *
    * @param {string} key selected settings option key
    */
   const onPressMenu = (key) => {
@@ -118,7 +126,7 @@ const SettingsScreen = ({ navigation }) => {
         <CustomLeftHeader
           backgroundColor={theme.background_1}
           title={I18n.t('settings')}
-          leftIcon='arrow-left'
+          leftIcon="arrow-left"
           onPress={() => navigation.goBack(null)}
         />
 
@@ -141,7 +149,7 @@ const SettingsScreen = ({ navigation }) => {
                 <TouchableOpacity
                   onPress={() => onPressMenu(item.key)}
                   style={styles.listItem}
-                  testID='ChangeLanguageTouch'
+                  testID="ChangeLanguageTouch"
                 >
                   <View style={styles.listMainItem}>
                     <Text style={styles.listItemLeft}>
@@ -153,7 +161,7 @@ const SettingsScreen = ({ navigation }) => {
                       <Text style={styles.rightTextStyle}>{appLanguage}</Text>
                     )}
                     {item.rightArrow && (
-                      <Icon name='right-arrow' size={20} color='#5691AE' />
+                      <Icon name="right-arrow" size={20} color="#5691AE" />
                     )}
                   </View>
                 </TouchableOpacity>
@@ -181,7 +189,7 @@ const SettingsScreen = ({ navigation }) => {
                         </Text>
                       </View>
                       <View style={styles.listItemRightIcon}>
-                        <Icon name='right-arrow' size={20} color='#5691AE' />
+                        <Icon name="right-arrow" size={20} color="#5691AE" />
                       </View>
                     </TouchableOpacity>
 
@@ -246,16 +254,16 @@ const CommonCollapsible = ({ title, collapsed, onPress, children, styles }) => {
           <Text style={styles.listItemLeft}>{I18n.t(title)}</Text>
           {collapsed ? (
             <View>
-              <Icon name='right-arrow' size={20} color='#5691AE' />
+              <Icon name="right-arrow" size={20} color="#5691AE" />
             </View>
           ) : (
             <View style={{ transform: [{ rotate: '90deg' }] }}>
-              <Icon name='right-arrow' size={20} color='#5691AE' />
+              <Icon name="right-arrow" size={20} color="#5691AE" />
             </View>
           )}
         </View>
       </TouchableOpacity>
-      <Collapsible collapsed={collapsed} align='center'>
+      <Collapsible collapsed={collapsed} align="center">
         {children}
       </Collapsible>
     </>

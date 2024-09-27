@@ -5,76 +5,72 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, PermissionsAndroid } from 'react-native';
 import Toast from 'react-native-toast-message';
-
 import I18n from '../i18n/i18n';
-import {
-  findAllPremiumsByTransaction,
-  deleteTransactionPremiumById,
-} from './transactionPremiumHelper';
-import {
-  clearAllBatchesByTransactionId,
-  findAndUpdateBatchQuantity,
-  findBatchById,
-} from './batchesHelper';
-import { deleteTransactionById } from './transactionsHelper';
-import {
-  clearAllSourceBatchesByTransactionId,
-  getAllSourceBatchesByTransaction,
-} from './sourceBatchesHelper';
 import {
   APP_TRANS_TYPE_INCOMING,
   APP_TRANS_TYPE_OUTGOING,
   SAVE_DELETE_TRANSACTION_INVOICE,
   VERIFICATION_METHOD_MANUAL,
 } from './constants';
+import {
+  deleteAllBatchesByTransactionId,
+  findAndUpdateBatchQuantity,
+  findBatch,
+} from '../db/services/BatchHelper';
+import {
+  deleteSourceBatchesByTransactionId,
+  fetchSourceBatchesByTransaction,
+} from '../db/services/SourceBatchHelper';
+import {
+  deleteTransactionPremiumById,
+  fetchAllPremiumsByTransaction,
+} from '../db/services/TransactionPremiumHelper';
+import { deleteTransactionById } from '../db/services/TransactionsHelper';
 
 export const getCustomFieldValue = (field) => {
-  if (field?.value) {
-    if (field.type === 'bool') {
-      if (field.value === 'true') {
-        return I18n.t('yes');
-      }
-      return I18n.t('no');
-    }
-
-    if (field.type === 'date') {
-      const newDate = new Date(field.value);
-      return ISOdateConvert(newDate);
-    }
-    return field.value;
+  if (!field || !field.value) {
+    return null;
   }
-  return null;
+
+  if (field.type === 'bool') {
+    return field.value === 'true' ? I18n.t('yes') : I18n.t('no');
+  }
+
+  if (field.type === 'date') {
+    const newDate = new Date(field.value);
+    return ISOdateConvert(newDate);
+  }
+
+  return field.value;
 };
 
 export const stringToJson = (stringValue) => {
   if (stringValue) {
-    value = JSON.parse(stringValue);
+    const value = JSON.parse(stringValue);
     if (typeof value === 'object') {
       return value;
     }
 
     if (typeof value === 'string') {
-      stringToJson(value);
+      return stringToJson(value);
     }
-
-    return value;
   }
+
   return stringValue;
 };
 
 export const jsonToString = (jsonValue) => {
   if (jsonValue) {
-    value = JSON.stringify(jsonValue);
+    const value = JSON.stringify(jsonValue);
     if (typeof value === 'string') {
       return value;
     }
 
     if (typeof value === 'object') {
-      jsonToString(value);
+      return jsonToString(value);
     }
-
-    return value;
   }
+
   return jsonValue;
 };
 
@@ -92,6 +88,8 @@ export const removeLocalStorage = async () => {
     'country',
     'province',
     'syncData',
+    'patch_v120_070723',
+    'patch_200723',
   ]);
 };
 
@@ -135,6 +133,7 @@ export const requestPermission = async (type = null) => {
 
 export const deleteTransaction = async (transaction, type) => {
   const transactionId = transaction.id;
+
   if (!transactionId) {
     Toast.show({
       type: 'error',
@@ -149,14 +148,15 @@ export const deleteTransaction = async (transaction, type) => {
 
   // delete batches
   if (type === APP_TRANS_TYPE_INCOMING) {
-    await clearAllBatchesByTransactionId(transactionId);
+    await deleteAllBatchesByTransactionId(transactionId);
   } else if (type === APP_TRANS_TYPE_OUTGOING) {
-    const sourceBatches = await getAllSourceBatchesByTransaction(transactionId);
+    const sourceBatches = await fetchSourceBatchesByTransaction(transactionId);
 
     // setting buy transaction batch current_quantity to initial_quantity for buy again.
     await Promise.all(
       sourceBatches.map(async (sourceBatch) => {
-        const batch = await findBatchById(sourceBatch.batch_id);
+        const batch = await findBatch(sourceBatch.batch_id);
+
         if (batch.length > 0) {
           await findAndUpdateBatchQuantity(batch[0].id, {
             current_quantity: batch[0].initial_quantity,
@@ -166,11 +166,11 @@ export const deleteTransaction = async (transaction, type) => {
     );
 
     // deleting all source batches
-    await clearAllSourceBatchesByTransactionId(transactionId);
+    await deleteSourceBatchesByTransactionId(transactionId);
   }
 
   // delete transaction premiums
-  const premiums = await findAllPremiumsByTransaction(transactionId);
+  const premiums = await fetchAllPremiumsByTransaction(transactionId);
   await Promise.all(
     premiums.map(async (premium) => {
       await deleteTransactionPremiumById(premium.id);
@@ -205,7 +205,6 @@ export const deleteTransaction = async (transaction, type) => {
 
 /**
  * converting dates to different format
- *
  * @param   {string} date   current date string
  * @param   {string} format needed format for date
  * @returns {string}        formatted date
@@ -303,17 +302,46 @@ export const checkMandatory = async (fields) => {
 };
 
 export const getSkipCardText = (actionType) => {
-  if (actionType === 'buy') {
-    return I18n.t('no_farmer_card');
+  switch (actionType) {
+    case 'buy':
+      return I18n.t('no_farmer_card');
+    case 'send':
+      return I18n.t('no_buyer_card');
+    case 'issue_card':
+    case 'reissue_card':
+      return I18n.t('skip_the_card');
+    default:
+      return I18n.t('skip');
   }
-  if (actionType === 'send') {
-    return I18n.t('no_buyer_card');
+};
+
+export const removeNullValues = async (obj) => {
+  Object.entries(obj).forEach(([key, value]) => {
+    if (value === null) {
+      delete obj[key];
+    }
+  });
+  return obj;
+};
+
+export const convertCurrency = (currencyText, rounded = true) => {
+  if (!currencyText) {
+    return 0;
   }
-  if (actionType === 'issue_card') {
-    return I18n.t('skip_the_card');
+
+  const fixedNumber = parseFloat(currencyText).toFixed(2);
+  const parsedNumber = parseFloat(fixedNumber);
+  const convertedText = rounded ? Math.round(parsedNumber) : parsedNumber;
+  return convertedText.toLocaleString('id');
+};
+
+export const convertQuantity = (quantityText, rounded = false) => {
+  if (!quantityText) {
+    return 0;
   }
-  if (actionType === 'reissue_card') {
-    return I18n.t('skip_the_card');
-  }
-  return I18n.t('skip');
+
+  const fixedNumber = parseFloat(quantityText).toFixed(2);
+  const parsedNumber = parseFloat(fixedNumber);
+  const convertedText = rounded ? Math.round(parsedNumber) : parsedNumber;
+  return convertedText.toString().replace('.', ',');
 };

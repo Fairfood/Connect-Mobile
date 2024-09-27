@@ -9,11 +9,11 @@ import {
   Dimensions,
 } from 'react-native';
 import { useSelector } from 'react-redux';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SuccessScreenTickIcon } from '../../../assets/svg';
 import CustomButton from '../../../components/CustomButton';
 import I18n from '../../../i18n/i18n';
 import Avatar from '../../../components/Avatar';
+import { convertCurrency } from '../../../services/commonFunctions';
 
 const { height, width } = Dimensions.get('window');
 
@@ -38,7 +38,6 @@ const PayFarmerComplete = ({ navigation, route }) => {
    * navigating to home screen after clearing current transaction status
    */
   const onConfirm = async () => {
-    await AsyncStorage.setItem('transactionStatus', JSON.stringify({}));
     navigation.navigate('Home');
   };
 
@@ -97,9 +96,7 @@ const PayFarmerComplete = ({ navigation, route }) => {
             <View style={styles.fieldContainer} key={index.toString()}>
               <FieldView
                 title={item.name}
-                value={`${parseFloat(item.paid_amount).toLocaleString(
-                  'id',
-                )} ${currency}`}
+                value={`${convertCurrency(item.paid_amount)} ${currency}`}
               />
             </View>
           );
@@ -113,7 +110,7 @@ const PayFarmerComplete = ({ navigation, route }) => {
           </View>
           <View style={{ width: '40%', alignItems: 'flex-end' }}>
             <Text style={styles.totalText}>
-              {`${parseFloat(total).toLocaleString('id')} ${currency}`}
+              {`${convertCurrency(total)} ${currency}`}
             </Text>
           </View>
         </View>

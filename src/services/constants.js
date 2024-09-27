@@ -7,9 +7,15 @@ export const APP_TRANS_TYPE_LOSS = 3;
 export const PREMIUM_APPLICABLE_ACTIVITY_BUY = 101;
 export const PREMIUM_APPLICABLE_ACTIVITY_SELL = 201;
 
+// Premium calculation type
+export const PREMIUM_NORMAL = 'NORMAL';
+export const PREMIUM_MANUAL = 'MANUAL';
+export const PREMIUM_OPTIONS = 'OPTIONS';
+
 // Verification method
 export const VERIFICATION_METHOD_MANUAL = 1;
 export const VERIFICATION_METHOD_CARD = 2;
+export const VERIFICATION_METHOD_QR_CODE = 3;
 
 // payment category
 export const TYPE_TRANSACTION_PREMIUM = 'TRANSACTION_PREMIUM';
@@ -169,6 +175,21 @@ export const SETTINGS_MENUS = [
     key: 'developer_options',
     title: 'developer_options',
     rightArrow: true,
+  },
+];
+
+export const REPORT_MENUS = [
+  {
+    key: 'wrong_quantity',
+    title: 'wrong_quantity',
+  },
+  {
+    key: 'wrong_price',
+    title: 'wrong_price',
+  },
+  {
+    key: 'something_else',
+    title: 'something_else',
   },
 ];
 

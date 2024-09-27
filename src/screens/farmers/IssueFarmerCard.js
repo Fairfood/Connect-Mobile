@@ -13,27 +13,28 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSelector, useDispatch } from 'react-redux';
 import NfcManager, { NfcEvents } from 'react-native-nfc-manager';
-import {
-  findFarmerById,
-  saveFarmer,
-  findAndUpdateCard,
-} from '../../services/farmersHelper';
-import {
-  findCardByCardId,
-  saveCard,
-  updateCardNodeIDById,
-  getAllCardsByNodeId,
-} from '../../services/cardsHelper';
 import { NfcNotSupportIcon, TurnOnNfcIcon } from '../../assets/svg';
-import { syncFarmers } from '../../services/syncFarmers';
 import { initSyncProcess } from '../../redux/LoginStore';
 import { updateNfcSupported } from '../../redux/CommonStore';
+import { logAnalytics } from '../../services/googleAnalyticsHelper';
 import CustomLeftHeader from '../../components/CustomLeftHeader';
 import I18n from '../../i18n/i18n';
 import CommonAlert from '../../components/CommonAlert';
 import QrCodeMethod from '../../components/QrCodeMethod';
 import NfcMethod from '../../components/NfcMethod';
 import VerificationSwitch from '../../components/VerificationSwitch';
+import {
+  createFarmer,
+  findFarmer,
+  updateNodeCardId,
+} from '../../db/services/FarmerHelper';
+import {
+  createCard,
+  fetchCardByCardId,
+  fetchCardsByNodeId,
+  updateCardNodeID,
+} from '../../db/services/CardHelper';
+import { syncAllFarmers } from '../../sync/SyncFarmers';
 
 const { width } = Dimensions.get('window');
 
@@ -127,6 +128,7 @@ const IssueFarmerCard = ({ navigation, route }) => {
 
   /**
    * start reading NFC cards
+   * @returns {null} no return
    */
   const readNfc = async () => {
     return new Promise((resolve) => {
@@ -155,19 +157,14 @@ const IssueFarmerCard = ({ navigation, route }) => {
     setCardId(id);
 
     // checking this card is already exist
-    const isExist = await findCardByCardId(id);
+    const isExist = await fetchCardByCardId(id);
 
-    if (isExist.length === 0) {
-      AddFarmer(id);
+    if (isExist?.[0]?.node_id) {
+      // if the card already exist, finding the attached farmer
+      const user = await findFarmer(isExist[0].node_id);
+      // creating an alert message this card already exist
+      cardAlreadyAssigned(user, id);
     } else {
-      // if the card already exist, fining the attached farmer
-      if (isExist[0].node_id) {
-        const user = await findFarmerById(isExist[0].node_id);
-        // creating an alert message this card already exist
-        cardAlreadyAssigned(user, id);
-        return;
-      }
-
       AddFarmer(id);
     }
   };
@@ -201,7 +198,6 @@ const IssueFarmerCard = ({ navigation, route }) => {
 
   /**
    * creating an alert message that card is already assigned
-   *
    * @param {object} user farmer object
    * @param {string} id card id
    */
@@ -238,10 +234,10 @@ const IssueFarmerCard = ({ navigation, route }) => {
 
   /**
    * updating card details node_id and server_id
-   *
    * @param   {Array}   cards     cards array that need to update
    * @param   {string}  farmerId  farmer server id
    * @param   {string}  serverId  card server id
+   * @returns {Promise}           promise
    */
   const updateAllCards = async (cards, farmerId, serverId = null) => {
     return Promise.all(
@@ -249,16 +245,26 @@ const IssueFarmerCard = ({ navigation, route }) => {
         const updates = {
           node_id: farmerId,
           server_id: serverId == null ? card.server_id : serverId,
-          fair_id: '',
+          fair_id: card?.fair_id ?? '',
         };
 
-        await updateCardNodeIDById(card.id, updates);
+        await updateCardNodeID(card.id, updates);
       }),
     );
   };
 
   const AddFarmer = async (farmerCardId = null) => {
     setVerifyLoading(true);
+    if (!farmerCardId) {
+      logAnalytics('card_added_on_farmer_creation', {
+        action: 'added',
+      });
+    } else {
+      logAnalytics('card_added_on_farmer_creation', {
+        action: 'skipped',
+      });
+    }
+
     if (farmer.server_id === undefined || farmer.server_id == null) {
       const phone = `+${farmer.dialCode} ${farmer.mobile}`.trim();
 
@@ -274,7 +280,7 @@ const IssueFarmerCard = ({ navigation, route }) => {
         ktp: farmer.ktp ?? '',
         latitude: farmer.selectedProvince.location.latlong[0],
         longitude: farmer.selectedProvince.location.latlong[1],
-        card_id: farmerCardId || '',
+        card_id: farmerCardId ?? '',
         created_on: Math.floor(Date.now() / 1000),
         extra_fields:
           farmer.extraFields && Object.keys(farmer.extraFields).length > 0
@@ -282,11 +288,12 @@ const IssueFarmerCard = ({ navigation, route }) => {
             : '',
       };
 
-      const response = await saveFarmer(farmerObj);
-      farmerObj.id = response.id;
+      const response = await createFarmer(farmerObj);
+      // farmerObj.id = response.id;
 
       if (farmerCardId) {
-        const assignedCards = await findCardByCardId(farmerCardId);
+        const assignedCards = await fetchCardByCardId(farmerCardId);
+
         if (assignedCards.length > 0) {
           await updateAllCards(assignedCards, response.id, '');
         } else {
@@ -299,13 +306,13 @@ const IssueFarmerCard = ({ navigation, route }) => {
             updated_at: Math.floor(Date.now() / 1000),
           };
 
-          await saveCard(cardDetails);
+          await createCard(cardDetails);
         }
       }
 
       if (isConnected && !syncInProgress) {
         dispatch(initSyncProcess());
-        await syncFarmers();
+        await syncAllFarmers();
       }
 
       setCardId(null);
@@ -316,7 +323,7 @@ const IssueFarmerCard = ({ navigation, route }) => {
       }
 
       navigation.navigate('FarmerSuccessScreen', {
-        farmer: farmerObj,
+        farmer: response,
         cardId: farmerCardId,
         newFarmer: farmer.id === undefined,
       });
@@ -326,20 +333,23 @@ const IssueFarmerCard = ({ navigation, route }) => {
       if (farmerCardId) {
         // updating card_id as empty for already assigned node
         if (alreadyAssignedFarmer?.id) {
-          await findAndUpdateCard(alreadyAssignedFarmer.id, '', false);
+          await updateNodeCardId(alreadyAssignedFarmer.id, '', false);
+
           setAlreadyAssignedFarmer(null);
         }
 
         // removing all the assigned cards for this node
-        const alreadyAssignedCard = await getAllCardsByNodeId(farmer.id);
+        const alreadyAssignedCard = await fetchCardsByNodeId(farmer.id);
+
         if (alreadyAssignedCard.length > 0) {
           await updateAllCards(alreadyAssignedCard, '');
         }
 
         // updating card_id in this node
-        await findAndUpdateCard(farmer.id, farmerCardId, false);
+        await updateNodeCardId(farmer.id, farmerCardId, false);
 
-        const isCardExist = await findCardByCardId(farmerCardId);
+        const isCardExist = await fetchCardsByNodeId(farmerCardId);
+
         if (isCardExist.length > 0) {
           fairId = isCardExist[0].fair_id;
           await updateAllCards(isCardExist, farmer.id, '');
@@ -352,13 +362,15 @@ const IssueFarmerCard = ({ navigation, route }) => {
             created_at: Math.floor(Date.now() / 1000),
             updated_at: Math.floor(Date.now() / 1000),
           };
-          await saveCard(cardDetails);
+
+          await createCard(cardDetails);
         }
       }
 
       if (isConnected && !syncInProgress) {
         dispatch(initSyncProcess());
-        await syncFarmers();
+
+        await syncAllFarmers();
       }
 
       setCardId(null);
@@ -387,7 +399,7 @@ const IssueFarmerCard = ({ navigation, route }) => {
       setAlertIcon(
         <Image
           source={require('../../assets/images/card-already-assigned.png')}
-          resizeMode='contain'
+          resizeMode="contain"
           style={{ width: width * 0.3, height: width * 0.3 }}
         />,
       );
@@ -419,7 +431,7 @@ const IssueFarmerCard = ({ navigation, route }) => {
       setAlertIcon(
         <Image
           source={require('../../assets/images/card-already-assigned.png')}
-          resizeMode='contain'
+          resizeMode="contain"
           style={{ width: width * 0.3, height: width * 0.3 }}
         />,
       );
@@ -431,7 +443,7 @@ const IssueFarmerCard = ({ navigation, route }) => {
     if (key === 'nfc_no_turned_on') {
       turnOnNFC();
     } else if (key === 'card_already_assigned') {
-      AddFarmer(cardId, true);
+      AddFarmer(cardId);
     }
 
     if (verificationMode === 'nfc' && nfcSupported) {
@@ -482,7 +494,7 @@ const IssueFarmerCard = ({ navigation, route }) => {
       <View style={styles.headerWrap}>
         <CustomLeftHeader
           title={I18n.t('issue_new_farmer_card')}
-          leftIcon='arrow-left'
+          leftIcon="arrow-left"
           onPress={() => backNavigation()}
           extraStyle={{ width: '90%' }}
         />
@@ -495,7 +507,7 @@ const IssueFarmerCard = ({ navigation, route }) => {
       </View>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {initialLoading && (
-          <ActivityIndicator size='small' color={theme.icon_1} />
+          <ActivityIndicator size="small" color={theme.icon_1} />
         )}
 
         {verificationMode === 'nfc' && !initialLoading && (

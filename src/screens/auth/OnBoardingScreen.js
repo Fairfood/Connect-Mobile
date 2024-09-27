@@ -24,6 +24,7 @@ import CustomButton from '../../components/CustomButton';
 import TransparentButton from '../../components/TransparentButton';
 import { removeLocalStorage } from '../../services/commonFunctions';
 import { updateSyncStage } from '../../redux/SyncStore';
+import { initiateSync } from '../../sync/SyncInitials';
 
 const { height, width } = Dimensions.get('window');
 
@@ -31,14 +32,18 @@ const OnBoardingScreen = () => {
   const { syncInProgress, syncSuccessfull } = useSelector(
     (state) => state.login,
   );
-  const { theme } = useSelector((state) => state.common);
+  const { theme, migration } = useSelector((state) => state.common);
   const { isConnected } = useSelector((state) => state.connection);
   const [ActiveSlide, setActiveSlide] = useState(0);
   const dispatch = useDispatch();
 
   useEffect(() => {
     if (isConnected && !syncInProgress) {
-      populateDatabase();
+      if (migration) {
+        initiateSync();
+      } else {
+        populateDatabase();
+      }
     }
   }, [isConnected]);
 
@@ -50,21 +55,28 @@ const OnBoardingScreen = () => {
   };
 
   const retrySyncing = () => {
-    populateDatabase();
+    if (migration) {
+      initiateSync();
+    } else {
+      populateDatabase();
+    }
   };
 
   const styles = StyleSheetFactory(theme);
 
-  const PaginationComponent = useCallback(() => (
-    <Pagination
-      dotsLength={3}
-      activeDotIndex={ActiveSlide % 3}
-      containerStyle={{ backgroundColor: '#92DDF6' }}
-      dotStyle={styles.dot}
-      inactiveDotOpacity={0.4}
-      inactiveDotScale={0.6}
-    />
-  ), [ActiveSlide, styles]);
+  const PaginationComponent = useCallback(
+    () => (
+      <Pagination
+        dotsLength={3}
+        activeDotIndex={ActiveSlide % 3}
+        containerStyle={{ backgroundColor: '#92DDF6' }}
+        dotStyle={styles.dot}
+        inactiveDotOpacity={0.4}
+        inactiveDotScale={0.6}
+      />
+    ),
+    [ActiveSlide, styles],
+  );
 
   const renderItem = ({ item, index }) => {
     return (
@@ -123,7 +135,7 @@ const OnBoardingScreen = () => {
           <View>
             <Image
               source={require('../../assets/images/lines.png')}
-              resizeMode='stretch'
+              resizeMode="stretch"
               style={{ width }}
             />
           </View>
@@ -167,12 +179,14 @@ const OnBoardingScreen = () => {
           </View>
           {!syncSuccessfull && !syncInProgress && (
             <View style={styles.retryWrap}>
-              <Text style={styles.titleText}>{I18n.t('retry_or_logout')}</Text>
+              <Text style={[styles.titleText, { textAlign: 'center' }]}>
+                {I18n.t('retry_or_logout')}
+              </Text>
               <View style={styles.buttonWrap}>
                 <TransparentButton
                   buttonText={I18n.t('logout')}
                   onPress={() => onLogout()}
-                  color='#EA2553'
+                  color="#EA2553"
                   extraStyle={{
                     width: '48%',
                     marginHorizontal: 0,
@@ -255,6 +269,7 @@ const StyleSheetFactory = (theme) => {
     imageStyle: {
       width: width * 0.7,
       height: height * 0.3,
+      borderRadius: theme.border_radius,
     },
     itemTextWrap: {
       width: width * 0.8,

@@ -12,7 +12,7 @@ const InvoiceModal = ({ openSetUpModal, closeModal, imageUri }) => {
 
   return (
     <Modal
-      animationType='slide'
+      animationType="slide"
       transparent
       visible={openSetUpModal}
       onRequestClose={closeModal}
@@ -21,7 +21,7 @@ const InvoiceModal = ({ openSetUpModal, closeModal, imageUri }) => {
         <CustomLeftHeader
           backgroundColor={theme.background_1}
           title={I18n.t('invoice_details')}
-          leftIcon='arrow-left'
+          leftIcon="arrow-left"
           onPress={closeModal}
           extraStyle={{ marginLeft: 10 }}
         />

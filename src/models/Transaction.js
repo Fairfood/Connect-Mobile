@@ -4,7 +4,6 @@ import {
   date,
   readonly,
   relation,
-  nochange,
   json
 } from "@nozbe/watermelondb/decorators";
 import { stringToJson } from "../services/commonFunctions";
@@ -13,7 +12,7 @@ const sanitizeExtraFields = json => {
   if(json === ""){
     return json;
   }else{
-    if(typeof json == "string"){
+    if(typeof json === "string"){
       stringToJson(json);
     }else{
       return json;
@@ -21,17 +20,17 @@ const sanitizeExtraFields = json => {
   }
 }
 
-const sanitizeReported = json => {
-  if(json === ""){
-    return json;
-  }else{
-    if(typeof json == "string"){
-      stringToJson(json);
-    }else{
-      return json;
-    }
-  }
-}
+// const sanitizeReported = json => {
+//   if(json === ""){
+//     return json;
+//   }else{
+//     if(typeof json === "string"){
+//       stringToJson(json);
+//     }else{
+//       return json;
+//     }
+//   }
+// }
 
 class Transaction extends Model {
   static table = "transactions";
@@ -66,12 +65,7 @@ class Transaction extends Model {
   @field("is_loss") is_loss;
   @json('extra_fields', sanitizeExtraFields) extra_fields;
   @field("error") error;
-  @json('reported', sanitizeReported) reported;
-  // @field("timestamp") timestamp;
-  // @field("latitude") latitude;
-  // @field("longitude") longitude;
-
-  // @nochange @field("server_id") serverID;
+  // @json('reported', sanitizeReported) reported;
   @readonly @date("created_at") createdAt;
   @readonly @date("updated_at") updatedAt;
   @relation("nodes", "node_id") node;

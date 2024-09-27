@@ -58,7 +58,6 @@ const NoCardMethod = ({ ...props }) => {
 
   /**
    * filtering farmer list based on search text
-   *
    * @param {string} text serch text
    */
   const onSearch = (text) => {
@@ -147,7 +146,7 @@ const NoCardMethod = ({ ...props }) => {
       </View>
       {displayModal && selectedFarmer == null && (
         <Modal
-          animationType='slide'
+          animationType="slide"
           transparent
           visible={displayModal}
           onRequestClose={() => setDisplayModal(false)}
@@ -169,7 +168,7 @@ const NoCardMethod = ({ ...props }) => {
               <FlatList
                 data={farmersList}
                 renderItem={renderItem}
-                keyboardShouldPersistTaps='always'
+                keyboardShouldPersistTaps="always"
                 style={styles.flatListStyle}
                 ListEmptyComponent={emptyComponent}
                 keyExtractor={(item, index) => index.toString()}

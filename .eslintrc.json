@@ -5,7 +5,7 @@
     "node": true,
     "es6": true
   },
-  "extends": ["plugin:react/recommended", "airbnb","plugin:jsdoc/recommended"],
+  "extends": ["plugin:react/recommended", "airbnb", "plugin:jsdoc/recommended"],
   "overrides": [],
   "parserOptions": {
     "ecmaVersion": "latest",
@@ -30,7 +30,7 @@
         "unnamedComponents": "arrow-function"
       }
     ],
-    "jsx-quotes": ["error", "prefer-single"],
+    "jsx-quotes": ["error", "prefer-double"],
     "react/jsx-filename-extension": [1, { "extensions": [".js", ".jsx"] }],
     "object-curly-newline": [
       "error",
@@ -46,6 +46,7 @@
     "no-underscore-dangle": ["error", { "allow": ["_raw"] }],
     "global-require": "off",
     "react/jsx-props-no-spreading": "off",
-    "jsdoc/check-access": 1
+    "jsdoc/check-access": 1,
+    "react/jsx-curly-newline": "off"
   }
 }

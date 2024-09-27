@@ -41,7 +41,7 @@ export const saveFarmer = async (farmer) => {
       entry.latitude = farmer.latitude;
       entry.longitude = farmer.longitude;
       entry.card_id = farmer.card_id;
-      entry.is_modiifed = farmer.is_modiifed;
+      entry.is_modified = farmer.is_modified;
       entry.last_synced = parseInt(updatedOn);
       entry.updated_on = parseInt(updatedOn);
       entry.created_on = parseInt(farmer.created_on);
@@ -78,7 +78,7 @@ export const findAndUpdateFarmer = async (nodeId, serverId) => {
     const node = await nodes.find(nodeId);
     await node.update((tx) => {
       tx.server_id = serverId;
-      tx.is_modiifed = false;
+      tx.is_modified = false;
       tx.last_synced = Math.round(Date.now() / 1000);
     });
   });
@@ -89,7 +89,7 @@ export const findAndUpdateFarmerImage = async (nodeId, image) => {
     const node = await nodes.find(nodeId);
     await node.update((tx) => {
       tx.image = image;
-      tx.is_modiifed = false;
+      tx.is_modified = false;
       tx.last_synced = Math.round(Date.now() / 1000);
     });
   });
@@ -152,4 +152,8 @@ export const updatedFarmersCount = async () => {
 
 export const findFarmerByName = async (name) => {
   return nodes.query(Q.where('name', name));
+};
+
+export const findNodeByCardId = async (cardId) => {
+  return nodes.query(Q.where('card_id', cardId));
 };

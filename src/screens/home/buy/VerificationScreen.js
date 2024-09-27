@@ -22,14 +22,8 @@ import Geolocation from 'react-native-geolocation-service';
 import Toast from 'react-native-toast-message';
 import * as Sentry from '@sentry/react-native';
 
-import { findFarmerById, getAllFarmers } from '../../../services/farmersHelper';
-import { saveTransaction } from '../../../services/transactionsHelper';
-import { saveBatch } from '../../../services/batchesHelper';
-import { saveTransactionPremium } from '../../../services/transactionPremiumHelper';
-import { findCardByCardId } from '../../../services/cardsHelper';
-import { requestPermission } from '../../../services/commonFunctions';
+import { jsonToString, requestPermission } from '../../../services/commonFunctions';
 import { NfcNotSupportIcon, TurnOnNfcIcon } from '../../../assets/svg';
-import { syncTransactions } from '../../../services/syncTransactions';
 import { initSyncProcess } from '../../../redux/LoginStore';
 import { updateNfcSupported } from '../../../redux/CommonStore';
 import {
@@ -49,6 +43,13 @@ import NfcMethod from '../../../components/NfcMethod';
 import QrCodeMethod from '../../../components/QrCodeMethod';
 import NoCardMethod from '../../../components/NoCardMethod';
 import VerificationSwitch from '../../../components/VerificationSwitch';
+import { logAnalytics } from '../../../services/googleAnalyticsHelper';
+import { fetchAllFarmers, findFarmer } from '../../../db/services/FarmerHelper';
+import { createTransaction } from '../../../db/services/TransactionsHelper';
+import { createBatch } from '../../../db/services/BatchHelper';
+import { createTransactionPremium } from '../../../db/services/TransactionPremiumHelper';
+import { fetchCardByCardId } from '../../../db/services/CardHelper';
+import { syncTransactions } from '../../../sync/SyncTransactions';
 
 const { width } = Dimensions.get('window');
 const defaultPosition = { coords: { longitude: 0, latitude: 0 } };
@@ -111,13 +112,15 @@ const VerificationScreen = ({ navigation, route }) => {
       checkNfcEnabled();
     }
 
-    const farmers = await getAllFarmers();
-    farmers.forEach((f) => {
+    const farmers = await fetchAllFarmers();
+    const convertedFarmers = Array.from(farmers);
+
+    convertedFarmers.forEach((f) => {
       f.label = f.name;
       f.value = f.id;
     });
 
-    farmers.sort((a, b) =>
+    convertedFarmers.sort((a, b) =>
       a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
     );
 
@@ -125,7 +128,7 @@ const VerificationScreen = ({ navigation, route }) => {
       setSelectedFarmer(newFarmer);
     }
 
-    setFarmersList(farmers);
+    setFarmersList(convertedFarmers);
     setInitialLoading(false);
   };
 
@@ -191,7 +194,8 @@ const VerificationScreen = ({ navigation, route }) => {
   const checkCardId = async (id) => {
     setVerifyLoading(true);
 
-    const isCardExist = await findCardByCardId(id);
+    const isCardExist = await fetchCardByCardId(id);
+
     if (isCardExist.length === 0) {
       incompleteTransaction();
       return;
@@ -201,10 +205,11 @@ const VerificationScreen = ({ navigation, route }) => {
       incompleteTransaction();
       return;
     }
-    const farmer = await findFarmerById(isCardExist[0].node_id);
+
+    const farmer = await findFarmer(isCardExist[0].node_id);
 
     if (farmer) {
-      requestAccessLocationPermission(farmer);
+      requestAccessLocationPermission(farmer, isCardExist);
     } else {
       incompleteTransaction();
     }
@@ -240,7 +245,6 @@ const VerificationScreen = ({ navigation, route }) => {
 
   /**
    * clearing NFC event
-   *
    * @param {boolean} tryAgain if true again starting NFC event.
    */
   const cleanUp = (tryAgain) => {
@@ -253,28 +257,28 @@ const VerificationScreen = ({ navigation, route }) => {
 
   /**
    * fetching device's geo location
-   *
-   * @param {object} farmer selected farmer
+   * @param {object}  farmer  selected farmer
+   * @param {Array}   card    selected card
    */
-  const requestAccessLocationPermission = async (farmer) => {
+  const requestAccessLocationPermission = async (farmer, card) => {
     if (preLocation) {
-      transactionValidate(farmer, preLocation);
+      transactionValidate(farmer, card, preLocation);
     } else {
       const locationGranted = await requestPermission('location');
 
       if (locationGranted) {
         Geolocation.getCurrentPosition(
           (position) => {
-            transactionValidate(farmer, position);
+            transactionValidate(farmer, card, position);
             return position.coords;
           },
           () => {
-            transactionValidate(farmer, defaultPosition);
+            transactionValidate(farmer, card, defaultPosition);
           },
           { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 },
         );
       } else {
-        transactionValidate(farmer, defaultPosition);
+        transactionValidate(farmer, card, defaultPosition);
       }
     }
   };
@@ -292,7 +296,6 @@ const VerificationScreen = ({ navigation, route }) => {
 
   /**
    * total amount of individual product excluding card dependent premium
-   *
    * @param   {number}  ProductTotal  product total
    * @param   {Array}   Premiums      total premiums
    * @returns {number}                total amount
@@ -300,7 +303,7 @@ const VerificationScreen = ({ navigation, route }) => {
   const getTotal = async (ProductTotal, Premiums) => {
     if (verificationMode === 'no_card') {
       const total = Premiums.reduce((a, b) => {
-        if (b?._raw?.is_card_dependent) {
+        if (b?.is_card_dependent) {
           return a - b.total;
         }
         return a;
@@ -313,7 +316,6 @@ const VerificationScreen = ({ navigation, route }) => {
 
   /**
    * get total amount of all products including premium amount
-   *
    * @returns {number} total amount
    */
   const getTotalPrice = () => {
@@ -330,7 +332,6 @@ const VerificationScreen = ({ navigation, route }) => {
 
   /**
    * get card dependent premium total and premium array
-   *
    * @param   {string} key  'total' or 'premium'
    * @returns {any}         returns total or premium array based on key
    */
@@ -340,9 +341,9 @@ const VerificationScreen = ({ navigation, route }) => {
     const mainObj = {};
     products.map((product) => {
       product.applied_premiums.map((premium) => {
-        const serverId = premium._raw.server_id;
+        const serverId = premium.server_id;
         if (mainObj[serverId]) {
-          if (!premium._raw.is_card_dependent) {
+          if (!premium.is_card_dependent) {
             const obj = mainObj[serverId];
             let { total } = obj;
             total += premium.total;
@@ -351,9 +352,9 @@ const VerificationScreen = ({ navigation, route }) => {
           } else {
             allTotal -= premium.total;
           }
-        } else if (!premium._raw.is_card_dependent) {
+        } else if (!premium.is_card_dependent) {
           const obj = {
-            name: premium._raw.name,
+            name: premium.name,
             total: premium.total,
           };
           mainObj[serverId] = obj;
@@ -371,11 +372,11 @@ const VerificationScreen = ({ navigation, route }) => {
 
   /**
    * validation function before submit
-   *
-   * @param {object} node     selected farmer
-   * @param {object} position device's geo location
+   * @param {object}  node      selected farmer
+   * @param {Array}   card      selected card
+   * @param {object}  position  device's geo location
    */
-  const transactionValidate = async (node, position) => {
+  const transactionValidate = async (node, card, position) => {
     let valid = true;
 
     await Promise.all(
@@ -421,7 +422,7 @@ const VerificationScreen = ({ navigation, route }) => {
 
     if (valid) {
       setError('');
-      completeTransaction(node, position);
+      completeTransaction(node, card, position);
     } else {
       setVerifyLoading(false);
     }
@@ -429,24 +430,28 @@ const VerificationScreen = ({ navigation, route }) => {
 
   /**
    * submit function. saving transaction, premium and batches in local db.
-   *
-   * @param {object} node selected farmer
-   * @param {object} position device's geo location.
+   * @param {object}  node      selected farmer
+   * @param {Array}   card      selected card
+   * @param {object}  position  device's geo location.
    */
-  const completeTransaction = async (node, position) => {
+  const completeTransaction = async (node, card, position) => {
     const transactionArray = [];
 
     await Promise.all(
       products.map(async (product) => {
         const date = new Date();
         const quantity = parseFloat(product.quantity);
-        const price = product.total_amount;
+        const price = parseFloat(product.total_amount);
         const total = await getTotal(
           product.total_amount + product.premium_total,
           product.applied_premiums,
         );
-        const product_price = product.base_price;
-        const extra_fields = product.extra_fields ?? null;
+        const product_price = parseFloat(product.base_price);
+
+        let extraFields = product.extra_fields || '';
+        if (extraFields && typeof extraFields === 'object') {
+          extraFields = jsonToString(extraFields);
+        }
 
         const transactionObj = {
           server_id: null,
@@ -459,7 +464,7 @@ const VerificationScreen = ({ navigation, route }) => {
           ref_number: null,
           price,
           invoice_file: '',
-          card_id: node.card_id,
+          card_id: card[0].id,
           date: moment(Math.round(date)).format('DD MMM YYYY'),
           total,
           created_on: parseInt(Math.round(date) / 1000),
@@ -469,10 +474,11 @@ const VerificationScreen = ({ navigation, route }) => {
           verification_method: VERIFICATION_METHOD_CARD,
           verification_longitude: position.coords.longitude,
           verification_latitude: position.coords.latitude,
-          extra_fields: extra_fields ?? '',
+          extra_fields: extraFields,
         };
 
-        const transactionId = await saveTransaction(transactionObj);
+        const transactionId = await createTransaction(transactionObj);
+
         transactionObj.id = transactionId;
         transactionObj.total_amount = product.total_amount;
         transactionObj.premium_total =
@@ -490,7 +496,8 @@ const VerificationScreen = ({ navigation, route }) => {
           unit: 1,
         };
 
-        await saveBatch(batch);
+        await createBatch(batch);
+
         await saveAllTransactionPremium(
           product.applied_premiums,
           product.quantity,
@@ -501,6 +508,15 @@ const VerificationScreen = ({ navigation, route }) => {
         await saveBasePricePayment(transactionId, transactionObj, node);
       }),
     ).then(async () => {
+      logAnalytics('transactions', {
+        verification_type:
+          verificationMode === 'nfc'
+            ? 'nfc_verification'
+            : 'qr_code_verification',
+        transaction_type: 'buy_transaction',
+        network_status: isConnected && !syncInProgress ? 'online' : 'offline',
+      });
+
       let checkTransactionStatus = false;
 
       if (isConnected && !syncInProgress) {
@@ -525,7 +541,6 @@ const VerificationScreen = ({ navigation, route }) => {
 
   /**
    * saving all transaction premiums
-   *
    * @param {Array}   appliedPremiums all premiums applied for the transaction
    * @param {number}  productQuality  product quantity
    * @param {string}  transactionId   corresponding transaction id
@@ -542,11 +557,13 @@ const VerificationScreen = ({ navigation, route }) => {
     await Promise.all(
       appliedPremiums.map(async (premium) => {
         const amount =
-          parseFloat(premium._raw.amount) * parseFloat(productQuality);
+          parseFloat(premium.amount) * parseFloat(productQuality);
+        const options = jsonToString(premium.selected_option);
+
         const transactionPremium = {
-          premium_id: premium._raw.id,
+          premium_id: premium.id,
           transaction_id: transactionId,
-          amount: parseFloat(amount),
+          amount,
           server_id: '',
           category: TYPE_TRANSACTION_PREMIUM,
           type: PAYMENT_OUTGOING,
@@ -560,15 +577,16 @@ const VerificationScreen = ({ navigation, route }) => {
           destination: node.server_id !== '' ? node.server_id : node.id,
           verification_longitude: transactionObj.verification_longitude,
           verification_latitude: transactionObj.verification_latitude,
+          options,
         };
-        await saveTransactionPremium(transactionPremium);
+
+        await createTransactionPremium(transactionPremium);
       }),
     );
   };
 
   /**
    * saving all base price payment
-   *
    * @param {string}  transactionId   corresponding transaction id
    * @param {object}  transactionObj  transaction object
    * @param {object}  node            selected farmer
@@ -592,12 +610,12 @@ const VerificationScreen = ({ navigation, route }) => {
       verification_longitude: transactionObj.verification_longitude,
       verification_latitude: transactionObj.verification_latitude,
     };
-    await saveTransactionPremium(basePricePayment);
+
+    await createTransactionPremium(basePricePayment);
   };
 
   /**
    * requesting camera access permission
-   *
    * @param {object} selectedFarm  selected farmer object
    */
   const requestCameraPermission = async (selectedFarm) => {
@@ -622,7 +640,6 @@ const VerificationScreen = ({ navigation, route }) => {
 
   /**
    * redirecting to take picture page
-   *
    * @param {object} selectedFarm  selected farmer object
    */
   const goToTakePicture = (selectedFarm) => {
@@ -644,7 +661,6 @@ const VerificationScreen = ({ navigation, route }) => {
 
   /**
    * creating alert modal based on put key
-   *
    * @param {string} key alert modal type
    */
   const createAlert = (key) => {
@@ -671,7 +687,7 @@ const VerificationScreen = ({ navigation, route }) => {
       setAlertIcon(
         <Image
           source={require('../../../assets/images/card-not-found.png')}
-          resizeMode='contain'
+          resizeMode="contain"
           style={{ width: width * 0.3, height: width * 0.3 }}
         />,
       );
@@ -681,7 +697,6 @@ const VerificationScreen = ({ navigation, route }) => {
 
   /**
    * submit function of alert modal
-   *
    * @param {*} key alert type
    */
   const onPressAlert = (key) => {
@@ -701,7 +716,6 @@ const VerificationScreen = ({ navigation, route }) => {
 
   /**
    * get premium array with name and total (group by premium)
-   *
    * @returns {Array} premium array
    */
   const getPremiumTotals = () => {
@@ -709,7 +723,7 @@ const VerificationScreen = ({ navigation, route }) => {
       const mainObj = {};
       products.map((product) => {
         product.applied_premiums.map((premium) => {
-          const serverId = premium._raw.server_id;
+          const serverId = premium.server_id;
           if (mainObj[serverId]) {
             const obj = mainObj[serverId];
             let { total } = obj;
@@ -718,7 +732,7 @@ const VerificationScreen = ({ navigation, route }) => {
             mainObj[serverId] = obj;
           } else {
             const obj = {
-              name: premium._raw.name,
+              name: premium.name,
               total: premium.total,
             };
             mainObj[serverId] = obj;
@@ -769,7 +783,7 @@ const VerificationScreen = ({ navigation, route }) => {
       <View style={styles.headerWrap}>
         <CustomLeftHeader
           title={I18n.t('premium_verification')}
-          leftIcon='arrow-left'
+          leftIcon="arrow-left"
           onPress={() => backNavigation()}
           extraStyle={{ width: '90%' }}
         />
@@ -783,12 +797,12 @@ const VerificationScreen = ({ navigation, route }) => {
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {initialLoading && (
-          <ActivityIndicator size='small' color={theme.icon_1} />
+          <ActivityIndicator size="small" color={theme.icon_1} />
         )}
 
         {verificationMode === 'nfc' && !initialLoading && (
           <NfcMethod
-            actionType='buy'
+            actionType="buy"
             verifyLoading={verifyLoading}
             error={error}
             onNoCardSubmit={onNoCardSubmit}
@@ -799,7 +813,7 @@ const VerificationScreen = ({ navigation, route }) => {
                   <View style={{ width: '95%', alignSelf: 'center' }}>
                     <CardNew
                       products={products}
-                      cardColor='#5691AE'
+                      cardColor="#5691AE"
                       textColor={theme.background_1}
                       premiums={getPremiumTotals()}
                       totalPrice={getTotalPrice()}
@@ -815,7 +829,7 @@ const VerificationScreen = ({ navigation, route }) => {
 
         {verificationMode === 'qr_code' && !initialLoading && (
           <QrCodeMethod
-            actionType='buy'
+            actionType="buy"
             verifyLoading={verifyLoading}
             error={error}
             onNoCardSubmit={onNoCardSubmit}
@@ -829,7 +843,7 @@ const VerificationScreen = ({ navigation, route }) => {
                   <View style={{ width: '95%', alignSelf: 'center' }}>
                     <CardNew
                       products={products}
-                      cardColor='#5691AE'
+                      cardColor="#5691AE"
                       textColor={theme.background_1}
                       premiums={getPremiumTotals()}
                       totalPrice={getTotalPrice()}
@@ -855,7 +869,7 @@ const VerificationScreen = ({ navigation, route }) => {
                 {products && (
                   <CardNew
                     products={products}
-                    cardColor='#5691AE'
+                    cardColor="#5691AE"
                     textColor={theme.background_1}
                     premiums={getPremiumRemovedValues('premium')}
                     totalPrice={getPremiumRemovedValues('total')}

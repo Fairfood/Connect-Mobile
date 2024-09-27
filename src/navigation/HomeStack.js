@@ -28,44 +28,58 @@ const Home = createStackNavigator();
 
 const HomeStack = () => {
   return (
-    <Home.Navigator headerMode='none'>
-      <Home.Screen name='Home' component={HomeScreen} />
-      <Home.Screen name='Buy' component={BuyScreen} />
-      <Home.Screen name='Verification' component={VerificationScreen} />
+    <Home.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
       <Home.Screen
-        name='SendVerificationScreen'
+        name="Home"
+        component={HomeScreen}
+        screenOptions={{ headerShown: false }}
+      />
+      <Home.Screen name="Buy" component={BuyScreen} />
+      <Home.Screen name="Verification" component={VerificationScreen} />
+      <Home.Screen
+        name="SendVerificationScreen"
         component={SendVerificationScreen}
       />
-      <Home.Screen name='TakePicture' component={TakePicture} />
-      <Home.Screen name='SendTakePicture' component={SendTakePicture} />
-      <Home.Screen name='Profile' component={ProfileScreen} />
-      <Home.Screen name='EditProfile' component={EditProfile} />
-      <Home.Screen name='ChangeLanguage' component={ChangeLanguage} />
-      <Home.Screen name='Send' component={SendScreen} />
+      <Home.Screen name="TakePicture" component={TakePicture} />
+      <Home.Screen name="SendTakePicture" component={SendTakePicture} />
+      <Home.Screen name="Profile" component={ProfileScreen} />
+      <Home.Screen name="EditProfile" component={EditProfile} />
+      <Home.Screen name="ChangeLanguage" component={ChangeLanguage} />
+      <Home.Screen name="Send" component={SendScreen} />
       <Home.Screen
-        name='FarmerTransactionDetails'
+        name="FarmerTransactionDetails"
         component={TransactionDetailsScreen}
       />
       <Home.Screen
-        name='HomeSendTransactionDetails'
+        name="HomeSendTransactionDetails"
         component={SendTransactionDetails}
       />
       <Home.Screen
-        name='SendTransactionCompleteScreen'
+        name="SendTransactionCompleteScreen"
         component={SendTransactionCompleteScreen}
       />
-      <Home.Screen name='HelpTutorialScreen' component={HelpTutorialScreen} />
-      <Home.Screen name='Settings' component={SettingsScreen} />
-      <Home.Screen name='ChooseProducts' component={ChooseProducts} />
+      <Home.Screen name="HelpTutorialScreen" component={HelpTutorialScreen} />
+      <Home.Screen name="Settings" component={SettingsScreen} />
+      <Home.Screen name="ChooseProducts" component={ChooseProducts} />
       <Home.Screen
-        name='TransactionComplete'
+        name="TransactionComplete"
         component={TransactionCompleteScreen}
       />
-      <Home.Screen name='ChooseMultiPremiums' component={ChooseMultiPremiums} />
-      <Home.Screen name='PayFarmer' component={PayFarmer} />
-      <Home.Screen name='PayFarmerVerification' component={PayFarmerVerification} />
-      <Home.Screen name='PayFarmerComplete' component={PayFarmerComplete} />
-      <Home.Screen name='PayFarmerTakePicture' component={PayFarmerTakePicture} />
+      <Home.Screen name="ChooseMultiPremiums" component={ChooseMultiPremiums} />
+      <Home.Screen name="PayFarmer" component={PayFarmer} />
+      <Home.Screen
+        name="PayFarmerVerification"
+        component={PayFarmerVerification}
+      />
+      <Home.Screen name="PayFarmerComplete" component={PayFarmerComplete} />
+      <Home.Screen
+        name="PayFarmerTakePicture"
+        component={PayFarmerTakePicture}
+      />
     </Home.Navigator>
   );
 };

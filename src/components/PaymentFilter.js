@@ -13,7 +13,8 @@ import DatePicker from 'react-native-date-picker';
 import Toast from 'react-native-toast-message';
 import { CloseIcon } from '../assets/svg';
 import { ISOdateConvert } from '../services/commonFunctions';
-import { getAllPremiums } from '../services/premiumsHelper';
+import { logAnalytics } from '../services/googleAnalyticsHelper';
+import { getAllActivePremiums } from '../db/services/PremiumsHelper';
 import {
   VERIFICATION_METHOD_CARD,
   VERIFICATION_METHOD_MANUAL,
@@ -92,18 +93,18 @@ const PaymentFilter = ({
    * setting premiums
    */
   const setupPremiums = async () => {
-    const allPremiums = await getAllPremiums();
+    const activePremiums = await getAllActivePremiums();
+    const convertedActivePremiums = Array.from(activePremiums);
     // adding base_price type for payment filter
     const obj = {
       name: 'Base price',
     };
-    allPremiums.push(obj);
-    setPremiums(allPremiums);
+    convertedActivePremiums.push(obj);
+    setPremiums(convertedActivePremiums);
   };
 
   /**
    * updating amount change
-   *
    * @param {string} amount amount value entered
    * @param {string} type     amount field type: 'minAmount' or 'maxAmount'
    */
@@ -127,7 +128,6 @@ const PaymentFilter = ({
 
   /**
    * opening date modal based on type
-   *
    * @param {string} type date field type: 'start_date' or 'end_date'
    */
   const openDateModal = (type) => {
@@ -144,7 +144,6 @@ const PaymentFilter = ({
 
   /**
    * updating date value
-   *
    * @param {Date} value selected date
    */
   const onSelectingDate = (value) => {
@@ -163,7 +162,6 @@ const PaymentFilter = ({
 
   /**
    * updating payment type value
-   *
    * @param {boolean} key current updated payment type key
    */
   const updatePaymentType = (key) => {
@@ -174,7 +172,6 @@ const PaymentFilter = ({
 
   /**
    * updating premium value
-   *
    * @param {string} name selected premium
    */
   const updatePremiums = (name) => {
@@ -194,7 +191,6 @@ const PaymentFilter = ({
 
   /**
    * updating verification method value
-   *
    * @param {boolean} key selected verification method key
    */
   const updateVerificationMethod = (key) => {
@@ -224,7 +220,7 @@ const PaymentFilter = ({
     if (filter.date) {
       const { startDate, endDate } = filter.date;
 
-      // start date should be less than enda date
+      // start date should be less than end date
       if (startDate && endDate && startDate > endDate) {
         Toast.show({
           type: 'error',
@@ -234,6 +230,10 @@ const PaymentFilter = ({
         return;
       }
     }
+
+    logAnalytics('filters', {
+      filter_type: 'payment_filter',
+    });
 
     applyFilters(filter, true);
   };
@@ -256,7 +256,7 @@ const PaymentFilter = ({
 
   return (
     <Modal
-      animationType='fade'
+      animationType="fade"
       transparent
       visible={visible}
       onRequestClose={hideModal}
@@ -285,7 +285,7 @@ const PaymentFilter = ({
                     onPress={() => openDateModal('start_date')}
                     style={{ width: '48%' }}
                   >
-                    <View pointerEvents='none'>
+                    <View pointerEvents="none">
                       <FormTextInput
                         placeholder={I18n.t('start_date')}
                         value={
@@ -304,7 +304,7 @@ const PaymentFilter = ({
                     onPress={() => openDateModal('end_date')}
                     style={{ width: '48%' }}
                   >
-                    <View pointerEvents='none'>
+                    <View pointerEvents="none">
                       <FormTextInput
                         placeholder={I18n.t('end_date')}
                         value={
@@ -421,7 +421,7 @@ const PaymentFilter = ({
                       value={filter.amount.minAmount.replace('.', ',')}
                       maxLength={6}
                       onChangeText={(text) => onChangeAmount(text, 'minAmount')}
-                      keyboardType='number-pad'
+                      keyboardType="number-pad"
                       color={theme.text_1}
                       extraStyle={{ width: '100%', paddingLeft: 0 }}
                     />
@@ -432,7 +432,7 @@ const PaymentFilter = ({
                       value={filter.amount.maxAmount.replace('.', ',')}
                       maxLength={6}
                       onChangeText={(text) => onChangeAmount(text, 'maxAmount')}
-                      keyboardType='number-pad'
+                      keyboardType="number-pad"
                       color={theme.text_1}
                       extraStyle={{ width: '100%', paddingLeft: 0 }}
                     />
@@ -442,11 +442,11 @@ const PaymentFilter = ({
 
               {dateModal && (
                 <DatePicker
-                  theme='light'
+                  theme="light"
                   modal
                   open={dateModal}
                   date={activeDate ? new Date(activeDate) : new Date()}
-                  mode='date'
+                  mode="date"
                   maximumDate={new Date()}
                   onConfirm={(date) => onSelectingDate(date)}
                   onCancel={() => setDateModal(false)}
@@ -459,7 +459,7 @@ const PaymentFilter = ({
           <TransparentButton
             buttonText={I18n.t('reset_filter')}
             onPress={() => resetFilter()}
-            color='#EA2553'
+            color="#EA2553"
             extraStyle={{
               width: '48%',
               marginHorizontal: 0,

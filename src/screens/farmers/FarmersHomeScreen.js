@@ -12,38 +12,42 @@ import {
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useIsFocused } from '@react-navigation/native';
-import withObservables from '@nozbe/with-observables';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  findAllUpdatedCards,
-  observeFarmers,
-  newFarmersCount,
-  updatedFarmersCount,
-} from '../../services/farmersHelper';
-import {
-  erroredTransactionsCount,
-  newTransactionsCount,
-} from '../../services/transactionsHelper';
+  SORT_MENUS,
+  AVATAR_AS_LETTERS,
+  AVATAR_BG_COLORS,
+} from '../../services/constants';
 import { updateSyncPercentage } from '../../redux/LoginStore';
 import { SortIcon } from '../../assets/svg';
+import { logAnalytics } from '../../services/googleAnalyticsHelper';
+import { realmContext } from '../../db/Configuration';
 import CustomSmallButton from '../../components/CustomSmallButton';
 import SearchComponent from '../../components/SearchComponent';
 import FarmerListItem from '../../components/FarmerListItem';
 import CustomHeader from '../../components/CustomHeader';
 import I18n from '../../i18n/i18n';
 import SyncComponent from '../../components/SyncComponent';
+import Node from '../../db/schema/Node';
 import {
-  SORT_MENUS,
-  AVATAR_AS_LETTERS,
-  AVATAR_BG_COLORS,
-} from '../../services/constants';
+  countNewFarmers,
+  countUpdatedFarmers,
+} from '../../db/services/FarmerHelper';
+import {
+  countErroredTransactions,
+  countNewTransactions,
+} from '../../db/services/TransactionsHelper';
+import { countUnSyncCards } from '../../db/services/CardHelper';
 
 const { width } = Dimensions.get('window');
 
-const FarmersHomeScreen = ({ navigation, FARMERS }) => {
+const FarmersHomeScreen = ({ navigation }) => {
   const { syncInProgress, syncSuccessfull } = useSelector(
     (state) => state.login,
   );
+  const { useQuery } = realmContext;
+  const allFarmers = useQuery(Node);
+
   const { theme } = useSelector((state) => state.common);
   const { isConnected } = useSelector((state) => state.connection);
   const [farmersList, setFarmersList] = useState([]);
@@ -59,7 +63,7 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
 
   useEffect(() => {
     setupInitialValues();
-  }, [FARMERS]);
+  }, [allFarmers]);
 
   useEffect(() => {
     setupSyncingIcon();
@@ -67,7 +71,7 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
 
   const setupInitialValues = async () => {
     // default sorting for farmers
-    const sortedFarmers = await sortFarmers(FARMERS, sortValue);
+    const sortedFarmers = await sortFarmers(allFarmers, sortValue);
     setFarmersList(sortedFarmers);
   };
 
@@ -77,13 +81,13 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
   const setupSyncingIcon = async () => {
     setSearchText('');
 
-    const newFarmers = await newFarmersCount();
-    const modifiedFarmers = await updatedFarmersCount();
-    const unSyncCards = await findAllUpdatedCards();
-    const newTransactions = await newTransactionsCount();
+    const newFarmers = await countNewFarmers();
+    const modifiedFarmers = await countUpdatedFarmers();
+    const unSyncCards = await countUnSyncCards();
+    const newTransactions = await countNewTransactions();
 
     const totalCount =
-      newFarmers + modifiedFarmers + newTransactions + unSyncCards.length;
+      newFarmers + modifiedFarmers + newTransactions + unSyncCards;
 
     if (syncInProgress) {
       setSyncIcon(require('../../assets/images/sync_pending.png'));
@@ -106,15 +110,14 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
 
   /**
    * setting initial sync data
-   *
    * @returns {boolean} true
    */
   const setInitialValues = async () => {
     if (!syncInProgress) {
-      const newFarmers = await newFarmersCount();
-      const modifiedFarmers = await updatedFarmersCount();
-      const newTransactions = await newTransactionsCount();
-      const erroredTransactions = await erroredTransactionsCount();
+      const newFarmers = await countNewFarmers();
+      const modifiedFarmers = await countUpdatedFarmers();
+      const newTransactions = await countNewTransactions();
+      const erroredTransactions = await countErroredTransactions();
 
       let obj = await AsyncStorage.getItem('syncData');
       obj = JSON.parse(obj);
@@ -141,7 +144,6 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
 
   /**
    * sorting farmers list based on search text
-   *
    * @param {string} text farmer name
    */
   const onSearch = async (text) => {
@@ -150,7 +152,9 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
     if (textSearch === '') {
       onRefresh();
     } else {
-      const filteredFarmers = FARMERS.filter((farmer) => {
+      // const sortFarmer = Array.from(allFarmers);
+
+      const filteredFarmers = allFarmers.filter((farmer) => {
         const name = farmer.name.toLowerCase();
         return name.includes(textSearch);
       });
@@ -162,7 +166,6 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
 
   /**
    * navigates to farmer details page
-   *
    * @param {object} node farmer object
    * @param {string} avatarBgColor avatar background color code
    */
@@ -175,13 +178,16 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
 
   /**
    * on submit of sort modal, sorting farmers list based on sort item
-   *
    * @param {object} item selected sort option
    */
   const onSelectItem = async (item) => {
     if (item.key !== sortValue) {
+      logAnalytics('sort_farmer', {
+        sort_by: item.key,
+      });
+
       setSortValue(item.key);
-      const sortedFarmers = await sortFarmers(farmersList, item.key);
+      const sortedFarmers = await sortFarmers(allFarmers, item.key);
       setFarmersList(sortedFarmers);
     }
     setSortModal(false);
@@ -189,34 +195,37 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
 
   /**
    * sorting farmer based on selected sort option
-   *
    * @param   {Array}  farmers farmers list
    * @param   {string} sortKey selected sort option key
    * @returns {Array}          sorted farmer list
    */
   const sortFarmers = async (farmers, sortKey) => {
-    const key = sortKey || sortValue || SORT_MENUS[0].key;
+    const sortFarmer = Array.from(farmers);
 
-    switch (key) {
+    switch (sortKey) {
       case 'created_descending':
-        farmers.sort((a, b) => b.created_on.getTime() - a.created_on.getTime());
-        return farmers;
+        return sortFarmer.sort(
+          (a, b) =>
+            new Date(b.created_on).getTime() - new Date(a.created_on).getTime(),
+        );
       case 'created_ascending':
-        farmers.sort((a, b) => a.created_on.getTime() - b.created_on.getTime());
-        return farmers;
+        return sortFarmer.sort(
+          (a, b) =>
+            new Date(a.created_on).getTime() - new Date(b.created_on).getTime(),
+        );
       case 'name_ascending':
-        farmers.sort((a, b) =>
+        return sortFarmer.sort((a, b) =>
           a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
         );
-        return farmers;
       case 'name_descending':
-        farmers.sort((a, b) =>
+        return sortFarmer.sort((a, b) =>
           b.name.toLowerCase().localeCompare(a.name.toLowerCase()),
         );
-        return farmers;
       default:
-        farmers.sort((a, b) => b.created_on.getTime() - a.created_on.getTime());
-        return farmers;
+        return sortFarmer.sort(
+          (a, b) =>
+            new Date(b.created_on).getTime() - new Date(a.created_on).getTime(),
+        );
     }
   };
 
@@ -225,7 +234,7 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
    */
   const onRefresh = async () => {
     setSearchText('');
-    const sortedFarmers = await sortFarmers(FARMERS, SORT_MENUS[0].key);
+    const sortedFarmers = await sortFarmers(allFarmers, SORT_MENUS[0].key);
     setFarmersList(sortedFarmers);
     setSortValue(SORT_MENUS[0].key);
   };
@@ -281,7 +290,7 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
       <FlatList
         data={farmersList}
         renderItem={renderItem}
-        keyboardShouldPersistTaps='always'
+        keyboardShouldPersistTaps="always"
         refreshing={false}
         onRefresh={() => onRefresh()}
         progressViewOffset={100}
@@ -293,7 +302,7 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
       <View style={styles.floatingIcon}>
         <CustomSmallButton
           buttonText={I18n.t('add_farmer')}
-          textIcon='Add'
+          textIcon="Add"
           onPress={() => navigation.navigate('AddNewFarmer')}
         />
       </View>
@@ -312,6 +321,7 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
           visible={sortModal}
           hideModal={() => setSortModal(false)}
           onSelectItem={onSelectItem}
+          styles={styles}
         />
       )}
     </SafeAreaView>
@@ -319,15 +329,16 @@ const FarmersHomeScreen = ({ navigation, FARMERS }) => {
 };
 
 const SortFarmerModal = ({ ...props }) => {
+  const { visible, hideModal, data, onSelectItem, activeValue, styles } = props;
   return (
     <Modal
-      animationType='fade'
+      animationType="fade"
       transparent
-      visible={props.visible}
-      onRequestClose={() => props.hideModal()}
+      visible={visible}
+      onRequestClose={() => hideModal()}
     >
       <TouchableOpacity
-        onPress={() => props.hideModal()}
+        onPress={() => hideModal()}
         style={styles.modalContainer}
       >
         <View style={styles.modalContainerSub}>
@@ -335,10 +346,10 @@ const SortFarmerModal = ({ ...props }) => {
             <Text style={styles.modalTitle}>{I18n.t('sort_by')}</Text>
           </View>
 
-          {props.data.map((item, index) => (
+          {data.map((item, index) => (
             <TouchableOpacity
               key={index.toString()}
-              onPress={() => props.onSelectItem(item)}
+              onPress={() => onSelectItem(item)}
               style={styles.modalItemWrap}
             >
               <Text style={styles.modalItem}>{I18n.t(item.title)}</Text>
@@ -347,11 +358,11 @@ const SortFarmerModal = ({ ...props }) => {
                   styles.radioOuter,
                   {
                     borderColor:
-                      props.activeValue === item.key ? '#4DCAF4' : '#003A60',
+                      activeValue === item.key ? '#4DCAF4' : '#003A60',
                   },
                 ]}
               >
-                {props.activeValue === item.key ? (
+                {activeValue === item.key ? (
                   <View style={styles.radioInner} />
                 ) : null}
               </View>
@@ -465,8 +476,4 @@ const StyleSheetFactory = (theme) => {
   });
 };
 
-const enhanceWithWeights = withObservables([], () => ({
-  FARMERS: observeFarmers(),
-}));
-
-export default enhanceWithWeights(FarmersHomeScreen);
+export default FarmersHomeScreen;

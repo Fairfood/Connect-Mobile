@@ -22,14 +22,14 @@ import Geolocation from 'react-native-geolocation-service';
 import Toast from 'react-native-toast-message';
 import * as Sentry from '@sentry/react-native';
 
-import { findFarmerById, getAllFarmers } from '../../../services/farmersHelper';
-import { saveTransactionPremium } from '../../../services/transactionPremiumHelper';
-import { findCardByCardId } from '../../../services/cardsHelper';
-import { requestPermission } from '../../../services/commonFunctions';
+import {
+  convertCurrency,
+  jsonToString,
+  requestPermission,
+} from '../../../services/commonFunctions';
 import { NfcNotSupportIcon, TurnOnNfcIcon } from '../../../assets/svg';
 import { initSyncProcess } from '../../../redux/LoginStore';
 import { updateNfcSupported } from '../../../redux/CommonStore';
-import { syncPayments } from '../../../services/syncTransactions';
 import CustomLeftHeader from '../../../components/CustomLeftHeader';
 import {
   MINIMUM_PAY_FARMER_AMOUNT,
@@ -38,12 +38,17 @@ import {
   PAYMENT_OUTGOING,
   VERIFICATION_METHOD_CARD,
 } from '../../../services/constants';
+import { logAnalytics } from '../../../services/googleAnalyticsHelper';
+import { fetchAllFarmers, findFarmer } from '../../../db/services/FarmerHelper';
+import { createTransactionPremium } from '../../../db/services/TransactionPremiumHelper';
+import { syncPayments } from '../../../sync/SyncTransactions';
 import I18n from '../../../i18n/i18n';
 import CommonAlert from '../../../components/CommonAlert';
 import NfcMethod from '../../../components/NfcMethod';
 import QrCodeMethod from '../../../components/QrCodeMethod';
 import NoCardMethod from '../../../components/NoCardMethod';
 import VerificationSwitch from '../../../components/VerificationSwitch';
+import { fetchCardByCardId } from '../../../db/services/CardHelper';
 
 const { width } = Dimensions.get('window');
 const defaultPosition = { coords: { longitude: 0, latitude: 0 } };
@@ -106,13 +111,15 @@ const PayFarmerVerification = ({ navigation, route }) => {
       checkNfcEnabled();
     }
 
-    const farmers = await getAllFarmers();
-    farmers.forEach((f) => {
+    const farmers = await fetchAllFarmers();
+    const convertedFarmers = Array.from(farmers);
+
+    convertedFarmers.forEach((f) => {
       f.label = f.name;
       f.value = f.id;
     });
 
-    farmers.sort((a, b) =>
+    convertedFarmers.sort((a, b) =>
       a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
     );
 
@@ -120,8 +127,7 @@ const PayFarmerVerification = ({ navigation, route }) => {
       setSelectedFarmer(newFarmer);
     }
 
-    setFarmersList(farmers);
-
+    setFarmersList(convertedFarmers);
     setInitialLoading(false);
   };
 
@@ -187,7 +193,7 @@ const PayFarmerVerification = ({ navigation, route }) => {
   const checkCardId = async (id) => {
     setVerifyLoading(true);
 
-    const isCardExist = await findCardByCardId(id);
+    const isCardExist = await fetchCardByCardId(id);
     if (isCardExist.length === 0) {
       incompleteTransaction();
       return;
@@ -197,10 +203,10 @@ const PayFarmerVerification = ({ navigation, route }) => {
       incompleteTransaction();
       return;
     }
-    const farmer = await findFarmerById(isCardExist[0].node_id);
 
+    const farmer = await findFarmer(isCardExist[0].node_id);
     if (farmer) {
-      requestAccessLocationPermission(farmer);
+      requestAccessLocationPermission(farmer, isCardExist);
     } else {
       incompleteTransaction();
     }
@@ -236,7 +242,6 @@ const PayFarmerVerification = ({ navigation, route }) => {
 
   /**
    * clearing NFC event
-   *
    * @param {boolean} tryAgain if true again starting NFC event.
    */
   const cleanUp = (tryAgain) => {
@@ -249,28 +254,28 @@ const PayFarmerVerification = ({ navigation, route }) => {
 
   /**
    * fetching device's geo location
-   *
-   * @param {object} farmer selected farmer
+   * @param {object}  farmer  selected farmer
+   * @param {Array}   card    selected card
    */
-  const requestAccessLocationPermission = async (farmer) => {
+  const requestAccessLocationPermission = async (farmer, card) => {
     if (preLocation) {
-      transactionValidate(farmer, preLocation);
+      transactionValidate(farmer, card, preLocation);
     } else {
       const locationGranted = await requestPermission('location');
 
       if (locationGranted) {
         Geolocation.getCurrentPosition(
           (position) => {
-            transactionValidate(farmer, position);
+            transactionValidate(farmer, card, position);
             return position.coords;
           },
           () => {
-            transactionValidate(farmer, defaultPosition);
+            transactionValidate(farmer, card, defaultPosition);
           },
           { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 },
         );
       } else {
-        transactionValidate(farmer, defaultPosition);
+        transactionValidate(farmer, card, defaultPosition);
       }
     }
   };
@@ -288,11 +293,11 @@ const PayFarmerVerification = ({ navigation, route }) => {
 
   /**
    * validation function before submit
-   *
-   * @param {object} node     selected farmer
-   * @param {object} position device's geo location
+   * @param {object}  node      selected farmer
+   * @param {Array}   card      selected card
+   * @param {object}  position  device's geo location
    */
-  const transactionValidate = async (node, position) => {
+  const transactionValidate = async (node, card, position) => {
     let valid = true;
 
     await Promise.all(
@@ -312,7 +317,7 @@ const PayFarmerVerification = ({ navigation, route }) => {
 
     if (valid) {
       setError('');
-      completeTransaction(node, position);
+      completeTransaction(node, card, position);
     } else {
       setVerifyLoading(false);
     }
@@ -320,16 +325,22 @@ const PayFarmerVerification = ({ navigation, route }) => {
 
   /**
    * submit function. saving transaction, premium and batches in local db.
-   *
-   * @param {object} node selected farmer
-   * @param {object} position device's geo location.
+   * @param {object}  node      selected farmer
+   * @param {Array}   card      selected card
+   * @param {object}  position  device's geo location.
    */
-  const completeTransaction = async (node, position) => {
+  const completeTransaction = async (node, card, position) => {
     await Promise.all(
       premiums.map(async (premium) => {
         const date = parseInt(new Date().getTime() / 1000);
+        const cardId =
+          card[0].server_id !== '' ? card[0].server_id : card[0].id;
+        const extraFields = premium.extra_fields
+          ? jsonToString(premium.extra_fields)
+          : '';
+
         const transactionPremium = {
-          premium_id: premium._raw.id,
+          premium_id: premium.id,
           transaction_id: '',
           amount: parseFloat(premium.paid_amount),
           server_id: '',
@@ -337,7 +348,7 @@ const PayFarmerVerification = ({ navigation, route }) => {
           type: PAYMENT_OUTGOING,
           verification_method: VERIFICATION_METHOD_CARD,
           receipt: '',
-          card_id: node.card_id,
+          card_id: cardId,
           node_id: node.id,
           date,
           verification_longitude: position.coords.longitude,
@@ -345,10 +356,21 @@ const PayFarmerVerification = ({ navigation, route }) => {
           currency,
           source: loggedInUser.default_node,
           destination: node.server_id !== '' ? node.server_id : node.id,
+          extra_fields: extraFields,
         };
-        await saveTransactionPremium(transactionPremium);
+
+        await createTransactionPremium(transactionPremium);
       }),
     ).then(async () => {
+      logAnalytics('transactions', {
+        verification_type:
+          verificationMode === 'nfc'
+            ? 'nfc_verification'
+            : 'qr_code_verification',
+        transaction_type: 'pay_farmer',
+        network_status: isConnected && !syncInProgress ? 'online' : 'offline',
+      });
+
       if (isConnected && !syncInProgress) {
         dispatch(initSyncProcess());
         await syncPayments();
@@ -369,7 +391,6 @@ const PayFarmerVerification = ({ navigation, route }) => {
 
   /**
    * requesting camera access permission
-   *
    * @param {object} selectedFarm  selected farmer object
    */
   const requestCameraPermission = async (selectedFarm) => {
@@ -394,7 +415,6 @@ const PayFarmerVerification = ({ navigation, route }) => {
 
   /**
    * redirecting to take picture page
-   *
    * @param {object} selectedFarm  selected farmer object
    */
   const goToTakePicture = (selectedFarm) => {
@@ -416,7 +436,6 @@ const PayFarmerVerification = ({ navigation, route }) => {
 
   /**
    * creating alert modal based on put key
-   *
    * @param {string} key alert modal type
    */
   const createAlert = (key) => {
@@ -443,7 +462,7 @@ const PayFarmerVerification = ({ navigation, route }) => {
       setAlertIcon(
         <Image
           source={require('../../../assets/images/card-not-found.png')}
-          resizeMode='contain'
+          resizeMode="contain"
           style={{ width: width * 0.3, height: width * 0.3 }}
         />,
       );
@@ -453,7 +472,6 @@ const PayFarmerVerification = ({ navigation, route }) => {
 
   /**
    * submit function of alert modal
-   *
    * @param {*} key alert type
    */
   const onPressAlert = (key) => {
@@ -511,7 +529,7 @@ const PayFarmerVerification = ({ navigation, route }) => {
       <View style={styles.headerWrap}>
         <CustomLeftHeader
           title={I18n.t('premium_verification')}
-          leftIcon='arrow-left'
+          leftIcon="arrow-left"
           onPress={() => backNavigation()}
           extraStyle={{ width: '90%' }}
         />
@@ -525,12 +543,12 @@ const PayFarmerVerification = ({ navigation, route }) => {
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {initialLoading && (
-          <ActivityIndicator size='small' color={theme.icon_1} />
+          <ActivityIndicator size="small" color={theme.icon_1} />
         )}
 
         {verificationMode === 'nfc' && !initialLoading && (
           <NfcMethod
-            actionType='buy'
+            actionType="buy"
             verifyLoading={verifyLoading}
             error={error}
             onNoCardSubmit={onNoCardSubmit}
@@ -539,7 +557,7 @@ const PayFarmerVerification = ({ navigation, route }) => {
               <View style={{ width: '95%', alignSelf: 'center' }}>
                 <CardNew
                   premiums={premiums}
-                  cardColor='#5691AE'
+                  cardColor="#5691AE"
                   textColor={theme.background_1}
                   totalPrice={totalPrice}
                   currency={currency}
@@ -553,7 +571,7 @@ const PayFarmerVerification = ({ navigation, route }) => {
 
         {verificationMode === 'qr_code' && !initialLoading && (
           <QrCodeMethod
-            actionType='buy'
+            actionType="buy"
             verifyLoading={verifyLoading}
             error={error}
             onNoCardSubmit={onNoCardSubmit}
@@ -565,10 +583,11 @@ const PayFarmerVerification = ({ navigation, route }) => {
               <View style={{ width: '95%', alignSelf: 'center' }}>
                 <CardNew
                   premiums={premiums}
-                  cardColor='#5691AE'
+                  cardColor="#5691AE"
                   textColor={theme.background_1}
                   totalPrice={totalPrice}
                   currency={currency}
+                  styles={styles}
                   theme={theme}
                 />
               </View>
@@ -587,10 +606,11 @@ const PayFarmerVerification = ({ navigation, route }) => {
               <View style={{ width: '95%', alignSelf: 'center' }}>
                 <CardNew
                   premiums={premiums}
-                  cardColor='#5691AE'
+                  cardColor="#5691AE"
                   textColor={theme.background_1}
                   totalPrice={totalPrice}
                   theme={theme}
+                  styles={styles}
                   currency={currency}
                 />
               </View>
@@ -638,9 +658,7 @@ const CardNew = ({
         <View key={index.toString()} style={styles.cardItem}>
           <Text style={styles.cardLeftItem}>{`${premium.name}:`}</Text>
           <Text style={styles.cardRightItem}>
-            {`${parseFloat(premium.paid_amount).toLocaleString(
-              'id',
-            )} ${currency}`}
+            {`${convertCurrency(premium.paid_amount)} ${currency}`}
           </Text>
         </View>
       ))}
@@ -650,7 +668,7 @@ const CardNew = ({
       <View style={[styles.cardItem, { marginVertical: 10 }]}>
         <Text style={styles.totalTitle}>{`${I18n.t('total')}:`}</Text>
         <Text style={styles.totalValue}>
-          {`${parseFloat(totalPrice).toLocaleString('id')} ${currency}`}
+          {`${convertCurrency(totalPrice)} ${currency}`}
         </Text>
       </View>
     </View>

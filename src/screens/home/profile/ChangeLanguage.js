@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { changeFooterItems } from '../../../redux/CommonStore';
 import { HIT_SLOP_TEN } from '../../../services/constants';
 import { ChangeLanguageIcon } from '../../../assets/svg';
+import { logAnalytics } from '../../../services/googleAnalyticsHelper';
 import CustomLeftHeader from '../../../components/CustomLeftHeader';
 import CustomButton from '../../../components/CustomButton';
 import CommonAlert from '../../../components/CommonAlert';
@@ -30,8 +31,8 @@ const languages = [
 const ChangeLanguage = ({ navigation }) => {
   const dispatch = useDispatch();
   const { theme } = useSelector((state) => state.common);
-  const [appLanguage, setAppLanguage] = useState('en-GB');
-  const [previousLanguage, setPreviousAppLanguage] = useState('en-GB');
+  const [appLanguage, setAppLanguage] = useState(languages[0]);
+  const [previousLanguage, setPreviousAppLanguage] = useState(languages[0]);
   const [alertModal, setAlertModal] = useState(false);
 
   useEffect(() => {
@@ -43,24 +44,26 @@ const ChangeLanguage = ({ navigation }) => {
    */
   const setupInitialValues = async () => {
     const language = await AsyncStorage.getItem('app_language');
-    setAppLanguage(language);
-    setPreviousAppLanguage(language);
+    const arr = languages.filter((x) => {
+      return x.value === language;
+    });
+    setAppLanguage(arr[0]);
+    setPreviousAppLanguage(arr[0]);
   };
 
   /**
    * setting selected language
-   *
    * @param {object} obj language object
    */
   const selectLanguage = (obj) => {
-    setAppLanguage(obj.value);
+    setAppLanguage(obj);
   };
 
   /**
    * submit confirmation
    */
   const onSubmit = () => {
-    if (appLanguage === previousLanguage) {
+    if (appLanguage.value === previousLanguage.value) {
       navigation.goBack(null);
     } else {
       setAlertModal(true);
@@ -71,8 +74,8 @@ const ChangeLanguage = ({ navigation }) => {
    * submit function
    */
   const handleSubmit = async () => {
-    I18n.locale = appLanguage;
-    await AsyncStorage.setItem('app_language', appLanguage);
+    I18n.locale = appLanguage.value;
+    await AsyncStorage.setItem('app_language', appLanguage.value);
 
     // managing footer text transactions
     const obj = {
@@ -81,6 +84,10 @@ const ChangeLanguage = ({ navigation }) => {
       transactions: I18n.t('transactions'),
     };
     dispatch(changeFooterItems(obj));
+
+    logAnalytics('language_switch', {
+      language: appLanguage.label,
+    });
 
     setAlertModal(false);
     navigation.goBack();
@@ -94,7 +101,7 @@ const ChangeLanguage = ({ navigation }) => {
         <CustomLeftHeader
           backgroundColor={theme.background_1}
           title={I18n.t('language')}
-          leftIcon='arrow-left'
+          leftIcon="arrow-left"
           onPress={() => navigation.goBack(null)}
         />
 
@@ -120,11 +127,11 @@ const ChangeLanguage = ({ navigation }) => {
                 <RadioButtonInput
                   obj={obj}
                   index={i}
-                  isSelected={obj.value === appLanguage}
+                  isSelected={obj.value === appLanguage?.value}
                   onPress={() => selectLanguage(obj)}
                   borderWidth={1}
-                  buttonInnerColor='#4DCAF4'
-                  buttonOuterColor='#2196f3'
+                  buttonInnerColor="#4DCAF4"
+                  buttonOuterColor="#2196f3"
                   buttonSize={16}
                   buttonOuterSize={22}
                   buttonStyle={{ width: 100, height: 100 }}
@@ -138,19 +145,21 @@ const ChangeLanguage = ({ navigation }) => {
       <CustomButton
         buttonText={I18n.t('save')}
         onPress={() => onSubmit()}
-        color='#EA2553'
+        color="#EA2553"
         extraStyle={{ width: '100%', marginBottom: 10 }}
       />
 
       {alertModal && (
         <CommonAlert
           visible={alertModal}
-          title={`${I18n.t('change_language', { locale: appLanguage })}!!`}
+          title={`${I18n.t('change_language', {
+            locale: appLanguage.value,
+          })}!!`}
           message={I18n.t('are_you_sure_change_language', {
-            locale: appLanguage,
+            locale: appLanguage.value,
           })}
-          submitText={I18n.t('ok', { locale: appLanguage })}
-          cancelText={I18n.t('cancel', { locale: appLanguage })}
+          submitText={I18n.t('ok', { locale: appLanguage.value })}
+          cancelText={I18n.t('cancel', { locale: appLanguage.value })}
           icon={
             <ChangeLanguageIcon width={width * 0.23} height={width * 0.23} />
           }

@@ -18,4 +18,6 @@ export default {
   font_regular: 'Moderat-Regular', // FONT_REGULAR
   font_medium: 'Moderat-Medium', // FONT_MEDIUM
   font_bold: 'Moderat-Bold', // FONT_BOLD
+  radio_1: '#003A60',
+  radio_2: '#4DCAF4',
 };

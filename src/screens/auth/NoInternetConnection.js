@@ -16,7 +16,7 @@ const NoInternetConnection = () => {
         onPress={() => {}}
       />
       <View style={styles.iconWrap}>
-        <Icon name='no_internet' size={120} color={theme.text_1} />
+        <Icon name="no_internet" size={120} color={theme.text_1} />
       </View>
       <View style={styles.formTitleContainer}>
         <Text style={styles.formTitle}>{I18n.t('no_internet_connection')}</Text>
