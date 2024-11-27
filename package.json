@@ -36,7 +36,7 @@
     "axios": "^0.21.1",
     "husky": "^8.0.2",
     "i18n-js": "^4.2.0",
-    "moment": "^2.29.1",
+    "moment": "^2.29.4",
     "react": "17.0.2",
     "react-native": "0.68.5",
     "react-native-animated-ellipsis": "^2.0.0",
