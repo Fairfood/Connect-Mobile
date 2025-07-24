@@ -1,17 +1,22 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import Config from 'react-native-config';
 import { useSelector } from 'react-redux';
 // screens and components
-import LoginScreen from '../screens/auth/LoginScreen';
 import TabNavigator from './TabNavigator';
-import OnBoardingScreen from '../screens/auth/OnBoardingScreen';
+import AuthStack from './AuthStack';
+import OnBoardingScreen from '../screens/auth/onboard';
 
 const Navigator = () => {
   const { isLoggedIn, loggedInUser } = useSelector((state) => state.login);
 
+  const linking = {
+    prefixes: [Config.APP_LINK_REDIRECT_URI], // The deep link prefixes to listen for
+  };
+
   return (
-    <NavigationContainer>
-      {!isLoggedIn && loggedInUser == null && <LoginScreen />}
+    <NavigationContainer linking={linking}>
+      {!isLoggedIn && loggedInUser == null && <AuthStack />}
       {!isLoggedIn && loggedInUser != null && <OnBoardingScreen />}
       {isLoggedIn && <TabNavigator />}
     </NavigationContainer>

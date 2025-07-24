@@ -1,20 +1,17 @@
 import { createSlice } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DEFAULT_SYNC_DATA } from '../services/constants';
+import { DEFAULT_SYNC_DATA } from '../utils/constants';
 
 export const initialState = {
   isLoggedIn: false,
   loggedInUser: null,
-  loginLoading: false,
-  loginError: { error: false, message: '' },
   userCompanyDetails: null,
-  userProjectDetails: null,
   syncInProgress: false,
-  syncSuccessfull: true,
-  showForceLogin: false,
+  syncSuccessful: true,
   syncPercentage: 0,
   syncTotalCount: 0,
-  onBoardingError: false,
+  loginButtonLoading: false,
+  loginLoadingText: 'Continue',
 };
 
 // A slice for recipes with our three reducers
@@ -22,50 +19,22 @@ const LoginStore = createSlice({
   name: 'login',
   initialState,
   reducers: {
-    signInUser: (state) => {
-      state.loginLoading = true;
-      state.loginError = { error: false, message: '' };
-    },
     signInSuccess: (state, { payload }) => {
       state.loggedInUser = payload;
       state.isLoggedIn = false;
-      state.loginLoading = false;
-      state.showForceLogin = true;
-    },
-    signInFailure: (state, { payload }) => {
-      state.loginLoading = false;
-      state.loginError = {
-        error: true,
-        message: payload,
-      };
     },
     updateForceLogin: (state) => {
-      state.showForceLogin = false;
       state.loggedInUser = null;
     },
     signOutUser: (state) => {
-      state.loginLoading = false;
-      state.loginError = { error: false, message: '' };
       state.loggedInUser = null;
       state.isLoggedIn = false;
+      state.userCompanyDetails = null;
       state.syncInProgress = false;
-      state.syncSuccessfull = false;
+      state.syncSuccessful = false;
     },
     updateCompanyDetails: (state, { payload }) => {
-      state.loggedInUser = {
-        ...state.loggedInUser,
-        project_id: payload.projects[0],
-      };
-      state.loginLoading = false;
       state.userCompanyDetails = payload;
-    },
-    updateProjectDetails: (state, { payload }) => {
-      state.loggedInUser = {
-        ...state.loggedInUser,
-        premiums: payload.premiums,
-      };
-      state.loginLoading = false;
-      state.userProjectDetails = payload;
     },
     updateUserDetails: (state, { payload }) => {
       state.loggedInUser = {
@@ -73,35 +42,31 @@ const LoginStore = createSlice({
         ...payload,
       };
     },
-    clearError: (state) => {
-      state.loginLoading = false;
-      state.loginError = {
-        error: false,
-        message: '',
-      };
-    },
     setSyncInProgress: (state) => {
       state.syncInProgress = true;
-      state.syncSuccessfull = false;
+      state.syncSuccessful = false;
     },
     setSyncInProgressSuccess: (state) => {
       state.syncInProgress = false;
-      state.syncSuccessfull = true;
+      state.syncSuccessful = true;
     },
     setSyncInProgressFailure: (state) => {
       state.syncInProgress = false;
-      state.syncSuccessfull = false;
+      state.syncSuccessful = false;
     },
     onBoardingComplete: (state) => {
       state.isLoggedIn = true;
     },
     updateSyncPercentage: (state, { payload }) => {
-      [syncPercentage, syncTotalCount] = payload;
+      const [syncPercentage, syncTotalCount] = payload;
       state.syncPercentage = syncPercentage;
       state.syncTotalCount = syncTotalCount;
     },
-    updateOnBoardingError: (state, { payload }) => {
-      state.onBoardingError = payload;
+    updateLoginButtonLoading: (state, { payload }) => {
+      state.loginButtonLoading = payload;
+    },
+    updateLoginLoadingText: (state, { payload }) => {
+      state.loginLoadingText = payload;
     },
   },
 });
@@ -123,6 +88,13 @@ export const SyncProcessComplete = () => {
 export const SyncProcessFailed = () => {
   return async (dispatch) => {
     dispatch(setSyncInProgressFailure());
+  };
+};
+
+export const updateLoginLoadingStatus = (loading, text = '') => {
+  return async (dispatch) => {
+    dispatch(updateLoginButtonLoading(loading));
+    dispatch(updateLoginLoadingText(text));
   };
 };
 
@@ -176,21 +148,18 @@ export const manageSyncData = (type, syncStatus) => {
 
 // Action creators are generated for each case reducer function
 export const {
-  signInUser,
-  signInFailure,
   signInSuccess,
   signOutUser,
   updateForceLogin,
   updateCompanyDetails,
-  updateProjectDetails,
-  clearError,
   setSyncInProgress,
   setSyncInProgressSuccess,
   setSyncInProgressFailure,
   updateUserDetails,
   onBoardingComplete,
   updateSyncPercentage,
-  updateOnBoardingError,
+  updateLoginButtonLoading,
+  updateLoginLoadingText,
 } = LoginStore.actions;
 
 // A selector

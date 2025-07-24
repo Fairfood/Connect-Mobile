@@ -1,81 +1,42 @@
-/* eslint-disable import/no-named-as-default-member */
-/* eslint-disable import/no-named-as-default */
 import React from 'react';
+import * as Sentry from '@sentry/react-native';
+import Toast from 'react-native-toast-message';
+import codePush from 'react-native-code-push';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/lib/integration/react';
-import Toast from 'react-native-toast-message';
-// db related
-import { Database } from '@nozbe/watermelondb';
-import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
-import DatabaseProvider from '@nozbe/watermelondb/DatabaseProvider';
-import codePush from 'react-native-code-push';
-import * as Sentry from '@sentry/react-native';
 import { store, persistor } from './src/redux/store';
-import api from './src/api/config';
-// models
-import schema from './src/models/schema';
-import migrations from './src/models/migrations';
-import Node from './src/models/Node';
-import Transaction from './src/models/Transaction';
-import Product from './src/models/Product';
-import Batch from './src/models/Batch';
-import SourceBatch from './src/models/SourceBatch';
-import TransactionPremium from './src/models/TransactionPremium';
-import ProductPremium from './src/models/ProductPremium';
-import Premium from './src/models/Premium';
-import Card from './src/models/Card';
+import { checkAppUpdateAvailable } from './src/utils/commonFunctions';
 // screens
 import Root from './src/screens/Root';
-import ToastConfig from './src/components/ToastConfig';
+import ToastConfig from './src/components/toastConfig';
+import api from './src/api/config';
+import { configureReanimatedLogger } from 'react-native-reanimated';
 
-if (__DEV__) {
-  import('./ReactotronConfig').then(() => 'Reactotron Configured');
-} else {
-  Sentry.init({
-    dsn: api.SENTRY_URL,
-  });
-}
+const { apiConfig } = store.getState().connection;
+const sentryUrl = apiConfig?.SENTRY_URL ?? api.SENTRY_URL;
+
+configureReanimatedLogger({
+  strict: false, // Reanimated runs in strict mode by default
+});
+
+Sentry.init({
+  dsn: sentryUrl,
+});
 
 const codePushOptions = {
   checkFrequency: codePush.CheckFrequency.ON_APP_RESUME,
 };
 
-const adapter = new SQLiteAdapter({
-  schema,
-  migrations,
-  jsi: true,
-  onSetUpError: () => {
-    // console.log('error', error);
-  },
-});
-
-// Then, make a Watermelon database from it!
-export const database = new Database({
-  adapter,
-  modelClasses: [
-    Node,
-    Transaction,
-    Product,
-    Batch,
-    TransactionPremium,
-    Premium,
-    SourceBatch,
-    Card,
-    ProductPremium,
-  ],
-  actionsEnabled: true,
-});
+checkAppUpdateAvailable();
 
 const MyApp = () => {
   return (
-    <DatabaseProvider database={database}>
-      <Provider store={store}>
-        <PersistGate loading={null} persistor={persistor}>
-          <Root />
-        </PersistGate>
-      </Provider>
-      <Toast config={ToastConfig} visibilityTime={2000} />
-    </DatabaseProvider>
+    <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        <Root />
+      </PersistGate>
+      <Toast config={ToastConfig} visibilityTime={3500} />
+    </Provider>
   );
 };
 

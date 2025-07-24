@@ -1,6 +1,6 @@
 Contributors to Trace mobile app 
 ============================
-Trace Mobile is a data collection app to support agriculture vaulue chians in with product traceability and provide evidence for payment or sustainability claims. Importantly, it aims to include farmers in the data collection process and enable ways to reward them for their participation.
+Trace Mobile is a data collection app to support agriculture value chains in with product traceability and provide evidence for payment or sustainability claims. Importantly, it aims to include farmers in the data collection process and enable ways to reward them for their participation.
 
 <p align="center">
   <img src="https://contributors-img.web.app/image?repo=Fairfood/trace-app" width = 500/>
@@ -15,7 +15,7 @@ Trace mobile team are actively supporting the project and have made substantial 
    * Build project APIs and backend 
 * **[derekhardwick](https://github.com/derekhardwick)**
    * Project owner
-   * Project maintainance and customer support
+   * Project maintenance and customer support
 * **[Midhun P J](https://github.com/midhunfairfood)**
    * Frondend developer
    * Website cretaion and code reviewer
@@ -24,7 +24,7 @@ Trace mobile team are actively supporting the project and have made substantial 
    * Quality Assurance for both website and mobile app
 * **[Shyno](https://github.com/shynofairfoood)**
    * React native developer
-   * Mobile app maintanace and feature implementation
+   * Mobile app maintenance and feature implementation
 * **[Sudeesh Narayanan](https://github.com/sudeeshnarayanan)**
    * Technical architect
    * Technical support and team lead.

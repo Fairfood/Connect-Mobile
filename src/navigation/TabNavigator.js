@@ -1,17 +1,43 @@
-/* eslint-disable no-shadow */
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
+import {
+  FooterFarmerIcon,
+  FooterHomeICon,
+  FooterTransactionICon,
+} from '../assets/svg';
+import I18n from '../translations/text/i18n';
 
 import HomeStack from './HomeStack';
 import FarmerStack from './FarmerStack';
 import TransactionStack from './TransactionStack';
 
-import Icon from '../icons';
-import I18n from '../i18n/i18n';
-
 const Tabs = createBottomTabNavigator();
+const noTabPages = [
+  'ChooseProducts',
+  'Buy',
+  'Verification',
+  'SendVerificationScreen',
+  'SendTakePicture',
+  'TransactionComplete',
+  'TakePicture',
+  'SendTransactionCompleteScreen',
+  'Send',
+  'ChooseMultiPremiums',
+  'PayFarmer',
+  'PayFarmerVerification',
+  'PayFarmerComplete',
+  'PayFarmerTakePicture',
+  'AddNewFarmer',
+  'IssueFarmerCard',
+  'FarmerSuccessScreen',
+  'FarmerTransactionDetails',
+  'EditFarmer',
+  'Profile',
+  'ReportTransaction',
+  'SearchCard',
+];
 
 const TabNavigator = () => {
   const { footerItems } = useSelector((state) => state.common);
@@ -19,45 +45,31 @@ const TabNavigator = () => {
   return (
     <Tabs.Navigator
       initialRouteName={footerItems?.home ?? I18n.t('home')}
-      tabBarOptions={{
-        activeTintColor: '#003A60',
-        inactiveTintColor: '#5691AE',
+      screenOptions={{
+        tabBarActiveTintColor: '#314743',
+        tabBarInactiveTintColor: '#5691AE',
+        tabBarItemStyle: { paddingBottom: 5 },
+        headerShown: false,
       }}
-      backBehaviour='initialRoute'
+      backBehaviour="initialRoute"
     >
       <Tabs.Screen
         name={footerItems?.home ?? I18n.t('home')}
         component={HomeStack}
         options={({ route }) => ({
+          tabBarTestID: 'footer-home-icon',
           tabBarIcon: ({ focused }) => (
-            <Icon
-              name='home'
-              size={20}
-              color={focused ? '#314743' : '#5691AE'}
+            <FooterHomeICon
+              fill={focused ? '#314743' : '#5691AE'}
             />
           ),
-          tabBarVisible: ((route) => {
+          tabBarStyle: ((route) => {
             const routeName = getFocusedRouteNameFromRoute(route) ?? '';
 
-            if (
-              routeName === 'ChooseProducts' ||
-              routeName === 'Buy' ||
-              routeName === 'Verification' ||
-              routeName === 'SendVerificationScreen' ||
-              routeName === 'SendTakePicture' ||
-              routeName === 'TransactionComplete' ||
-              routeName === 'TakePicture' ||
-              routeName === 'SendTransactionCompleteScreen' ||
-              routeName === 'Send' ||
-              routeName === 'ChooseMultiPremiums' ||
-              routeName === 'PayFarmer' ||
-              routeName === 'PayFarmerVerification' ||
-              routeName === 'PayFarmerComplete' ||
-              routeName === 'PayFarmerTakePicture'
-            ) {
-              return false;
+            if (noTabPages.includes(routeName)) {
+              return { display: 'none' };
             }
-            return true;
+            return { display: 'flex' };
           })(route),
         })}
       />
@@ -65,39 +77,42 @@ const TabNavigator = () => {
         name={footerItems?.farmers ?? I18n.t('farmers')}
         component={FarmerStack}
         options={({ route }) => ({
+          tabBarTestID: 'footer-farmer-icon',
           tabBarIcon: ({ focused }) => (
-            <Icon
-              name='farmer'
-              size={20}
-              color={focused ? '#314743' : '#5691AE'}
+            <FooterFarmerIcon
+              width={22}
+              height={22}
+              fill={focused ? '#314743' : '#5691AE'}
             />
           ),
-          tabBarVisible: ((route) => {
+          tabBarStyle: ((route) => {
             const routeName = getFocusedRouteNameFromRoute(route) ?? '';
-            if (
-              routeName === 'AddNewFarmer' ||
-              routeName === 'IssueFarmerCard' ||
-              routeName === 'FarmerSuccessScreen' ||
-              routeName === 'FarmerTransactionDetails' ||
-              routeName === 'EditFarmer'
-            ) {
-              return false;
+            if (noTabPages.includes(routeName)) {
+              return { display: 'none' };
             }
-            return true;
+            return { display: 'flex' };
           })(route),
         })}
       />
       <Tabs.Screen
         name={footerItems?.transactions ?? I18n.t('transactions')}
         component={TransactionStack}
-        options={() => ({
+        options={({ route }) => ({
+          tabBarTestID: 'footer-transaction-icon',
           tabBarIcon: ({ focused }) => (
-            <Icon
-              name='transaction'
-              size={20}
-              color={focused ? '#314743' : '#5691AE'}
+            <FooterTransactionICon
+              width={22}
+              height={22}
+              fill={focused ? '#314743' : '#5691AE'}
             />
           ),
+          tabBarStyle: ((route) => {
+            const routeName = getFocusedRouteNameFromRoute(route) ?? '';
+            if (noTabPages.includes(routeName)) {
+              return { display: 'none' };
+            }
+            return { display: 'flex' };
+          })(route),
         })}
       />
     </Tabs.Navigator>
