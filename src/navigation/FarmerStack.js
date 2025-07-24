@@ -1,33 +1,48 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 // screens
-import Farmers from '../screens/farmers/FarmersHomeScreen';
-import AddNewFarmer from '../screens/farmers/AddNewFarmer';
-import IssueFarmerCard from '../screens/farmers/IssueFarmerCard';
-import FarmerDetailsScreen from '../screens/farmers/FarmerDetailsScreen';
-import FarmerSuccessScreen from '../screens/farmers/FarmerSuccessScreen';
-import EditFarmer from '../screens/farmers/EditFarmer';
-import TransactionDetailsScreen from '../screens/transactions/TransactionDetails';
+import FarmersHomeScreen from '../screens/farmers/farmersHomeScreen';
+import AddNewFarmer from '../screens/farmers/addNewFarmer';
+import IssueFarmerCard from '../screens/farmers/issueFarmerCard';
+import FarmerDetailsScreen from '../screens/farmers/farmerDetailsScreen';
+import FarmerSuccessScreen from '../screens/farmers/farmerSuccessScreen';
+import EditFarmer from '../screens/farmers/editFarmer';
+import TransactionDetailsScreen from '../screens/transactions/transactionDetails';
+import SearchCardScreen from '../screens/farmers/searchCardScreen';
 
-const Farmer = createStackNavigator();
+const FarmerNavigator = createStackNavigator();
 
 const FarmerStack = () => {
   return (
-    <Farmer.Navigator headerMode='none'>
-      <Farmer.Screen name='Farmers' component={Farmers} />
-      <Farmer.Screen name='AddNewFarmer' component={AddNewFarmer} />
-      <Farmer.Screen name='IssueFarmerCard' component={IssueFarmerCard} />
-      <Farmer.Screen name='EditFarmer' component={EditFarmer} />
-      <Farmer.Screen name='FarmerDetails' component={FarmerDetailsScreen} />
-      <Farmer.Screen
-        name='FarmerTransactionDetails'
+    <FarmerNavigator.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <FarmerNavigator.Screen
+        name="FarmersHomeScreen"
+        component={FarmersHomeScreen}
+      />
+      <FarmerNavigator.Screen name="AddNewFarmer" component={AddNewFarmer} />
+      <FarmerNavigator.Screen
+        name="IssueFarmerCard"
+        component={IssueFarmerCard}
+      />
+      <FarmerNavigator.Screen name="EditFarmer" component={EditFarmer} />
+      <FarmerNavigator.Screen
+        name="FarmerDetails"
+        component={FarmerDetailsScreen}
+      />
+      <FarmerNavigator.Screen
+        name="FarmerTransactionDetails"
         component={TransactionDetailsScreen}
       />
-      <Farmer.Screen
-        name='FarmerSuccessScreen'
+      <FarmerNavigator.Screen
+        name="FarmerSuccessScreen"
         component={FarmerSuccessScreen}
       />
-    </Farmer.Navigator>
+      <FarmerNavigator.Screen name="SearchCard" component={SearchCardScreen} />
+    </FarmerNavigator.Navigator>
   );
 };
 

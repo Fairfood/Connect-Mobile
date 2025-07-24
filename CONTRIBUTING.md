@@ -135,7 +135,7 @@ Must be one of the following:
 * **build**: Changes that affect the build system, CI configuration or external dependencies
             (example scopes: gulp, broccoli, npm)
 * **chore**: Other changes that don't modify `src` or `test` files
-* **relese**: Release version commit
+* **release**: Release version commit
 
 ### Scope
 The scope could be anything specifying place of the commit change. For example
@@ -165,8 +165,8 @@ You can add your name to the [contributors list][authors] when you submit your c
 [coc]: CODE_OF_CONDUCT.md
 [dev-doc]: DEV_DOCS.md
 [authors]: AUTHORS.md
-[github]: https://github.com/Fairfood/trace-app.git
-[stackoverflow]: https://stackoverflow.com/questions/tagged/TraceMobileApp
-[issues]: https://github.com/Fairfood/trace-app.git/issues
-[new_issue]: https://github.com/Fairfood/trace-app.git/issues/new
-[pulls]: https://github.com/Fairfood/trace-app/pulls
+[github]: https://git.cied.in/fairfood/trace-v2/frontend-mobile/fairfood-react-native
+[stackoverflow]: https://stackoverflow.com/questions/tagged/HarvestCollectorApp
+[issues]: https://git.cied.in/fairfood/trace-v2/frontend-mobile/fairfood-react-native/issues
+[new_issue]: https://git.cied.in/fairfood/trace-v2/frontend-mobile/fairfood-react-native/issues/new
+[pulls]: https://git.cied.in/fairfood/trace-v2/frontend-mobile/fairfood-react-native/-/merge_requests

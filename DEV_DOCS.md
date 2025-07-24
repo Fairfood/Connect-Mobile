@@ -11,11 +11,11 @@ Trace mobile application supports multi environments:
 
 You must add environment configurations to run the project. It must written in corresponding .env.development and .env.production files.
 
-These env files includes configuaration variables for each environment.
+These env files includes configuration variables for each environment.
 
-Create 2 files .env.development and .env.production if you haven't already and add configuaration variables into these files.
+Create 2 files .env.development and .env.production if you haven't already and add configuration variables into these files.
 
-Examples for the configuration variables can be foun in the [.env.template](.env.template) file.
+Examples for the configuration variables can be found in the [.env.template](.env.template) file.
 
 You can also crete other environments if you like. You can follow the package [react-native-config](https://www.npmjs.com/package/react-native-config/v/1.4.11) for more reference.
 
@@ -46,7 +46,7 @@ If you want to clear previous build before building new one, run
 
 `yarn clean` from the project root.
 
-To create release build run these cammand from the project root.
+To create release build run these command from the project root.
 
 ## Release production build
 

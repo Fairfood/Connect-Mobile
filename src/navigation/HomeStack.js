@@ -1,72 +1,101 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 // screens
-import HomeScreen from '../screens/home/dashboard/HomeScreen';
-import BuyScreen from '../screens/home/buy/BuyScreen';
-import SendScreen from '../screens/home/send/SendScreen';
-import VerificationScreen from '../screens/home/buy/VerificationScreen';
-import SendVerificationScreen from '../screens/home/send/SendVerificationScreen';
-import TransactionCompleteScreen from '../screens/home/buy/TransactionCompleteScreen';
-import TakePicture from '../screens/home/buy/TakePicture';
-import SendTakePicture from '../screens/home/send/SendTakePicture';
-import ProfileScreen from '../screens/home/profile/ProfileScreen';
-import TransactionDetailsScreen from '../screens/transactions/TransactionDetails';
-import SendTransactionDetails from '../screens/transactions/SendTransactionDetails';
-import EditProfile from '../screens/home/profile/EditProfile';
-import ChangeLanguage from '../screens/home/profile/ChangeLanguage';
-import SendTransactionCompleteScreen from '../screens/home/send/SendTransactionCompleteScreen';
-import HelpTutorialScreen from '../screens/home/dashboard/HelpTutorialScreen';
-import SettingsScreen from '../screens/home/profile/SettingsScreen';
-import ChooseProducts from '../screens/home/buy/ChooseMutliProducts';
-import ChooseMultiPremiums from '../screens/home/payfarmer/ChooseMultiPremium';
-import PayFarmer from '../screens/home/payfarmer/PayFarmerScreen';
-import PayFarmerVerification from '../screens/home/payfarmer/PayFarmerVerificationScreen';
-import PayFarmerComplete from '../screens/home/payfarmer/PayFarmerCompleteScreen';
-import PayFarmerTakePicture from '../screens/home/payfarmer/PayFarmerTakePicture';
+import HomeScreen from '../screens/home/dashboard/homeScreen';
+import BuyScreen from '../screens/home/buy/buyScreen';
+import s from '../screens/home/send/sendScreen';
+import VerificationScreen from '../screens/home/buy/verificationScreen';
+import SendVerificationScreen from '../screens/home/send/sendVerificationScreen';
+import TransactionCompleteScreen from '../screens/home/buy/transactionCompleteScreen';
+import TakePicture from '../screens/home/buy/takePicture';
+import SendTakePicture from '../screens/home/send/sendTakePicture';
+import ProfileScreen from '../screens/home/profile/profileScreen';
+import TransactionDetailsScreen from '../screens/transactions/transactionDetails';
+import EditProfile from '../screens/home/profile/editProfile';
+import ChangeLanguage from '../screens/home/profile/changeLanguage';
+import SendTransactionCompleteScreen from '../screens/home/send/sendTransactionCompleteScreen';
+import HelpTutorialScreen from '../screens/home/dashboard/helpTutorialScreen';
+import SettingsScreen from '../screens/home/profile/settingsScreen';
+import ChooseProducts from '../screens/home/buy/chooseMultiProducts';
+import ChooseMultiPremiums from '../screens/home/payFarmer/chooseMultiPremium';
+import PayFarmer from '../screens/home/payFarmer/payFarmerScreen';
+import PayFarmerVerification from '../screens/home/payFarmer/payFarmerVerificationScreen';
+import PayFarmerComplete from '../screens/home/payFarmer/payFarmerCompleteScreen';
+import PayFarmerTakePicture from '../screens/home/payFarmer/payFarmerTakePicture';
+import ChangeNumberFormat from '../screens/home/profile/numberFormat';
 
-const Home = createStackNavigator();
+const HomeNavigator = createStackNavigator();
 
 const HomeStack = () => {
   return (
-    <Home.Navigator headerMode='none'>
-      <Home.Screen name='Home' component={HomeScreen} />
-      <Home.Screen name='Buy' component={BuyScreen} />
-      <Home.Screen name='Verification' component={VerificationScreen} />
-      <Home.Screen
-        name='SendVerificationScreen'
+    <HomeNavigator.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <HomeNavigator.Screen
+        name="HomeScreen"
+        component={HomeScreen}
+        screenOptions={{ headerShown: false }}
+      />
+      <HomeNavigator.Screen name="Buy" component={BuyScreen} />
+      <HomeNavigator.Screen
+        name="Verification"
+        component={VerificationScreen}
+      />
+      <HomeNavigator.Screen
+        name="SendVerificationScreen"
         component={SendVerificationScreen}
       />
-      <Home.Screen name='TakePicture' component={TakePicture} />
-      <Home.Screen name='SendTakePicture' component={SendTakePicture} />
-      <Home.Screen name='Profile' component={ProfileScreen} />
-      <Home.Screen name='EditProfile' component={EditProfile} />
-      <Home.Screen name='ChangeLanguage' component={ChangeLanguage} />
-      <Home.Screen name='Send' component={SendScreen} />
-      <Home.Screen
-        name='FarmerTransactionDetails'
+      <HomeNavigator.Screen name="TakePicture" component={TakePicture} />
+      <HomeNavigator.Screen
+        name="SendTakePicture"
+        component={SendTakePicture}
+      />
+      <HomeNavigator.Screen name="Profile" component={ProfileScreen} />
+      <HomeNavigator.Screen name="EditProfile" component={EditProfile} />
+      <HomeNavigator.Screen name="ChangeLanguage" component={ChangeLanguage} />
+      <HomeNavigator.Screen
+        name="ChangeNumberFormat"
+        component={ChangeNumberFormat}
+      />
+      <HomeNavigator.Screen name="Send" component={s} />
+      <HomeNavigator.Screen
+        name="FarmerTransactionDetails"
         component={TransactionDetailsScreen}
       />
-      <Home.Screen
-        name='HomeSendTransactionDetails'
-        component={SendTransactionDetails}
-      />
-      <Home.Screen
-        name='SendTransactionCompleteScreen'
+      <HomeNavigator.Screen
+        name="SendTransactionCompleteScreen"
         component={SendTransactionCompleteScreen}
       />
-      <Home.Screen name='HelpTutorialScreen' component={HelpTutorialScreen} />
-      <Home.Screen name='Settings' component={SettingsScreen} />
-      <Home.Screen name='ChooseProducts' component={ChooseProducts} />
-      <Home.Screen
-        name='TransactionComplete'
+      <HomeNavigator.Screen
+        name="HelpTutorialScreen"
+        component={HelpTutorialScreen}
+      />
+      <HomeNavigator.Screen name="Settings" component={SettingsScreen} />
+      <HomeNavigator.Screen name="ChooseProducts" component={ChooseProducts} />
+      <HomeNavigator.Screen
+        name="TransactionComplete"
         component={TransactionCompleteScreen}
       />
-      <Home.Screen name='ChooseMultiPremiums' component={ChooseMultiPremiums} />
-      <Home.Screen name='PayFarmer' component={PayFarmer} />
-      <Home.Screen name='PayFarmerVerification' component={PayFarmerVerification} />
-      <Home.Screen name='PayFarmerComplete' component={PayFarmerComplete} />
-      <Home.Screen name='PayFarmerTakePicture' component={PayFarmerTakePicture} />
-    </Home.Navigator>
+      <HomeNavigator.Screen
+        name="ChooseMultiPremiums"
+        component={ChooseMultiPremiums}
+      />
+      <HomeNavigator.Screen name="PayFarmer" component={PayFarmer} />
+      <HomeNavigator.Screen
+        name="PayFarmerVerification"
+        component={PayFarmerVerification}
+      />
+      <HomeNavigator.Screen
+        name="PayFarmerComplete"
+        component={PayFarmerComplete}
+      />
+      <HomeNavigator.Screen
+        name="PayFarmerTakePicture"
+        component={PayFarmerTakePicture}
+      />
+    </HomeNavigator.Navigator>
   );
 };
 

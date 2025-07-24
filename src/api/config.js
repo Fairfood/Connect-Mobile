@@ -4,12 +4,14 @@
 
 import Config from 'react-native-config';
 
-const API = {
-  API_CLIENT_CODE: Config.API_CLIENT_CODE,
-  API_URL: Config.API_URL,
-  API_VERSION: Config.API_VERSION,
-  APP_ENV: Config.APP_ENVIORNMENT,
+const apiConfig = {
+  API_BASE_URL: Config.API_BASE_URL,
+  APP_ENVIRONMENT: Config.APP_ENVIRONMENT,
+  API_SERVER_NAME: Config.API_SERVER_NAME,
+  DEFAULT_SERVER: true,
   SENTRY_URL: Config.SENTRY_URL,
+  GOOGLE_PLAY_STORE_URL: Config.GOOGLE_PLAY_STORE_URL,
+  APP_LINK_REDIRECT_URI: Config.APP_LINK_REDIRECT_URI,
 };
 
-export default API;
+export default apiConfig;
